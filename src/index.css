@@ -131,12 +131,12 @@
     }
 }
 
-/* proximity, not mandatory: the scroll still settles on a section when it's
-   close, but the wheel is never yanked mid-flick — the camera smoothing in
-   PentecostParallax turns whatever the scroll does into a glide */
+/* mandatory: the page always settles on exactly one section, never between
+   two. The snap's jump is absorbed by the damped camera in PentecostParallax,
+   so the scene glides while the text snaps into place. */
 html {
   scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: y mandatory;
   background: #14100e;
 }
 section[data-screen-label] {
