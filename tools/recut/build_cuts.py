@@ -167,30 +167,38 @@ def main() -> None:
     arch_mask = arch(gray, load_masks("out-stone_column", "stone_column"))
     print(f"{len(figures)} figures, {len(flames)} flames, arch {int(arch_mask.sum())}px")
 
-    # contested pixels belong to the figure standing nearer the viewer
-    # (its silhouette reaches further down the plate)
-    order = sorted(range(len(figures)), key=lambda i: -np.flatnonzero(figures[i].any(axis=1)).max())
+    # Global exclusive ownership: every pixel belongs to exactly ONE layer, so
+    # no content can be drawn twice at different depths. Painted lowest
+    # priority first, each later paint overwriting — crowd and floor start as
+    # solid bands and end up holding only what nothing else claimed. (The old
+    # per-layer subtractions leaked: clean()'s hole-filling stamped the
+    # figure-shaped holes right back into the crowd band.)
     owner = np.full((H, W), -1, np.int16)
-    for rank, i in enumerate(order):
-        m = figures[i].astype(bool) & (owner < 0)
-        owner[m] = i
-    figures = [(owner == i).astype(np.uint8) for i in range(len(figures))]
-
-    # floor: the pavement band in front of the crowd, minus the figures
-    floor = np.zeros((H, W), np.uint8)
-    floor[int(H * 0.78):, :] = 1
-    for f in figures:
-        floor &= 1 - f
-    floor = clean(floor, close_px=5)
-
-    # residual crowd layer: everything in the crowd band no figure owns — the
-    # faces SAM didn't separate move with this back layer instead of being
-    # ghosts pinned to the backdrop wall
+    layers_by_priority: list[tuple[int, np.ndarray]] = []
     crowd = np.zeros((H, W), np.uint8)
     crowd[int(H * 0.40):int(H * 0.815), :] = 1
-    for m in (*figures, floor, *flames):
-        crowd &= 1 - m
-    crowd = clean(crowd, close_px=5)
+    floor = np.zeros((H, W), np.uint8)
+    floor[int(H * 0.78):, :] = 1
+    CROWD_ID, FLOOR_ID, ARCH_ID, DOVE_ID = 1000, 1001, 1002, 1003
+    layers_by_priority.append((CROWD_ID, crowd))
+    layers_by_priority.append((FLOOR_ID, floor))
+    layers_by_priority.append((ARCH_ID, arch_mask))
+    # figures back-to-front so the nearer figure wins contested pixels
+    # (its silhouette reaches further down the plate)
+    for i in sorted(range(len(figures)), key=lambda i: np.flatnonzero(figures[i].any(axis=1)).max()):
+        layers_by_priority.append((i, figures[i]))
+    layers_by_priority.append((DOVE_ID, dove))
+    for j, f in enumerate(flames):
+        layers_by_priority.append((2000 + j, f))
+    for lid, m in layers_by_priority:
+        owner[m.astype(bool)] = lid
+    figures = [(owner == i).astype(np.uint8) for i in range(len(figures))]
+    flames = [(owner == 2000 + j).astype(np.uint8) for j in range(len(flames))]
+    flames = [f for f in flames if f.sum() > 0]
+    dove = (owner == DOVE_ID).astype(np.uint8)
+    arch_mask = (owner == ARCH_ID).astype(np.uint8)
+    crowd = (owner == CROWD_ID).astype(np.uint8)
+    floor = (owner == FLOOR_ID).astype(np.uint8)
 
     # z for each figure from how far down the plate it reaches (further = nearer)
     bottoms = [np.flatnonzero(f.any(axis=1)).max() / H for f in figures]
