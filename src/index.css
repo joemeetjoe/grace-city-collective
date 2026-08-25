@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/cormorant-garamond/300.css";
+@import "@fontsource/cormorant-garamond/400.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -127,4 +129,22 @@
   html {
     @apply font-sans;
     }
+}
+
+/* scroll settles on exactly one section at a time — safe as mandatory because
+   every section is exactly one viewport tall */
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  background: #14100e;
+}
+section[data-screen-label] {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
 }

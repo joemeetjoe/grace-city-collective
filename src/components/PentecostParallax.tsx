@@ -1,0 +1,377 @@
+import { useEffect, useRef } from "react";
+import * as THREE from "three";
+
+/**
+ * Doré's "The Descent of the Holy Spirit" cut into ~32 depth layers and
+ * reassembled in three.js. Scroll drives a camera that visits one waypoint per
+ * <section data-screen-label> on the page.
+ *
+ * Assets expected in /public/dore/:
+ *   plate.jpg            the engraving (2048x2519)
+ *   plate-backdrop.png   the plate with every cutout inpainted back in
+ *   cuts.json            [{ name, z, isFlame }]
+ *   cut-<name>.png       one greyscale mask per cut
+ *
+ * The masks are a partition of unity — they sum to 1 at every pixel — so the
+ * layers reassemble the plate exactly, which is why the cuts leave no seams.
+ */
+
+type Cut = { name: string; z: number; isFlame: number };
+
+type Layer = {
+  name: string;
+  z: number;
+  mesh: THREE.Mesh;
+  mat: THREE.ShaderMaterial;
+  isFlame: number;
+  i: number;
+  fit?: number;
+};
+
+type Waypoint = {
+  /** band of the plate this frame must contain, in image v (0 = top) */
+  band: [number, number];
+  /** lateral offset as a fraction of plate width */
+  u?: number;
+  /** aim at a named layer's live position instead of the band centre */
+  aim?: "dove";
+  /** where in frame the aimed layer should sit (0 = bottom, 1 = top) */
+  at?: number;
+};
+
+export type PentecostParallaxProps = {
+  /** how far apart the cut planes sit; 1 = as authored */
+  layerSpread?: number;
+  /** intensity of the light beam and the dove's halo */
+  beamGlow?: number;
+  /** flame flicker */
+  flameDrift?: boolean;
+  /** slow autonomous drift when the page is idle */
+  idleDrift?: boolean;
+  /** how far the camera pushes in across the page (0–0.5) */
+  dollyIntensity?: number;
+  className?: string;
+};
+
+const VERT = `
+uniform float uFit;
+varying vec2 vUv;
+void main(){
+  vUv = (uv - 0.5) / uFit + 0.5;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const FRAG = `
+uniform sampler2D map, mask;
+uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat;
+varying vec2 vUv;
+void main(){
+  vec2 uv = vUv;
+  float edge = smoothstep(-0.004, 0.010, uv.x) * smoothstep(1.004, 0.990, uv.x)
+             * smoothstep(-0.004, 0.010, uv.y) * smoothstep(1.004, 0.990, uv.y);
+  // cuts fade to nothing outside the image; the backdrop clamps instead, so
+  // looking past the plate shows wall rather than a void
+  float m = mix(texture2D(mask, uv).r * edge, 1.0, uFlat);
+  vec3 col = texture2D(map, uv).rgb;
+
+  float lum = dot(col, vec3(0.333));
+  float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
+  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * vec3(1.0, 0.84, 0.58);
+
+  // clamp before pow(): outside the plate 1.0 - uv.y goes negative, and pow()
+  // with a negative base is undefined in GLSL — it returns NaN and blackens
+  // everything above the image
+  vec2 cv = clamp(uv, 0.0, 1.0);
+  float spread = mix(0.055, 0.34, pow(1.0 - cv.y, 1.5));
+  float bx = (cv.x - 0.5) / spread;
+  float beam = exp(-bx * bx * 1.9) * smoothstep(0.26, 0.96, cv.y);
+  float dv = distance(cv * vec2(1.0, 1.22), vec2(0.5, 0.965 * 1.22));
+  float halo = exp(-dv * dv * 180.0);
+  col += (beam * 0.30 + halo * 0.34) * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
+
+  col = col / (1.0 + col * 0.30);
+  col = pow(col, vec3(1.12)) * vec3(1.05, 1.0, 0.92);
+  gl_FragColor = vec4(col, m);
+}`;
+
+/**
+ * One waypoint per section. Each declares the BAND of the plate it must contain
+ * rather than a frame centre — the frame's half-height in image units is
+ * aspect-dependent, so a centre tuned at 4:3 starves on 16:9. Solving the
+ * distance from the band fills the frame identically at every aspect.
+ *
+ * Content sits at: flames v 0.26–0.42, faces v 0.42–0.52, robes down to v 0.78,
+ * the dove at v 0.033. The band between v 0.25 and v 0.10 is bare wall — never
+ * aim a waypoint there.
+ */
+const WAYPOINTS: Waypoint[] = [
+  { band: [0.26, 0.84], u: 0.0 },   // hero — the whole gathering
+  { band: [0.30, 0.74], u: -0.17 }, // about — in on the left of the ring
+  { band: [0.28, 0.64], u: 0.19 },  // gatherings — heads and tongues of flame
+  { band: [0.30, 0.58], u: 0.0 },   // community — centre, under the beam
+  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.6 }, // give — the dove
+];
+
+const BASE = "/dore";
+const PLATE_W = 2048;
+const PLATE_H = 2519;
+const IW = 16;
+const IH = IW * (PLATE_H / PLATE_W);
+const FIT = 0.74;
+const FIT_BG = 0.28;
+const BACKDROP_Z = -5.6;
+const DOVE_V = 0.033;
+
+export default function PentecostParallax({
+  layerSpread = 1,
+  beamGlow = 1,
+  flameDrift = true,
+  idleDrift = false,
+  dollyIntensity = 0.46,
+  className,
+}: PentecostParallaxProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // live props, so tweaking them never rebuilds the scene
+  const opts = useRef({ layerSpread, beamGlow, flameDrift, idleDrift, dollyIntensity });
+  opts.current = { layerSpread, beamGlow, flameDrift, idleDrift, dollyIntensity };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x14100e, 1);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+
+    const loader = new THREE.TextureLoader();
+    const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    const sharpen = (t: THREE.Texture, srgb = false) => {
+      if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+      // the plate is thousands of fine engraved lines — without mipmaps and
+      // anisotropy they alias into a shimmering woven-cloth moiré
+      t.generateMipmaps = true;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.anisotropy = maxAniso;
+      return t;
+    };
+    const plate = sharpen(loader.load(`${BASE}/plate.jpg`), true);
+    const backdrop = sharpen(loader.load(`${BASE}/plate-backdrop.png`), true);
+
+    let baseZ = 20;
+    let layers: Layer[] = [];
+    let backdropLayer: Layer | null = null;
+    let doveLayer: Layer | undefined;
+    let raf = 0;
+    let disposed = false;
+    const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+    let sections: HTMLElement[] = [];
+
+    const resize = () => {
+      const w = canvas.clientWidth || window.innerWidth;
+      const h = canvas.clientHeight || window.innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      const tan = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+      // cover-fit against the image extent, not the deliberately larger planes
+      baseZ = 0.95 * Math.min(IH / 2 / tan, IW / 2 / (tan * camera.aspect));
+      camera.updateProjectionMatrix();
+    };
+
+    const geom = (z: number, fit = FIT) => {
+      const k = (baseZ - z) / baseZ;
+      return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, 1, 1);
+    };
+
+    const material = (map: THREE.Texture, mask: THREE.Texture, isFlame: number, flat: number) =>
+      new THREE.ShaderMaterial({
+        uniforms: {
+          map: { value: map },
+          mask: { value: mask },
+          uTime: { value: 0 },
+          uBeam: { value: 0.3 },
+          uBeamMax: { value: opts.current.beamGlow },
+          uFlameDrift: { value: opts.current.flameDrift ? 1 : 0 },
+          uIsFlame: { value: isFlame },
+          uFit: { value: flat ? FIT_BG : FIT },
+          uFlat: { value: flat },
+        },
+        vertexShader: VERT,
+        fragmentShader: FRAG,
+        transparent: !flat,
+        depthTest: false,
+        depthWrite: false,
+      });
+
+    /** where we are in the section stack: an index plus the fraction through it */
+    const sectionProgress = () => {
+      if (!sections.length) return 0;
+      const y = document.documentElement.scrollTop + window.innerHeight * 0.5;
+      for (let i = 0; i < sections.length; i++) {
+        const el = sections[i];
+        if (y < el.offsetTop + el.offsetHeight || i === sections.length - 1) {
+          const t = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
+          return Math.min(sections.length - 1, i + t);
+        }
+      }
+      return 0;
+    };
+
+    const start = (cuts: Cut[]) => {
+      if (disposed) return;
+      sections = Array.from(document.querySelectorAll<HTMLElement>("section[data-screen-label]"));
+      resize();
+
+      // a complete backdrop, on a much larger plane at the same registration, so
+      // a cut that moves reveals wall instead of a hole
+      const bgMat = material(backdrop, backdrop, 0, 1);
+      bgMat.name = "backdrop";
+      const bgMesh = new THREE.Mesh(geom(BACKDROP_Z, FIT_BG), bgMat);
+      bgMesh.name = "backdrop";
+      bgMesh.position.z = BACKDROP_Z;
+      bgMesh.renderOrder = 0;
+      scene.add(bgMesh);
+      backdropLayer = { name: "backdrop", z: BACKDROP_Z, mesh: bgMesh, mat: bgMat, isFlame: 0, i: -1, fit: FIT_BG };
+
+      layers = cuts
+        .slice()
+        .sort((a, b) => a.z - b.z)
+        .map((cut, i) => {
+          const mask = sharpen(loader.load(`${BASE}/cut-${cut.name}.png`));
+          const mat = material(plate, mask, cut.isFlame, 0);
+          mat.name = cut.name;
+          // each plane is scaled so every cut registers at the opening framing
+          const mesh = new THREE.Mesh(geom(cut.z), mat);
+          mesh.name = `cut-${cut.name}`;
+          mesh.position.z = cut.z;
+          mesh.renderOrder = i + 1;
+          scene.add(mesh);
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, i };
+        });
+      doveLayer = layers.find((l) => l.name === "dove");
+
+      const t0 = performance.now();
+      const tick = () => {
+        raf = requestAnimationFrame(tick);
+        const o = opts.current;
+        const t = (performance.now() - t0) / 1000;
+        const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
+        const de = document.documentElement;
+        const span = de.scrollHeight - de.clientHeight;
+        const p = span > 0 ? Math.min(1, Math.max(0, de.scrollTop / span)) : 0;
+        const ease = p * p * (3 - 2 * p);
+
+        const idle = o.idleDrift ? 1 : 0;
+        const dx = Math.sin(t * 0.17) * 0.18 * idle;
+        const dy = Math.cos(t * 0.13) * 0.11 * idle;
+        pointer.x += (pointer.tx - pointer.x) * 0.045;
+        pointer.y += (pointer.ty - pointer.y) * 0.045;
+
+        const sp = sectionProgress();
+        const i0 = Math.min(WAYPOINTS.length - 1, Math.floor(sp));
+        const i1 = Math.min(WAYPOINTS.length - 1, i0 + 1);
+        // hold each section's own frame, then travel in its last 45% — otherwise
+        // a section spends its whole length en route to the NEXT waypoint
+        const ft = sp - i0;
+        const th = Math.min(1, Math.max(0, (ft - 0.55) / 0.45));
+        const fe = th * th * (3 - 2 * th);
+
+        const tanA = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+        // the distance that makes the band fill the frame vertically — note it
+        // never involves aspect, which is the whole point
+        const solve = (wp: Waypoint) => {
+          const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((wp.band[1] - wp.band[0]) / 2) * IH / tanA));
+          const hh = z * tanA;
+          let y: number;
+          if (wp.aim === "dove" && doveLayer) {
+            // a far layer's apparent height is not the plate's, so the dove has
+            // to be solved against where its own plane actually is
+            const zL = doveLayer.mesh.position.z;
+            const yL = (0.5 - DOVE_V) * IH * ((baseZ - zL) / baseZ);
+            y = yL - (2 * (wp.at ?? 0.6) - 1) * hh / (z / (z - zL));
+          } else {
+            y = (0.5 - (wp.band[0] + wp.band[1]) / 2) * IH;
+          }
+          return { y, z, x: (wp.u ?? 0) * IW };
+        };
+        const wa = solve(WAYPOINTS[i0]);
+        const wb = solve(WAYPOINTS[i1]);
+        const zc = wa.z + (wb.z - wa.z) * fe;
+        const halfH = zc * tanA;
+        const limY = Math.max(0, IH * 0.9 - halfH);
+        const limX = Math.max(0, IW / 2 - halfH * camera.aspect);
+        const xWant = wa.x + (wb.x - wa.x) * fe + pointer.x * -0.35 + dx;
+        const yWant = wa.y + (wb.y - wa.y) * fe + pointer.y * -0.22 + dy;
+        camera.position.set(
+          Math.max(-limX, Math.min(limX, xWant)),
+          Math.max(-limY, Math.min(limY, yWant)),
+          zc,
+        );
+        camera.lookAt(camera.position.x, camera.position.y, 0);
+
+        const all = backdropLayer ? [backdropLayer, ...layers] : layers;
+        const beam = 0.3 + Math.pow(sp / (WAYPOINTS.length - 1), 1.15) * 0.95;
+        for (const l of all) {
+          l.mat.uniforms.uTime.value = t;
+          l.mat.uniforms.uBeam.value = beam;
+          l.mat.uniforms.uBeamMax.value = o.beamGlow;
+          l.mat.uniforms.uFlameDrift.value = o.flameDrift ? 1 : 0;
+          // spread pushes the cuts apart; rescaling keeps their apparent size, so
+          // the extra depth buys parallax rather than zoom
+          const zn = l.z * (spread + ease * 0.2);
+          l.mesh.position.z = zn;
+          l.mesh.scale.setScalar((baseZ - zn) / (baseZ - l.z));
+          // the flames rise on their own, independent of the crowd
+          l.mesh.position.y = l.isFlame ? ease * (0.5 + (l.i % 5) * 0.22) : 0;
+        }
+        renderer.render(scene, camera);
+      };
+      tick();
+    };
+
+    const onResize = () => {
+      resize();
+      const all = backdropLayer ? [backdropLayer, ...layers] : layers;
+      for (const l of all) {
+        l.mesh.geometry.dispose();
+        l.mesh.geometry = geom(l.z, l.fit ?? FIT);
+      }
+    };
+    const onMove = (e: PointerEvent) => {
+      pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.ty = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    const onTilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma == null) return;
+      pointer.tx = Math.max(-1, Math.min(1, e.gamma / 32));
+      pointer.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 32));
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("deviceorientation", onTilt);
+
+    fetch(`${BASE}/cuts.json`)
+      .then((r) => r.json() as Promise<Cut[]>)
+      .then(start)
+      .catch((err) => console.error("[PentecostParallax] could not load cuts.json", err));
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("deviceorientation", onTilt);
+      for (const l of backdropLayer ? [backdropLayer, ...layers] : layers) {
+        l.mesh.geometry.dispose();
+        l.mat.dispose();
+      }
+      plate.dispose();
+      backdrop.dispose();
+      renderer.dispose();
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} aria-hidden className={className ?? "absolute inset-0 block h-full w-full"} />;
+}
