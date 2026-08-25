@@ -106,11 +106,15 @@ void main(){
  */
 const WAYPOINTS: Waypoint[] = [
   { band: [0.26, 0.84], u: 0.0 },   // hero — the whole gathering
-  { band: [0.30, 0.74], u: -0.17 }, // about — in on the left of the ring
-  { band: [0.28, 0.64], u: 0.19 },  // gatherings — heads and tongues of flame
+  { band: [0.30, 0.74], u: -0.05 }, // about — a step toward the left of the ring
+  { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
   { band: [0.30, 0.58], u: 0.0 },   // community — centre, under the beam
   { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.6 }, // give — the dove
 ];
+
+// lateral camera travel is what shears the figures apart and exposes the bare
+// wall behind them — the drama comes from the dolly instead, so cap it hard
+const LATERAL_MAX = 0.06;
 
 const BASE = "/dore";
 const PLATE_W = 2048;
@@ -253,6 +257,10 @@ export default function PentecostParallax({
       doveLayer = layers.find((l) => l.name === "dove");
 
       const t0 = performance.now();
+      // the camera chases its target through this state, so scroll jumps
+      // (snap, fast flicks) arrive as a glide instead of a lurch
+      const cam = { x: 0, y: 0, z: 0, init: false };
+      let lastT = 0;
       const tick = () => {
         raf = requestAnimationFrame(tick);
         const o = opts.current;
@@ -272,10 +280,11 @@ export default function PentecostParallax({
         const sp = sectionProgress();
         const i0 = Math.min(WAYPOINTS.length - 1, Math.floor(sp));
         const i1 = Math.min(WAYPOINTS.length - 1, i0 + 1);
-        // hold each section's own frame, then travel in its last 45% — otherwise
-        // a section spends its whole length en route to the NEXT waypoint
+        // hold each section's own frame, then travel in its second half —
+        // otherwise a section spends its whole length en route to the NEXT
+        // waypoint
         const ft = sp - i0;
-        const th = Math.min(1, Math.max(0, (ft - 0.55) / 0.45));
+        const th = Math.min(1, Math.max(0, (ft - 0.5) / 0.5));
         const fe = th * th * (3 - 2 * th);
 
         const tanA = Math.tan(((camera.fov * Math.PI) / 180) / 2);
@@ -301,15 +310,23 @@ export default function PentecostParallax({
         const zc = wa.z + (wb.z - wa.z) * fe;
         const halfH = zc * tanA;
         const limY = Math.max(0, IH * 0.9 - halfH);
-        const limX = Math.max(0, IW / 2 - halfH * camera.aspect);
-        const xWant = wa.x + (wb.x - wa.x) * fe + pointer.x * -0.35 + dx;
-        const yWant = wa.y + (wb.y - wa.y) * fe + pointer.y * -0.22 + dy;
-        camera.position.set(
-          Math.max(-limX, Math.min(limX, xWant)),
-          Math.max(-limY, Math.min(limY, yWant)),
-          zc,
-        );
-        camera.lookAt(camera.position.x, camera.position.y, 0);
+        const limX = Math.min(Math.max(0, IW / 2 - halfH * camera.aspect), IW * LATERAL_MAX);
+        const xWant = wa.x + (wb.x - wa.x) * fe + pointer.x * -0.10 + dx;
+        const yWant = wa.y + (wb.y - wa.y) * fe + pointer.y * -0.18 + dy;
+        const tx = Math.max(-limX, Math.min(limX, xWant));
+        const ty = Math.max(-limY, Math.min(limY, yWant));
+        // critically-damped chase: framerate-independent, no overshoot
+        const dt = Math.min(0.05, t - lastT);
+        lastT = t;
+        const k = 1 - Math.exp(-dt * 4.2);
+        if (!cam.init) {
+          cam.x = tx; cam.y = ty; cam.z = zc; cam.init = true;
+        }
+        cam.x += (tx - cam.x) * k;
+        cam.y += (ty - cam.y) * k;
+        cam.z += (zc - cam.z) * k;
+        camera.position.set(cam.x, cam.y, cam.z);
+        camera.lookAt(cam.x, cam.y, 0);
 
         const all = backdropLayer ? [backdropLayer, ...layers] : layers;
         const beam = 0.3 + Math.pow(sp / (WAYPOINTS.length - 1), 1.15) * 0.95;
@@ -320,7 +337,7 @@ export default function PentecostParallax({
           l.mat.uniforms.uFlameDrift.value = o.flameDrift ? 1 : 0;
           // spread pushes the cuts apart; rescaling keeps their apparent size, so
           // the extra depth buys parallax rather than zoom
-          const zn = l.z * (spread + ease * 0.2);
+          const zn = l.z * (spread + ease * 0.35);
           l.mesh.position.z = zn;
           l.mesh.scale.setScalar((baseZ - zn) / (baseZ - l.z));
           // the flames rise on their own, independent of the crowd

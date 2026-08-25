@@ -44,7 +44,7 @@ export default function App() {
     <div className="relative bg-[#14100e] font-sans text-[#f9f4ed]">
       {/* the scene is sticky, not fixed: it stays put while the sections scroll over it */}
       <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
-        <PentecostParallax />
+        <PentecostParallax layerSpread={1.25} />
         <div
           aria-hidden
           className="absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_38%,transparent_0%,rgba(20,16,14,0.30)_65%,rgba(20,16,14,0.72)_100%)]"

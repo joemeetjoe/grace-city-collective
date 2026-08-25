@@ -131,11 +131,12 @@
     }
 }
 
-/* scroll settles on exactly one section at a time — safe as mandatory because
-   every section is exactly one viewport tall */
+/* proximity, not mandatory: the scroll still settles on a section when it's
+   close, but the wheel is never yanked mid-flick — the camera smoothing in
+   PentecostParallax turns whatever the scroll does into a glide */
 html {
   scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
+  scroll-snap-type: y proximity;
   background: #14100e;
 }
 section[data-screen-label] {
