@@ -46,6 +46,9 @@ DOVE_Z, ARCH_Z, FLOOR_Z = -3.0, -2.8, 3.6
 # top-left gothic structure, in plate pixels (x0, y0, x1, y1)
 ARCH_BOX = (0, 120, 660, 1270)
 
+# clean crowd hatch for the disocclusion fill, in plate pixels (y0, y1, x0, x1)
+CROWD_PATCH = (1030, 1220, 1600, 1790)
+
 
 def load_masks(folder: str, stem: str) -> list[np.ndarray]:
     files = sorted((HERE / folder).glob(f"{stem}-*.png"))
@@ -89,6 +92,17 @@ def feather(m: np.ndarray, px: int = FEATHER_PX) -> np.ndarray:
     return np.clip(dist / px, 0, 1).astype(np.float32)
 
 
+def band_alpha(shape: tuple[int, int], top_frac: float, bottom_frac: float,
+               feather_px: int = FEATHER_PX) -> np.ndarray:
+    """Solid horizontal band alpha, feathered only at its top/bottom edges."""
+    H, W = shape
+    top, bottom = int(H * top_frac), int(H * bottom_frac)
+    rows = np.zeros(H, np.float32)
+    r = np.arange(top, bottom)
+    rows[top:bottom] = np.clip(np.minimum(r - top + 1, bottom - r) / feather_px, 0, 1)
+    return np.repeat(rows[:, None], W, axis=1)
+
+
 def arch(gray: np.ndarray, columns: list[np.ndarray]) -> np.ndarray:
     """Columns from SAM + a brightness pass to pick up the arched canopy."""
     x0, y0, x1, y1 = ARCH_BOX
@@ -102,6 +116,35 @@ def arch(gray: np.ndarray, columns: list[np.ndarray]) -> np.ndarray:
     return clean(region, close_px=8)
 
 
+def tiled(patch: np.ndarray, H: int, W: int) -> np.ndarray:
+    """Overlap-add tile a patch over an HxW canvas with a Bartlett window, so
+    repeats blend into each other instead of butting with rectangular seams."""
+    ph, pw = patch.shape[:2]
+    win = np.outer(np.bartlett(ph), np.bartlett(pw))[..., None].astype(np.float32)
+    canvas = np.zeros((H + ph, W + pw, 3), np.float32)
+    weight = np.zeros((H + ph, W + pw, 1), np.float32)
+    for y in range(0, H, ph // 2):
+        for x in range(0, W, pw // 2):
+            canvas[y:y + ph, x:x + pw] += patch * win
+            weight[y:y + ph, x:x + pw] += win
+    return canvas[:H, :W] / (weight[:H, :W] + 1e-6)
+
+
+def brightness_field(img: np.ndarray, hole: np.ndarray) -> np.ndarray:
+    """Low-frequency brightness of the plate around (and diffused into) the
+    holes, so synthesized fills pick up the beam of light and the vignette.
+    Inpainting runs on a small copy so the guide stays sane even deep inside
+    holes wider than any blur radius."""
+    H, W = hole.shape
+    lum = img.mean(axis=2)
+    small = cv2.resize(lum, (W // 8, H // 8), interpolation=cv2.INTER_AREA)
+    small_hole = (cv2.resize(hole * 255, (W // 8, H // 8)) > 0).astype(np.uint8)
+    small = cv2.inpaint(small.astype(np.uint8), small_hole, 7, cv2.INPAINT_TELEA)
+    return cv2.GaussianBlur(
+        cv2.resize(small, (W, H), interpolation=cv2.INTER_CUBIC).astype(np.float32),
+        (0, 0), 30)
+
+
 def synth_backdrop(plate: np.ndarray, hole: np.ndarray) -> np.ndarray:
     """Replace hole pixels with wall/floor hatch synthesized from the plate.
 
@@ -112,30 +155,10 @@ def synth_backdrop(plate: np.ndarray, hole: np.ndarray) -> np.ndarray:
     """
     H, W = hole.shape
     img = plate.astype(np.float32)
+    bright = brightness_field(img, hole)
 
-    # low-frequency brightness field: diffusion-inpaint a small copy so the
-    # guide stays sane even deep inside holes wider than any blur radius
-    lum = img.mean(axis=2)
-    small = cv2.resize(lum, (W // 8, H // 8), interpolation=cv2.INTER_AREA)
-    small_hole = (cv2.resize(hole * 255, (W // 8, H // 8)) > 0).astype(np.uint8)
-    small = cv2.inpaint(small.astype(np.uint8), small_hole, 7, cv2.INPAINT_TELEA)
-    bright = cv2.GaussianBlur(
-        cv2.resize(small, (W, H), interpolation=cv2.INTER_CUBIC).astype(np.float32),
-        (0, 0), 30)
-
-    def tiled(patch: np.ndarray) -> np.ndarray:
-        ph, pw = patch.shape[:2]
-        win = np.outer(np.bartlett(ph), np.bartlett(pw))[..., None].astype(np.float32)
-        canvas = np.zeros((H + ph, W + pw, 3), np.float32)
-        weight = np.zeros((H + ph, W + pw, 1), np.float32)
-        for y in range(0, H, ph // 2):
-            for x in range(0, W, pw // 2):
-                canvas[y:y + ph, x:x + pw] += patch * win
-                weight[y:y + ph, x:x + pw] += win
-        return canvas[:H, :W] / (weight[:H, :W] + 1e-6)
-
-    wall = tiled(img[350:700, 1300:1900])
-    floor_t = tiled(img[int(H * 0.885):int(H * 0.965), 650:1350])
+    wall = tiled(img[350:700, 1300:1900], H, W)
+    floor_t = tiled(img[int(H * 0.885):int(H * 0.965), 650:1350], H, W)
 
     # wall above the pavement line, floor below, short vertical blend
     t = np.clip((np.arange(H) - H * 0.79) / (H * 0.04), 0, 1)[:, None, None].astype(np.float32)
@@ -145,6 +168,44 @@ def synth_backdrop(plate: np.ndarray, hole: np.ndarray) -> np.ndarray:
 
     alpha = np.clip(cv2.distanceTransform(hole, cv2.DIST_L2, 3) / 8, 0, 1)[..., None]
     return (fill * alpha + img * (1 - alpha)).clip(0, 255).astype(np.uint8)
+
+
+CROWD_DARKEN = 0.75     # fill sits back as shadow mass
+CROWD_CONTRAST = 0.85   # slight contrast cut so the fill stays quiet
+
+
+def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
+                    patch_box: tuple[int, int, int, int]) -> np.ndarray:
+    """Crowd color texture: the plate wherever the crowd owns the pixel, and
+    patch-tiled crowd texture inside the figure/flame-shaped holes —
+    brightness-guided by the surroundings, then darkened into shadow."""
+    y0, y1, x0, x1 = patch_box
+    img = plate.astype(np.float32)
+    H, W = hole.shape
+    fill = tiled(img[y0:y1, x0:x1], H, W)
+    bright = brightness_field(img, hole)
+    fill_lum = cv2.GaussianBlur(fill.mean(axis=2), (0, 0), 30)
+    fill *= (bright / (fill_lum + 1e-4))[..., None]
+    fill = (fill - bright[..., None]) * CROWD_CONTRAST + bright[..., None]
+    fill *= CROWD_DARKEN
+
+    alpha = np.clip(cv2.distanceTransform(hole, cv2.DIST_L2, 3) / 8, 0, 1)[..., None]
+    return (fill * alpha + img * (1 - alpha)).clip(0, 255).astype(np.uint8)
+
+
+def build_manifest(fig_z: list[float], flame_count: int) -> list[dict]:
+    """The cuts.json entries. Only the crowd carries a dedicated color map —
+    its plate region contains the figures, so it needs its own texture."""
+    cuts: list[dict] = []
+    for i, z in enumerate(fig_z):
+        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": 1})
+    for i in range(flame_count):
+        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
+    cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0, "map": "map-crowd.jpg"})
+    cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
+    cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
+    cuts.append({"name": "floor", "z": FLOOR_Z, "isFlame": 0})
+    return cuts
 
 
 def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
@@ -205,25 +266,34 @@ def main() -> None:
     lo, hi = min(bottoms), max(bottoms)
     fig_z = [round(FIG_Z[0] + (b - lo) / (hi - lo) * (FIG_Z[1] - FIG_Z[0]), 2) for b in bottoms]
 
-    cuts, alphas = [], {}
-    for i, (f, z) in enumerate(zip(figures, fig_z)):
-        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0})
+    flames = sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))
+    cuts = build_manifest(fig_z, len(flames))
+    alphas = {}
+    for i, f in enumerate(figures):
         alphas[f"fig{i}"] = feather(f)
-    for i, f in enumerate(sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))):
-        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
+    for i, f in enumerate(flames):
         alphas[f"flame{i}"] = feather(f, 3)
-    cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0})
-    alphas["crowd"] = feather(crowd, 8)
-    cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
     alphas["dove"] = feather(dove, 3)
-    cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
     alphas["arch"] = feather(arch_mask)
-    cuts.append({"name": "floor", "z": FLOOR_Z, "isFlame": 0})
     alphas["floor"] = feather(floor)
+    # solid band over the figure holes (the crowd map fills them), but layers
+    # BEHIND the crowd keep windows complementing their own feathered alphas,
+    # or the solid band would cover them at rest
+    behind = np.maximum.reduce(
+        [alphas["dove"], alphas["arch"]] + [alphas[f"flame{i}"] for i in range(len(flames))])
+    alphas["crowd"] = band_alpha((H, W), 0.40, 0.815, 8) * (1 - behind)
 
     for name, a in alphas.items():
         save_mask(name, a, out_size)
     (DIST / "cuts.json").write_text(json.dumps(cuts))
+
+    # crowd color map: everything in the band the crowd does not own becomes
+    # shadowed crowd fill, so disocclusion reveals never fall through to wall
+    band = np.zeros((H, W), np.uint8)
+    band[int(H * 0.40):int(H * 0.815)] = 1
+    print("filling crowd map…")
+    crowd_map = synth_crowd_map(plate, band & (1 - crowd), CROWD_PATCH)
+    Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
 
     # backdrop: fill every cut region (grown a little) from row texture
     hole = np.zeros((H, W), np.uint8)
@@ -246,7 +316,8 @@ def main() -> None:
     rest = backdrop.astype(np.float32)
     for c in sorted(cuts, key=lambda c: c["z"]):
         a = alphas[c["name"]][..., None]
-        rest = plate * a + rest * (1 - a)
+        src = crowd_map if "map" in c else plate
+        rest = src * a + rest * (1 - a)
     Image.fromarray(rest.clip(0, 255).astype(np.uint8)).save(DIST / "qc-rest.png")
 
     total = sum((DIST / f"cut-{c['name']}.png").stat().st_size for c in cuts)
