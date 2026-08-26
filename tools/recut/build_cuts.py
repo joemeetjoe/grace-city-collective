@@ -207,7 +207,7 @@ def main() -> None:
 
     cuts, alphas = [], {}
     for i, (f, z) in enumerate(zip(figures, fig_z)):
-        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0})
+        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": 1})
         alphas[f"fig{i}"] = feather(f)
     for i, f in enumerate(sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))):
         cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
