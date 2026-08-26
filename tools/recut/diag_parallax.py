@@ -44,16 +44,21 @@ def main() -> None:
     layers = []
     for c in sorted(cuts, key=lambda c: c["z"]):
         a = np.asarray(Image.open(DORE / f"cut-{c['name']}.png").convert("L")).astype(np.float32) / 255
-        layers.append((c, a[..., None]))
+        # a cut with a dedicated color map samples it instead of the shared
+        # plate, exactly as the component does
+        src = plate
+        if "map" in c:
+            src = np.asarray(Image.open(DORE / c["map"]).convert("RGB").resize((1024, 1260))).astype(np.float32)
+        layers.append((c, a[..., None], src))
 
     def composite(base: np.ndarray | None, skip: set[str]) -> np.ndarray:
         img = base.copy() if base is not None else np.zeros_like(plate)
-        for c, a in layers:
+        for c, a, tex in layers:
             if c["name"] in skip:
                 continue
             dx = round(c["z"] * SHIFT_PER_Z)
             dy = -FLAME_LIFT if c["isFlame"] else 0
-            src = shift(plate * a, dx, dy)
+            src = shift(tex * a, dx, dy)
             am = shift(a, dx, dy)
             img = src + img * (1 - am)
         return img

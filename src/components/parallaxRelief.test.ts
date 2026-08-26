@@ -14,6 +14,16 @@ describe("parseCuts", () => {
       { name: "fig3", z: 1.78, isFlame: 0, relief: 1 },
     ]);
   });
+
+  it("carries a cut's dedicated color map through, absent on legacy entries", () => {
+    const cuts = parseCuts([
+      { name: "crowd", z: -0.9, isFlame: 0, map: "map-crowd.jpg" },
+      { name: "fig3", z: 1.78, isFlame: 0, relief: 1 },
+    ]);
+
+    expect(cuts[0].map).toBe("map-crowd.jpg");
+    expect(cuts[1].map).toBeUndefined();
+  });
 });
 
 describe("reliefDz", () => {

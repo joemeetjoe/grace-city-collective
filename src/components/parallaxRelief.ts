@@ -5,9 +5,16 @@
  * test pins the algebra the GLSL must reproduce.
  */
 
-export type Cut = { name: string; z: number; isFlame: number; relief: number };
+export type Cut = {
+  name: string;
+  z: number;
+  isFlame: number;
+  relief: number;
+  /** dedicated color texture; cuts without one sample the shared plate */
+  map?: string;
+};
 
-type RawCut = { name: string; z: number; isFlame: number; relief?: number };
+type RawCut = Omit<Cut, "relief"> & { relief?: number };
 
 export function parseCuts(raw: unknown): Cut[] {
   return (raw as RawCut[]).map((c) => ({ ...c, relief: c.relief ?? 0 }));
