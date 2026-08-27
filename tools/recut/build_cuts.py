@@ -16,9 +16,20 @@ Outputs, in tools/recut/dist/:
   qc-masks.png       tinted composite of the final masks
   qc-rest.png        cuts composited over the backdrop at rest (should look
                      like the plate)
+  crowd-hole.png     the exact crowd-map hole, for fill experiments
 
-Usage: .venv-recut/bin/python tools/recut/build_cuts.py
+Fills (--fill):
+  lama-ring  default. The tiled, tone-matched fill, then LaMa re-inpaints a
+             LAMA_RING_PX band just inside every hole boundary so the hatch
+             continues on the plate's own rows (issue #19). Needs
+             simple-lama-inpainting in .venv-recut; ~3 min on CPU.
+  tile       the tiled fill alone; instant, but the hatch phase jumps at the
+             boundary and traces each figure's silhouette.
+
+Usage: .venv-recut/bin/python tools/recut/build_cuts.py [--fill tile|lama-ring]
 """
+
+import argparse
 
 import json
 from pathlib import Path
@@ -223,6 +234,31 @@ CROWD_SHADOW_R = 32     # px the shading takes to reach full depth inside a hole
 # the figure has moved off it, so open wall this far from any figure is the
 # only wall the deep fill matches; the halo tone survives only at the rim.
 CROWD_HALO_PX = 64
+# the hole grows this much before filling: the plate's engraved rim
+# highlights often sit just outside the segmentation mask, and left in the
+# crowd they would trace the figure's outline as the layers slide apart
+CROWD_HOLE_GROW = 7
+
+# LaMa re-inpaints this band inside each hole boundary (see ring_mask). Wide
+# enough to bend the tile's hatch onto the plate's rows; narrow enough that
+# the deep interior — where a learned model smears on a hole this size —
+# stays the tone-matched tile fill.
+LAMA_RING_PX = 48
+
+
+def ring_mask(hole: np.ndarray, ring_px: int = LAMA_RING_PX) -> np.ndarray:
+    """The band of hole pixels within ring_px of the hole boundary."""
+    dist = cv2.distanceTransform(hole, cv2.DIST_L2, 3)
+    return ((dist > 0) & (dist <= ring_px)).astype(np.uint8)
+
+
+def lama_ring(img: np.ndarray, hole: np.ndarray, ring_px: int = LAMA_RING_PX) -> np.ndarray:
+    """Re-inpaint the ring just inside `hole` with LaMa, on top of a fill
+    that already owns the hole. LaMa sees plate on one side of the ring and
+    the fill on the other and continues both, so the hatch phase no longer
+    jumps at the silhouette. Imported lazily: only this path needs torch."""
+    import lama_fill
+    return lama_fill.inpaint(img, ring_mask(hole, ring_px), log=print)
 
 
 def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
@@ -233,10 +269,7 @@ def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
     y0, y1, x0, x1 = patch_box
     img = plate.astype(np.float32)
     H, W = hole.shape
-    # grow the hole a few px: the plate's engraved rim highlights often sit
-    # just outside the segmentation mask, and left in the crowd they would
-    # trace the figure's outline as the layers slide apart
-    hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+    hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CROWD_HOLE_GROW,) * 2))
     fill = tiled(img[y0:y1, x0:x1], H, W)
     # a figure's absence must not read as its silhouette: every treatment is
     # a diffuse field — zero at the hole boundary, full only deep inside — so
@@ -298,6 +331,9 @@ def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--fill", choices=("tile", "lama-ring"), default="lama-ring")
+    fill_mode = ap.parse_args().fill
     DIST.mkdir(exist_ok=True)
     plate = np.asarray(Image.open(PLATE).convert("RGB"))
     gray = np.asarray(Image.open(PLATE).convert("L"))
@@ -385,7 +421,14 @@ def main() -> None:
     band = np.zeros((H, W), np.uint8)
     band[int(H * 0.40):int(H * 0.815)] = 1
     print("filling crowd map…")
-    crowd_map = synth_crowd_map(plate, band & (1 - crowd), CROWD_PATCH)
+    crowd_hole = band & (1 - crowd)
+    # the exact hole, for fill experiments that must not re-derive it
+    Image.fromarray(crowd_hole * 255).save(DIST / "crowd-hole.png", optimize=True)
+    crowd_map = synth_crowd_map(plate, crowd_hole, CROWD_PATCH)
+    if fill_mode == "lama-ring":
+        # the ring is measured from the hole the fill actually owns (grown)
+        grown = cv2.dilate(crowd_hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CROWD_HOLE_GROW,) * 2))
+        crowd_map = lama_ring(crowd_map, grown)
     Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
 
     # backdrop: fill every cut region (grown a little) from row texture
@@ -395,6 +438,8 @@ def main() -> None:
     hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (DILATE_PX * 2 + 1,) * 2))
     print("filling backdrop…")
     backdrop = synth_backdrop(plate, hole)
+    if fill_mode == "lama-ring":
+        backdrop = lama_ring(backdrop, hole)
     Image.fromarray(backdrop).save(DIST / "plate-backdrop.png", optimize=True)
 
     # QC images
