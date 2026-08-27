@@ -51,6 +51,11 @@ MIN_AREA = 900          # components smaller than this are noise
 
 # z ranges mirroring the original cuts.json
 FIG_Z = (-0.7, 2.6)     # backmost .. frontmost figure
+# plate rows (fraction of height) whose lowest-row figures sit at FIG_Z[0]
+# and FIG_Z[1]. Fixed anchors, not the min/max of whatever figures survive,
+# so merging, dropping or re-cutting one mask never rescales the others
+# (issue #17). Chosen to reproduce the values the parallax was tuned on.
+FIG_Z_ROWS = (0.644, 0.866)
 FLAME_Z = [-2.0, -1.7, -1.4]
 DOVE_Z, ARCH_Z, FLOOR_Z = -3.0, -2.8, 3.6
 
@@ -297,12 +302,18 @@ def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
 
 
 def figure_z(bottoms: dict[int, float],
-             override: dict[int, float] | None = None) -> dict[int, float]:
-    """z per figure from how far down the plate it reaches (further = nearer),
-    mapped linearly onto FIG_Z, then any explicit overrides."""
-    lo, hi = min(bottoms.values()), max(bottoms.values())
-    span = (hi - lo) or 1.0
-    z = {i: round(FIG_Z[0] + (b - lo) / span * (FIG_Z[1] - FIG_Z[0]), 2)
+             override: dict[int, float] | None = None,
+             rows: tuple[float, float] = FIG_Z_ROWS) -> dict[int, float]:
+    """z per figure from how far down the plate it reaches (further = nearer):
+    the lowest row is mapped linearly from the fixed anchor `rows` onto
+    FIG_Z and clamped to it, then any explicit overrides. Each figure's z
+    depends only on its own mask, never on which other figures exist.
+
+    (The baked depth map was evaluated as an alternative and rejected: on
+    this plate its per-figure depth tracks the ground plane, i.e. the same
+    lowest-row signal, and it contradicts the authored groupings.)"""
+    lo, hi = rows
+    z = {i: round(min(FIG_Z[1], max(FIG_Z[0], FIG_Z[0] + (b - lo) / (hi - lo) * (FIG_Z[1] - FIG_Z[0]))), 2)
          for i, b in bottoms.items()}
     for i, v in (override or {}).items():
         if i in z:
