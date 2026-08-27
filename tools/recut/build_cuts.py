@@ -87,6 +87,47 @@ def dedupe(masks: list[np.ndarray]) -> list[np.ndarray]:
     return out
 
 
+# child -> parent, keyed by out-person/person-NN index. These children are
+# head-only slivers (0.1–0.4 % of the plate) that SAM cut apart from the body
+# occluding them; left as their own far-back layers they float away from it
+# as the camera moves. Unioned into the occluder they travel as one figure.
+FIG_MERGE = {
+    6: 10,   # bearded head between Mary's veil and the praying man -> the
+             # praying man (he stands behind him; Mary, in front, is a
+             # separate layer just ahead of both — see FIG_Z_OVERRIDE)
+    12: 7,   # small head above the bowing man's back -> the bearded man it leans on
+    2: 4,    # head behind the far-left kneeling man -> the kneeling man
+    9: 8,    # head behind the centre figure's right shoulder -> clasped hands
+}
+
+# z is read off each figure's lowest row (see figure_z), which pushes a figure
+# whose lower body is hidden behind others much too far back. Overrides, in
+# the same units as FIG_Z.
+FIG_Z_OVERRIDE = {
+    10: 2.45,  # centre praying man (+ the bearded head behind him): grouped
+               # with Mary (2.6) so the three hold together as the camera moves
+    3: 2.0,  # seated man at far right: front row, but seated so his lowest
+             # row is high — beside the bowing man (~2.1), not behind him
+    7: 1.9,  # bearded man at right: robe hidden behind the bowing man and
+             # the seated man; he stands just behind them, and the small
+             # head riding with him must not drift off the bowing man's back
+}
+
+
+def merge_figures(masks: list[np.ndarray], merge: dict[int, int]) -> dict[int, np.ndarray]:
+    """Union each child mask into its parent. Returns {source index: mask} for
+    the survivors, so figure names keep their source numbering."""
+    for child, parent in merge.items():
+        if child not in range(len(masks)) or parent not in range(len(masks)):
+            raise KeyError(f"merge {child} -> {parent}: no such figure (have {len(masks)})")
+        if child == parent:
+            raise ValueError(f"merge {child} -> {parent}: a figure cannot absorb itself")
+    out = {i: m.copy() for i, m in enumerate(masks)}
+    for child, parent in merge.items():
+        out[parent] |= out.pop(child)
+    return out
+
+
 def feather(m: np.ndarray, px: int = FEATHER_PX) -> np.ndarray:
     dist = cv2.distanceTransform(m, cv2.DIST_L2, 3)
     return np.clip(dist / px, 0, 1).astype(np.float32)
@@ -170,8 +211,18 @@ def synth_backdrop(plate: np.ndarray, hole: np.ndarray) -> np.ndarray:
     return (fill * alpha + img * (1 - alpha)).clip(0, 255).astype(np.uint8)
 
 
-CROWD_DARKEN = 0.75     # fill sits back as shadow mass
-CROWD_CONTRAST = 0.85   # slight contrast cut so the fill stays quiet
+# The fill continues the wall at the surrounding brightness: a moved figure
+# reveals plain wall, nothing that reads as its shadow. Both dials sit at 1.0
+# (no darkening, no contrast cut); lower them for a hint of shadow deep
+# inside the larger holes.
+CROWD_DARKEN = 1.0      # brightness deep inside a hole, relative to the surround
+CROWD_CONTRAST = 1.0    # hatch contrast deep inside a hole, relative to the plate
+CROWD_SHADOW_R = 32     # px the shading takes to reach full depth inside a hole
+# Doré darkens the wall within ~60px of every figure to throw the lit faces
+# forward. A guide that samples that halo makes the fill a dark cloud once
+# the figure has moved off it, so open wall this far from any figure is the
+# only wall the deep fill matches; the halo tone survives only at the rim.
+CROWD_HALO_PX = 64
 
 
 def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
@@ -182,22 +233,55 @@ def synth_crowd_map(plate: np.ndarray, hole: np.ndarray,
     y0, y1, x0, x1 = patch_box
     img = plate.astype(np.float32)
     H, W = hole.shape
+    # grow the hole a few px: the plate's engraved rim highlights often sit
+    # just outside the segmentation mask, and left in the crowd they would
+    # trace the figure's outline as the layers slide apart
+    hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
     fill = tiled(img[y0:y1, x0:x1], H, W)
-    bright = brightness_field(img, hole)
+    # a figure's absence must not read as its silhouette: every treatment is
+    # a diffuse field — zero at the hole boundary, full only deep inside — so
+    # no brightness step traces the outline
+    dist = cv2.distanceTransform(hole, cv2.DIST_L2, 3)
+    soft = cv2.GaussianBlur(np.clip(dist / CROWD_SHADOW_R, 0, 1), (0, 0), 8)
+    # the rim continues the plate's local tone (its halo included); deep
+    # inside, the fill is open wall
+    local = brightness_field(img, hole)
+    halo = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CROWD_HALO_PX * 2 + 1,) * 2)
+    open_wall = brightness_field(img, cv2.dilate(hole, halo))
+    bright = local * (1 - soft) + open_wall * soft
+    soft = soft[..., None]
     fill_lum = cv2.GaussianBlur(fill.mean(axis=2), (0, 0), 30)
     fill *= (bright / (fill_lum + 1e-4))[..., None]
-    fill = (fill - bright[..., None]) * CROWD_CONTRAST + bright[..., None]
-    fill *= CROWD_DARKEN
 
-    alpha = np.clip(cv2.distanceTransform(hole, cv2.DIST_L2, 3) / 8, 0, 1)[..., None]
+    fill = (fill - bright[..., None]) * (1 - (1 - CROWD_CONTRAST) * soft) + bright[..., None]
+    fill *= 1 - (1 - CROWD_DARKEN) * soft
+
+    # the hole's plate content is the figure itself — blending any of it back
+    # in ghosts the silhouette (its edge highlights especially), so the fill
+    # owns every hole pixel outright
+    alpha = np.clip(dist, 0, 1)[..., None]
     return (fill * alpha + img * (1 - alpha)).clip(0, 255).astype(np.uint8)
 
 
-def build_manifest(fig_z: list[float], flame_count: int) -> list[dict]:
+def figure_z(bottoms: dict[int, float],
+             override: dict[int, float] | None = None) -> dict[int, float]:
+    """z per figure from how far down the plate it reaches (further = nearer),
+    mapped linearly onto FIG_Z, then any explicit overrides."""
+    lo, hi = min(bottoms.values()), max(bottoms.values())
+    span = (hi - lo) or 1.0
+    z = {i: round(FIG_Z[0] + (b - lo) / span * (FIG_Z[1] - FIG_Z[0]), 2)
+         for i, b in bottoms.items()}
+    for i, v in (override or {}).items():
+        if i in z:
+            z[i] = v
+    return z
+
+
+def build_manifest(fig_z: dict[int, float], flame_count: int) -> list[dict]:
     """The cuts.json entries. Only the crowd carries a dedicated color map —
     its plate region contains the figures, so it needs its own texture."""
     cuts: list[dict] = []
-    for i, z in enumerate(fig_z):
+    for i, z in fig_z.items():
         cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": 1})
     for i in range(flame_count):
         cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
@@ -221,7 +305,11 @@ def main() -> None:
     out_size = (OUT_W, round(OUT_W * H / W))
 
     print("figures:")
-    figures = dedupe([clean(m) for m in load_masks("out-person", "person")])
+    raw_figures = dedupe([clean(m) for m in load_masks("out-person", "person")])
+    # FIG_MERGE is keyed by source file index, which only holds if dedupe()
+    # merged nothing — a re-run of SAM with different detections must re-key it
+    assert len(raw_figures) == 14, f"expected 14 figures, got {len(raw_figures)}: re-key FIG_MERGE"
+    figures = merge_figures(raw_figures, FIG_MERGE)
     flames = [clean(m, close_px=3) for m in load_masks("out-flame", "flame")]
     flames = [f for f in flames if f.sum() > 0]
     dove = clean(load_masks("out-bird", "bird")[0], close_px=3)
@@ -246,14 +334,20 @@ def main() -> None:
     layers_by_priority.append((ARCH_ID, arch_mask))
     # figures back-to-front so the nearer figure wins contested pixels
     # (its silhouette reaches further down the plate)
-    for i in sorted(range(len(figures)), key=lambda i: np.flatnonzero(figures[i].any(axis=1)).max()):
+    for i in sorted(figures, key=lambda i: np.flatnonzero(figures[i].any(axis=1)).max()):
         layers_by_priority.append((i, figures[i]))
     layers_by_priority.append((DOVE_ID, dove))
     for j, f in enumerate(flames):
         layers_by_priority.append((2000 + j, f))
     for lid, m in layers_by_priority:
         owner[m.astype(bool)] = lid
-    figures = [(owner == i).astype(np.uint8) for i in range(len(figures))]
+    figures = {i: (owner == i).astype(np.uint8) for i in figures}
+    # a figure that lost (nearly) everything to nearer layers has nothing to
+    # show — its remnant is below the feather radius — yet would still cost a
+    # relief mesh in the scene, so it gets no layer
+    for i in [i for i, f in figures.items() if f.sum() < MIN_AREA]:
+        print(f"  fig{i} owns {int(figures[i].sum())}px — noise, dropped")
+        del figures[i]
     flames = [(owner == 2000 + j).astype(np.uint8) for j in range(len(flames))]
     flames = [f for f in flames if f.sum() > 0]
     dove = (owner == DOVE_ID).astype(np.uint8)
@@ -262,14 +356,13 @@ def main() -> None:
     floor = (owner == FLOOR_ID).astype(np.uint8)
 
     # z for each figure from how far down the plate it reaches (further = nearer)
-    bottoms = [np.flatnonzero(f.any(axis=1)).max() / H for f in figures]
-    lo, hi = min(bottoms), max(bottoms)
-    fig_z = [round(FIG_Z[0] + (b - lo) / (hi - lo) * (FIG_Z[1] - FIG_Z[0]), 2) for b in bottoms]
+    bottoms = {i: np.flatnonzero(f.any(axis=1)).max() / H for i, f in figures.items()}
+    fig_z = figure_z(bottoms, FIG_Z_OVERRIDE)
 
     flames = sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))
     cuts = build_manifest(fig_z, len(flames))
     alphas = {}
-    for i, f in enumerate(figures):
+    for i, f in figures.items():
         alphas[f"fig{i}"] = feather(f)
     for i, f in enumerate(flames):
         alphas[f"flame{i}"] = feather(f, 3)
