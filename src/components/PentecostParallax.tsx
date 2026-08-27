@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { parseCuts, reliefUniforms, segmentsFor, type Cut } from "./parallaxRelief";
 
 /**
- * Doré's "The Descent of the Holy Spirit" cut into ~32 depth layers and
+ * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
  * reassembled in three.js. Scroll drives a camera that visits one waypoint per
  * <section data-screen-label> on the page.
  *
