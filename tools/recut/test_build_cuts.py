@@ -11,7 +11,7 @@ import numpy as np
 
 import pytest
 
-from build_cuts import FIG_Z, band_alpha, build_manifest, figure_z, merge_figures, synth_crowd_map
+from build_cuts import FIG_Z, band_alpha, build_manifest, figure_z, merge_figures, ring_mask, synth_crowd_map
 
 
 def crowd_scene() -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
@@ -228,3 +228,14 @@ def test_figure_z_maps_lowest_row_onto_the_z_range_and_applies_overrides():
     assert z[3] == FIG_Z[1]  # lowest bottom row -> frontmost
     assert z[7] == 1.4  # override wins over the interpolated midpoint
     assert 99 not in z  # overrides for absent figures are ignored
+
+
+def test_ring_mask_is_the_band_just_inside_the_hole_boundary():
+    _, hole, _ = crowd_scene()
+
+    ring = ring_mask(hole, ring_px=20)
+
+    d = hole_depth()
+    np.testing.assert_array_equal(ring == 1, (d > 0) & (d <= 20))
+    assert ring[hole == 0].sum() == 0  # never touches the plate outside the hole
+    assert ring[150, 200] == 0  # the deep interior is left to the base fill
