@@ -219,15 +219,26 @@ def test_synth_crowd_map_deep_fill_matches_open_wall_not_the_halo_around_the_fig
     assert 0.95 * far < deep < 1.05 * far
 
 
-def test_figure_z_maps_lowest_row_onto_the_z_range_and_applies_overrides():
+def test_figure_z_maps_lowest_row_between_fixed_anchors_and_applies_overrides():
     bottoms = {0: 0.60, 3: 0.80, 7: 0.70}
 
-    z = figure_z(bottoms, override={7: 1.4, 99: 0.0})
+    z = figure_z(bottoms, override={7: 1.4, 99: 0.0}, rows=(0.60, 0.80))
 
-    assert z[0] == FIG_Z[0]  # highest bottom row -> backmost
-    assert z[3] == FIG_Z[1]  # lowest bottom row -> frontmost
+    assert z[0] == FIG_Z[0]  # at the back anchor row -> backmost
+    assert z[3] == FIG_Z[1]  # at the front anchor row -> frontmost
     assert z[7] == 1.4  # override wins over the interpolated midpoint
     assert 99 not in z  # overrides for absent figures are ignored
+
+
+def test_figure_z_of_one_figure_never_depends_on_which_others_exist():
+    # the whole point of fixed anchors: dropping or merging a mask must not
+    # rescale everyone else (issue #17)
+    alone = figure_z({3: 0.75}, rows=(0.60, 0.80))
+    crowd = figure_z({0: 0.55, 3: 0.75, 5: 0.95}, rows=(0.60, 0.80))
+
+    assert alone[3] == crowd[3]
+    assert crowd[0] == FIG_Z[0]  # beyond the back anchor: clamped, not extrapolated
+    assert crowd[5] == FIG_Z[1]  # beyond the front anchor: clamped
 
 
 def test_ring_mask_is_the_band_just_inside_the_hole_boundary():
