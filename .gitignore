@@ -25,3 +25,7 @@ tools/recut/dist/
 *.njsproj
 *.sln
 *.sw?
+
+# python
+__pycache__/
+.pytest_cache/

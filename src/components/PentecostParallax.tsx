@@ -161,7 +161,9 @@ export default function PentecostParallax({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({ layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity });
-  opts.current = { layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity };
+  useEffect(() => {
+    opts.current = { layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity };
+  }, [layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
