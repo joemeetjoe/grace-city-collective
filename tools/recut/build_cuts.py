@@ -17,6 +17,13 @@ Outputs, in tools/recut/dist/:
   qc-rest.png        cuts composited over the backdrop at rest (should look
                      like the plate)
   crowd-hole.png     the exact crowd-map hole, for fill experiments
+  complete/fig<N>-hole.png, -keep.png
+                     per hidden figure (completions.SPEC): the shape for the
+                     inpainter and the part of it the cut adopts
+  map-fig<N>.jpg, depth-fig<N>.png
+                     a completed figure's own color/depth textures, cropped
+                     to its mapRect — present once complete_figures.py has
+                     generated and picked its hidden body
 
 Fills (--fill):
   lama-ring  default. The tiled, tone-matched fill, then LaMa re-inpaints a
@@ -37,6 +44,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+
+import completions as comp
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -107,26 +116,21 @@ def dedupe(masks: list[np.ndarray]) -> list[np.ndarray]:
 # head-only slivers (0.1–0.4 % of the plate) that SAM cut apart from the body
 # occluding them; left as their own far-back layers they float away from it
 # as the camera moves. Unioned into the occluder they travel as one figure.
-FIG_MERGE = {
-    6: 10,   # bearded head between Mary's veil and the praying man -> the
-             # praying man (he stands behind him; Mary, in front, is a
-             # separate layer just ahead of both — see FIG_Z_OVERRIDE)
-    12: 7,   # small head above the bowing man's back -> the bearded man it leans on
-    2: 4,    # head behind the far-left kneeling man -> the kneeling man
-    9: 8,    # head behind the centre figure's right shoulder -> clasped hands
+FIG_MERGE: dict[int, int] = {
+    # empty since issue #20: hidden bodies are generated (completions.SPEC)
+    # so every figure rides its own depth plane. Merging remains the fallback
+    # for a figure whose completion is not worth keeping — e.g. {6: 10} puts
+    # the bearded head back on the praying man.
 }
 
 # z is read off each figure's lowest row (see figure_z), which pushes a figure
 # whose lower body is hidden behind others much too far back. Overrides, in
 # the same units as FIG_Z.
-FIG_Z_OVERRIDE = {
-    10: 2.45,  # centre praying man (+ the bearded head behind him): grouped
-               # with Mary (2.6) so the three hold together as the camera moves
-    3: 2.0,  # seated man at far right: front row, but seated so his lowest
-             # row is high — beside the bowing man (~2.1), not behind him
-    7: 1.9,  # bearded man at right: robe hidden behind the bowing man and
-             # the seated man; he stands just behind them, and the small
-             # head riding with him must not drift off the bowing man's back
+FIG_Z_OVERRIDE: dict[int, float] = {
+    # Completed figures (completions.SPEC) are placed a step behind their
+    # nearest occluder by completions.completed_z, which covers the seated
+    # man, the bearded man at right and the praying man that used to be
+    # pinned here. Entries win over both the heuristic and that rule.
 }
 
 
@@ -321,12 +325,18 @@ def figure_z(bottoms: dict[int, float],
     return z
 
 
-def build_manifest(fig_z: dict[int, float], flame_count: int) -> list[dict]:
-    """The cuts.json entries. Only the crowd carries a dedicated color map —
-    its plate region contains the figures, so it needs its own texture."""
+def build_manifest(fig_z: dict[int, float], flame_count: int,
+                   extras: dict[int, dict] | None = None) -> list[dict]:
+    """The cuts.json entries. Cuts sample the shared plate unless they carry
+    a dedicated color map: the crowd (its plate region contains the figures)
+    and completed figures (their hidden pixels were generated), whose extras
+    add map/mapRect/depthMap. A completed figure without its own depth map
+    goes flat — the shared depth under its adopted pixels is the occluder's."""
     cuts: list[dict] = []
     for i, z in fig_z.items():
-        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": 1})
+        extra = (extras or {}).get(i, {})
+        relief = 0 if ("map" in extra and "depthMap" not in extra) else 1
+        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra})
     for i in range(flame_count):
         cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
     cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0, "map": "map-crowd.jpg"})
@@ -404,10 +414,58 @@ def main() -> None:
 
     # z for each figure from how far down the plate it reaches (further = nearer)
     bottoms = {i: np.flatnonzero(f.any(axis=1)).max() / H for i, f in figures.items()}
-    fig_z = figure_z(bottoms, FIG_Z_OVERRIDE)
+    fig_z = figure_z(bottoms)
+
+    # amodal completion (issue #20): author each hidden figure's extension,
+    # find what occludes it, adopt the part under the occluders, and step
+    # the figure behind them. The hidden pixels themselves come from
+    # complete_figures.py; until it has run for a figure, that figure keeps
+    # only its visible pixels (and will show a gap when it slides).
+    comp_dir = DIST / "complete"
+    comp_dir.mkdir(exist_ok=True)
+    floor_row = int(H * comp.FLOOR_ROW)
+    occl: dict[int, list[int]] = {}
+    keeps: dict[int, np.ndarray] = {}
+    for i, spec in comp.SPEC.items():
+        if i not in figures:
+            continue
+        reach = comp.reach_region(spec, figures[i], floor_row)
+        js = comp.occluders(i, reach, figures, fig_z)
+        if not js:
+            print(f"  fig{i}: nothing in front of its extension, not completed")
+            continue
+        occl[i] = js
+        keeps[i] = comp.keep_region(reach, js, figures)
+        hole = comp.hole_region(spec, figures[i], floor_row, comp.union(js, figures, (H, W)))
+        Image.fromarray(hole * 255).save(comp_dir / f"fig{i}-hole.png", optimize=True)
+        Image.fromarray(keeps[i] * 255).save(comp_dir / f"fig{i}-keep.png", optimize=True)
+    fig_z = comp.completed_z(fig_z, occl, floor=FIG_Z[0])
+    fig_z.update({i: v for i, v in FIG_Z_OVERRIDE.items() if i in fig_z})
+    extras: dict[int, dict] = {}
+    fig_maps: dict[int, np.ndarray] = {}
+    for i in sorted(keeps):
+        gen = comp_dir / f"fig{i}-gen.png"
+        if not gen.exists():
+            print(f"  fig{i}: behind {occl[i]}, hidden body not generated yet — visible pixels only")
+            continue
+        full = plate.copy()
+        gen_rgb = np.asarray(Image.open(gen).convert("RGB"))
+        full[keeps[i] > 0] = gen_rgb[keeps[i] > 0]
+        figures[i] = (figures[i] | keeps[i]).astype(np.uint8)
+        x0, y0, w, h = comp.crop_rect(figures[i])
+        Image.fromarray(full[y0:y0 + h, x0:x0 + w]).save(DIST / f"map-fig{i}.jpg", quality=88)
+        extras[i] = {"map": f"map-fig{i}.jpg", "mapRect": [x0 / W, y0 / H, w / W, h / H]}
+        fig_maps[i] = full
+        dep = comp_dir / f"fig{i}-depth.png"
+        if dep.exists():
+            d = Image.open(dep).convert("L").crop((x0, y0, x0 + w, y0 + h))
+            d.resize((max(1, w // 2), max(1, h // 2)), Image.LANCZOS).save(DIST / f"depth-fig{i}.png", optimize=True)
+            extras[i]["depthMap"] = f"depth-fig{i}.png"
+        print(f"  fig{i}: completed behind {occl[i]}, z {fig_z[i]}, +{int(keeps[i].sum())}px"
+              f"{'' if 'depthMap' in extras[i] else ' (no depth: flat)'}")
 
     flames = sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))
-    cuts = build_manifest(fig_z, len(flames))
+    cuts = build_manifest(fig_z, len(flames), extras)
     alphas = {}
     for i, f in figures.items():
         alphas[f"fig{i}"] = feather(f)
@@ -465,7 +523,12 @@ def main() -> None:
     rest = backdrop.astype(np.float32)
     for c in sorted(cuts, key=lambda c: c["z"]):
         a = alphas[c["name"]][..., None]
-        src = crowd_map if "map" in c else plate
+        if c["name"] == "crowd":
+            src = crowd_map
+        elif c["name"].startswith("fig") and int(c["name"][3:]) in fig_maps:
+            src = fig_maps[int(c["name"][3:])]
+        else:
+            src = plate
         rest = src * a + rest * (1 - a)
     Image.fromarray(rest.clip(0, 255).astype(np.uint8)).save(DIST / "qc-rest.png")
 

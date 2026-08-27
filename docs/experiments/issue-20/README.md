@@ -23,3 +23,21 @@ A merged head that never separates from its body is the better artefact.
 Not tried (would need a GPU this machine doesn't have): FLUX.1-Fill, a LoRA trained on
 the plate. If either is revisited, the depth note on #20 still applies — completed
 pixels need their own depth for the relief shader.
+
+## Update: shipped after all
+
+The verdict above judged the whole invented torso at 1:1. In the scene the torso
+sits **under** the front figure at rest; parallax only ever reveals a strip along the
+occluder's edge, so the bar is "continue tone and line at that edge", not "paint a
+Doré torso". With that framing — plus tone-matching the generated pixels to the
+plate's brightness guide, adopting only the pixels the occluders own (so the scene at
+rest still equals the plate), and placing each figure a step behind its nearest
+occluder (so the revealed strip stays narrow) — SDXL-inpainting was good enough for
+all 11 hidden figures, and every figure now rides its own depth plane.
+
+Pipeline: `tools/recut/completions.py` (geometry) → `build_cuts.py` (holes, adopted
+regions, per-figure cropped `map-figN.jpg` / `depth-figN.png`, `mapRect` in
+`cuts.json`) → `complete_figures.py --generate` (candidates + contact sheets) →
+`completion_picks.json` → `complete_figures.py --pick` (tone match + per-figure depth)
+→ `build_cuts.py` again. Picks were scored on tone, hatch contrast and line
+orientation in the revealable band.

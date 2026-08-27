@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { displaceLocal, parseCuts, reliefDz, reliefUniforms, segmentsFor } from "./parallaxRelief";
+import { displaceLocal, parseCuts, rectToUv, reliefDz, reliefUniforms, segmentsFor } from "./parallaxRelief";
 
 describe("parseCuts", () => {
   it("defaults legacy entries without a relief flag to flat", () => {
@@ -101,5 +101,18 @@ describe("segmentsFor", () => {
   it("keeps flat cuts as single quads and subdivides relief cuts", () => {
     expect(segmentsFor(0)).toEqual([1, 1]);
     expect(segmentsFor(1)).toEqual([96, 118]);
+  });
+});
+
+describe("rectToUv", () => {
+  it("is the whole plate when a cut has no map rectangle", () => {
+    expect(rectToUv(undefined)).toEqual([0, 0, 1, 1]);
+  });
+
+  it("flips a top-down plate rectangle into bottom-up uv space", () => {
+    // a rect 20% wide, 30% tall, whose top-left is 10% in and 20% down
+    expect(rectToUv([0.1, 0.2, 0.2, 0.3])).toEqual([0.1, 0.5, 0.2, 0.3]);
+    // the plate's bottom-most strip becomes v = 0
+    expect(rectToUv([0, 0.9, 1, 0.1])[1]).toBeCloseTo(0, 12);
   });
 });

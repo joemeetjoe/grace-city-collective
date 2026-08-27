@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-import { parseCuts, reliefUniforms, segmentsFor, type Cut } from "./parallaxRelief";
+import { parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
 /**
  * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
@@ -63,13 +63,16 @@ export type PentecostParallaxProps = {
 const VERT = `
 uniform float uFit;
 uniform sampler2D depthMap;
+uniform vec4 uMapRect;
 uniform float uRelief, uCamZ, uLayerZ, uScale;
 varying vec2 vUv;
 void main(){
   vUv = (uv - 0.5) / uFit + 0.5;
   vec3 p = position;
+  // a cut's own depth map covers only its mapRect of the plate
+  vec2 duv = (vUv - uMapRect.xy) / uMapRect.zw;
   // world-space push toward the camera; 0.5 is the plate's rest plane
-  float dz = (texture2D(depthMap, vUv).r - 0.5) * uRelief;
+  float dz = (texture2D(depthMap, duv).r - 0.5) * uRelief;
   // shrink toward the axis so the displaced vertex projects exactly where the
   // flat one did from the registration camera at (0,0,uCamZ)
   p.xy *= (uCamZ - uLayerZ - dz) / (uCamZ - uLayerZ);
@@ -80,6 +83,7 @@ void main(){
 
 const FRAG = `
 uniform sampler2D map, mask;
+uniform vec4 uMapRect;
 uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat;
 varying vec2 vUv;
 void main(){
@@ -89,7 +93,9 @@ void main(){
   // cuts fade to nothing outside the image; the backdrop clamps instead, so
   // looking past the plate shows wall rather than a void
   float m = mix(texture2D(mask, uv).r * edge, 1.0, uFlat);
-  vec3 col = texture2D(map, uv).rgb;
+  // a cut's own color map may cover only its mapRect of the plate (the mask
+  // is zero outside it, so nothing samples past the texture)
+  vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
 
   float lum = dot(col, vec3(0.333));
   float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
@@ -213,12 +219,20 @@ export default function PentecostParallax({
       return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, seg[0], seg[1]);
     };
 
-    const material = (map: THREE.Texture, mask: THREE.Texture, isFlame: number, flat: number) =>
+    const material = (
+      map: THREE.Texture,
+      mask: THREE.Texture,
+      isFlame: number,
+      flat: number,
+      depth: THREE.Texture = depthMap,
+      rect: UvRect = rectToUv(undefined),
+    ) =>
       new THREE.ShaderMaterial({
         uniforms: {
           map: { value: map },
           mask: { value: mask },
-          depthMap: { value: depthMap },
+          depthMap: { value: depth },
+          uMapRect: { value: new THREE.Vector4(...rect) },
           uRelief: { value: 0 },
           uCamZ: { value: baseZ },
           uLayerZ: { value: 0 },
@@ -274,10 +288,19 @@ export default function PentecostParallax({
         .map((cut, i) => {
           const mask = sharpen(loader.load(`${BASE}/cut-${cut.name}.png`));
           // a cut with its own color map (the crowd: its plate region contains
-          // the figures) samples that instead of the shared plate
+          // the figures; a completed figure: its hidden pixels were generated)
+          // samples that instead of the shared plate, over its mapRect
           const map = cut.map ? sharpen(loader.load(`${BASE}/${cut.map}`), true) : plate;
           if (cut.map) cutMaps.push(map);
-          const mat = material(map, mask, cut.isFlame, 0);
+          let depth = depthMap;
+          if (cut.depthMap) {
+            depth = loader.load(`${BASE}/${cut.depthMap}`);
+            depth.generateMipmaps = false;
+            depth.minFilter = THREE.LinearFilter;
+            depth.magFilter = THREE.LinearFilter;
+            cutMaps.push(depth);
+          }
+          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect));
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
           const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief)), mat);

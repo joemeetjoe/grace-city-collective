@@ -12,7 +12,29 @@ export type Cut = {
   relief: number;
   /** dedicated color texture; cuts without one sample the shared plate */
   map?: string;
+  /**
+   * the plate rectangle the dedicated map covers, [x, y, w, h] as fractions
+   * of the plate from its top-left; absent = the whole plate
+   */
+  mapRect?: [number, number, number, number];
+  /** dedicated depth texture covering the same rectangle as `map` */
+  depthMap?: string;
 };
+
+export type UvRect = [number, number, number, number];
+
+/** the whole plate, in uv terms */
+export const FULL_RECT: UvRect = [0, 0, 1, 1];
+
+/**
+ * A map rectangle in plate fractions (y down from the top) as a uv rectangle
+ * (three.js flips textures, so v runs up from the bottom): [x, y, w, h].
+ */
+export function rectToUv(rect?: [number, number, number, number]): UvRect {
+  if (!rect) return FULL_RECT;
+  const [x, y, w, h] = rect;
+  return [x, 1 - y - h, w, h];
+}
 
 type RawCut = Omit<Cut, "relief"> & { relief?: number };
 
