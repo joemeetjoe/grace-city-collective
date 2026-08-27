@@ -7,6 +7,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* brand tokens — mirrored in src/theme/tokens.ts for SVG/WebGL code */
+@theme {
+    --color-ink: #14100e;
+    --color-cream: #f9f4ed;
+    --color-seal: #9e1f2e;
+    --color-seal-deep: #5c0f1b;
+    --color-seal-highlight: #d67f48;
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
@@ -137,7 +146,7 @@
 html {
   scroll-behavior: smooth;
   scroll-snap-type: y mandatory;
-  background: #14100e;
+  background: var(--color-ink);
 }
 section[data-screen-label] {
   scroll-snap-align: start;
