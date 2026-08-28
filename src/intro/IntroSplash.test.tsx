@@ -60,6 +60,17 @@ describe("IntroSplash", () => {
     expect(screen.getByRole("img", { name: "Collective", hidden: true })).toBeTruthy();
   });
 
+  it("hands the script and seal to the timeline on the very first build", () => {
+    stubFontSize(0); // an unmeasured layout — the splash must not depend on measurement
+    const seen: Array<{ script: boolean; seal: boolean }> = [];
+    const build: typeof buildIntroTimeline = (targets, beats, vars) => {
+      seen.push({ script: !!targets.script, seal: !!targets.seal });
+      return buildIntroTimeline(targets, beats, vars);
+    };
+    render(<IntroSplash ready onDone={() => {}} build={build} />);
+    expect(seen[0]).toEqual({ script: true, seal: true });
+  });
+
   it("exposes the labelled slots for the handwriting and seal beats", () => {
     stubFontSize(120);
     const { build, tl } = capture();

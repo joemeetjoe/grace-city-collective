@@ -32,6 +32,12 @@ describe("Lockup", () => {
     expect(screen.queryByRole("img", { name: "Collective" })).toBeNull();
   });
 
+  it("renders the cursive line on the first commit when told to, before any measurement", () => {
+    stubFontSize(0);
+    const { container } = render(<Lockup script />);
+    expect(container.querySelector('[data-lockup="script"]')).not.toBeNull();
+  });
+
   it("marks its parts for layout animation", () => {
     stubFontSize(108);
     const { container } = render(<Lockup />);

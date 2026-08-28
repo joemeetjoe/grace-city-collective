@@ -11,6 +11,8 @@ export type LockupProps = {
   /** font size of the wordmark; everything else scales from it */
   size?: string;
   sealVariant?: SealProps["variant"];
+  /** force the cursive line on regardless of measured size (the splash sizes itself so it always fits) */
+  script?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -41,10 +43,16 @@ function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
  * Every instance carries the same `data-flip-id`s so GSAP Flip can carry one
  * instance's layout over to another (the splash hands off to the hero).
  */
-export default function Lockup({ size = HERO_LOCKUP_SIZE, sealVariant = "static", className, style }: LockupProps) {
+export default function Lockup({
+  size = HERO_LOCKUP_SIZE,
+  sealVariant = "static",
+  script: forceScript = false,
+  className,
+  style,
+}: LockupProps) {
   const wordmarkRef = useRef<HTMLSpanElement>(null);
   const fontPx = useWordmarkFontSize(wordmarkRef);
-  const script = showScript(scriptHeightFor(fontPx));
+  const script = forceScript || showScript(scriptHeightFor(fontPx));
 
   return (
     <div
