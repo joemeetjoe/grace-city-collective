@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 
 import Lockup from "@/components/Lockup";
 import { gsap } from "@/lib/gsap";
+import { introBeats } from "@/intro/beats";
 import { introTargets } from "@/intro/targets";
 import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
 
@@ -23,7 +24,7 @@ export type IntroSplashProps = {
  * Full-screen intro on ink: the lockup plays its beats, then the splash fades
  * and the hero underneath is shown as normal.
  */
-export default function IntroSplash({ beats = [], onDone, build = buildIntroTimeline }: IntroSplashProps) {
+export default function IntroSplash({ beats = introBeats, onDone, build = buildIntroTimeline }: IntroSplashProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const onDoneRef = useRef(onDone);
   useEffect(() => {
