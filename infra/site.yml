@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Grace City Collective static site: private S3 bucket behind CloudFront
+  (Origin Access Control), plus a GitHub Actions OIDC deploy role.
+  Deploy once with `aws cloudformation deploy`; see infra/README.md.
+
+Parameters:
+  GitHubOwner:
+    Type: String
+    Default: joemeetjoe
+    Description: GitHub user or organisation that owns the repository.
+  GitHubRepo:
+    Type: String
+    Default: grace-city-collective
+    Description: Repository name.
+  GitHubBranch:
+    Type: String
+    Default: main
+    Description: Only workflow runs on this branch may assume the deploy role.
+  CreateOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      Create the token.actions.githubusercontent.com OIDC provider. Set to
+      "false" if the account already has one (an account can only hold one
+      provider per URL).
+  DomainName:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional custom domain (e.g. gracecitycollective.org). Leave empty to
+      serve from the *.cloudfront.net hostname. Requires AcmCertificateArn.
+  AcmCertificateArn:
+    Type: String
+    Default: ""
+    Description: >-
+      ARN of an ACM certificate for DomainName. CloudFront only accepts
+      certificates issued in us-east-1.
+
+Conditions:
+  CreateOidc: !Equals [!Ref CreateOidcProvider, "true"]
+  HasDomain: !And
+    - !Not [!Equals [!Ref DomainName, ""]]
+    - !Not [!Equals [!Ref AcmCertificateArn, ""]]
+
+Resources:
+  # ---------------------------------------------------------------- storage
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  # ------------------------------------------------------------------- CDN
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-oac"
+        Description: Signs CloudFront requests to the private site bucket.
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${AWS::StackName} static site"
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Aliases: !If
+          - HasDomain
+          - [!Ref DomainName]
+          - !Ref AWS::NoValue
+        Origins:
+          - Id: site-bucket
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: site-bucket
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          # Managed CachingOptimized: honours the per-object Cache-Control the
+          # deploy workflow sets (min TTL 1s, max 1y), gzip/brotli aware.
+          CachePolicyId: 658327ea-f89d-4fbd-b1ea-e06e8f10e1a2
+          # Managed SecurityHeadersPolicy: HSTS, nosniff, frame DENY, referrer.
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03
+        ViewerCertificate: !If
+          - HasDomain
+          - AcmCertificateArn: !Ref AcmCertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - CloudFrontDefaultCertificate: true
+
+  # ------------------------------------------------------- GitHub Actions
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOidc
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # IAM now validates GitHub's issuer against its root CA and ignores
+      # these, but the property is still required by the resource type.
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-deploy"
+      Description: Assumed by the deploy workflow via GitHub OIDC; no long-lived keys.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOidc
+                - !Ref GitHubOidcProvider
+                - !Sub "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubOwner}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+      Policies:
+        - PolicyName: deploy-site
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ListBucket
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt SiteBucket.Arn
+              - Sid: SyncObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub "${SiteBucket.Arn}/*"
+              - Sid: Invalidate
+                Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+Outputs:
+  BucketName:
+    Description: S3 bucket the workflow syncs dist/ into (repo variable S3_BUCKET).
+    Value: !Ref SiteBucket
+  DistributionId:
+    Description: CloudFront distribution id (repo variable CLOUDFRONT_DISTRIBUTION_ID).
+    Value: !Ref Distribution
+  DistributionDomainName:
+    Description: CloudFront hostname; CNAME/ALIAS your custom domain here.
+    Value: !GetAtt Distribution.DomainName
+  DeployRoleArn:
+    Description: IAM role the workflow assumes (repo secret AWS_ROLE_ARN).
+    Value: !GetAtt DeployRole.Arn
+  SiteUrl:
+    Description: Where the site is served from.
+    Value: !If
+      - HasDomain
+      - !Sub "https://${DomainName}/"
+      - !Sub "https://${Distribution.DomainName}/"

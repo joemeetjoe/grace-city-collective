@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Manual only: the push-to-main deploy is deploy.yml (S3 + CloudFront).
+# Kept runnable by hand for the project-Pages demo URL.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
