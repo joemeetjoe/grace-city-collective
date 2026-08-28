@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import Lockup from "@/components/Lockup";
 import PentecostParallax from "@/components/PentecostParallax";
+import IntroSplash from "@/intro/IntroSplash";
 import Seal from "@/components/Seal";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
@@ -42,8 +45,10 @@ function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
 }
 
 export default function App() {
+  const [intro, setIntro] = useState(true);
   return (
     <div className="relative bg-ink font-sans text-cream">
+      {intro && <IntroSplash onDone={() => setIntro(false)} />}
       {/* the scene is sticky, not fixed: it stays put while the sections scroll over it */}
       <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
         <PentecostParallax layerSpread={1.25} />
