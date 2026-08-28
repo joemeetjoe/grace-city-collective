@@ -11,14 +11,17 @@ import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
 import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
+import { jumpTo as scrollJumpTo } from "@/scroll/jump";
+import { getScrollDriver } from "@/scroll/position";
+import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const gutter = "px-[clamp(20px,4.4vw,60px)]";
 const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
 
 function jumpTo(id: string) {
-  const el = document.getElementById(id);
-  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
+  // through the smoother when one is running, native smooth scroll otherwise
+  scrollJumpTo(id, getScrollDriver());
 }
 
 function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
@@ -54,7 +57,13 @@ export default function App() {
   const [tier] = useState(() => tierFor(readTierInputs()));
   const [ready, setReady] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // the smoother's sticky stand-ins; a stable list so the hook runs once
+  const [held] = useState(() => [parallaxRef, chromeRef]);
+  useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held }, policy.reducedMotion);
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible
   const sceneInView = useInView(sceneRef);
@@ -79,8 +88,10 @@ export default function App() {
     <div className="relative bg-ink font-sans text-cream">
       {intro && <IntroSplash ready={ready} onDone={() => setIntro(false)} />}
 
-      {/* the nav outlives the scene: sticky for the whole page, zero height so it takes no room */}
-      <div className="pointer-events-none sticky top-0 z-30 h-0">
+      {/* the nav outlives the scene: fixed for the whole page, zero height so it
+          takes no room. Fixed, and outside the smoother's content — a transformed
+          ancestor would turn fixed into absolute */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-30 h-0">
         <nav
           className={`pointer-events-auto absolute inset-x-[clamp(12px,2.4vw,26px)] top-[clamp(12px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
             sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
@@ -119,13 +130,19 @@ export default function App() {
         </nav>
       </div>
 
+      {/* everything that scrolls lives in the smoother's content; the wrapper
+          becomes its fixed viewport when the smoother is on (src/scroll) */}
+      <div id="smooth-wrapper" ref={wrapperRef}>
+      <div id="smooth-content" ref={contentRef}>
       {/* the scene: a sticky canvas under six one-viewport sections, stacked
           in one grid cell so the wrapper is exactly as tall as the sections.
           A sticky child can never leave its container, so the canvas and the
           chrome scroll away with the last section like a final panel, and
           the long-form follows on plain ink. (No negative margins here: a
           sticky element's margin box is what gets constrained, so -mb-[100svh]
-          would let it linger one viewport into the long-form.) */}
+          would let it linger one viewport into the long-form.) While the
+          smoother transforms the content the sticky is inert and
+          useSmoothScroll holds these two layers with a scrubbed translate. */}
       <div ref={sceneRef} data-scene="" className="relative grid">
         {/* sticky, not fixed: it stays put while the sections scroll over it */}
         <div
@@ -145,7 +162,10 @@ export default function App() {
         </div>
 
         {/* stationary chrome for the scene: border and wordmark */}
-        <div className="pointer-events-none sticky top-0 z-20 col-start-1 row-start-1 h-[100svh] self-start">
+        <div
+          ref={chromeRef}
+          className="pointer-events-none sticky top-0 z-20 col-start-1 row-start-1 h-[100svh] self-start"
+        >
           <div
             aria-hidden
             className="absolute inset-[clamp(12px,2.4vw,26px)] rounded-[clamp(16px,2.4vw,26px)] border border-cream/35"
@@ -302,6 +322,8 @@ export default function App() {
             </div>
           </div>
         </footer>
+      </div>
+      </div>
       </div>
     </div>
   );

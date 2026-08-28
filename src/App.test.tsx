@@ -1,8 +1,9 @@
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
+import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
 const seams = vi.hoisted(() => ({ webgl: true }));
@@ -52,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   window.sessionStorage.clear();
+  installScrollDriver(null);
 });
 
 describe("App intro policy", () => {
@@ -194,6 +196,16 @@ describe("App content", () => {
     }
   });
 
+  it("nav links jump through the scroll driver when one is installed", () => {
+    const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    const { container } = render(<App />);
+    // after the mount: the app installs its own smoother on mount, and the last one in wins
+    installScrollDriver(driver);
+    fireEvent.click(container.querySelector("nav a[href='#give']")!);
+    expect(driver.scrollTo).toHaveBeenCalledTimes(1);
+    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
+  });
+
   it("nav links resolve to sections on the page", () => {
     const { container } = render(<App />);
     const links = Array.from(container.querySelectorAll("nav a[href^='#']"));
@@ -227,5 +239,17 @@ describe("App page structure", () => {
     expect(scene.contains(container.querySelector("[data-parallax]"))).toBe(true);
     expect(scene.contains(longform)).toBe(false);
     expect(scene.compareDocumentPosition(longform) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("the fixed layers sit outside the smoother's content; the scene and long-form inside it", () => {
+    const { container } = render(<App />);
+    const content = container.querySelector("#smooth-content")!;
+    const wrapper = container.querySelector("#smooth-wrapper")!;
+    expect(wrapper.contains(content)).toBe(true);
+    expect(content.contains(container.querySelector("[data-scene]"))).toBe(true);
+    expect(content.contains(container.querySelector("[data-longform]"))).toBe(true);
+    // position: fixed does not survive a transformed ancestor
+    expect(wrapper.contains(container.querySelector("nav"))).toBe(false);
+    expect(wrapper.contains(container.querySelector("[data-intro-splash]"))).toBe(false);
   });
 });

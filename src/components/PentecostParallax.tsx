@@ -10,6 +10,7 @@ import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
+import { getScrollTop } from "@/scroll/position";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { channelVector, maskRef } from "./textureManifest";
@@ -354,11 +355,14 @@ export default function PentecostParallax({
      */
     const sectionProgress = () => {
       if (!sections.length) return 0;
-      const y = window.scrollY + window.innerHeight * 0.5;
+      // the smoothed position: with ScrollSmoother the rects sit where it
+      // says, not where the native scrollbar is
+      const scrollY = getScrollTop();
+      const y = scrollY + window.innerHeight * 0.5;
       for (let i = 0; i < sections.length; i++) {
         const el = sections[i];
         // document-relative, whatever the sections' offsetParent is
-        const top = el.getBoundingClientRect().top + window.scrollY;
+        const top = el.getBoundingClientRect().top + scrollY;
         if (y < top + el.offsetHeight || i === sections.length - 1) {
           const t = Math.min(1, Math.max(0, (y - top) / el.offsetHeight));
           return i + t;

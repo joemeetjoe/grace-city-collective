@@ -140,32 +140,20 @@
     }
 }
 
-/* mandatory: the page always settles on exactly one section, never between
-   two. The snap's jump is absorbed by the damped camera in PentecostParallax,
-   so the scene glides while the text snaps into place. */
 html {
-  scroll-behavior: smooth;
-  scroll-snap-type: y mandatory;
   background: var(--color-ink);
 }
-section[data-screen-label] {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+/* Scrolling is smoothed and snapped by ScrollSmoother + ScrollTrigger
+   (src/scroll), not CSS: a CSS snap turns every wheel notch into a full
+   viewport jump. While the smoother drives, the native scrollbar goes — the
+   position it would show is the wheel's, not the page's. Keyboard scrolling
+   (space, page down, arrows) is still native and still works. Under reduced
+   motion the smoother is never created, so the attribute is never set and the
+   scrollbar stays. */
+html[data-smooth-scroll] {
+  scrollbar-width: none;
 }
-/* the long-form is one snap area taller than the viewport, so the page snaps
-   to its top edge and then scrolls freely inside it — without this a mandatory
-   snap would drag the reader back up to the last scene section */
-[data-longform] {
-  scroll-snap-align: start;
-}
-/* and the end of the page is a snap position too, or a scroll to the bottom
-   is dragged back up to the long-form's start */
-[data-longform] > footer {
-  scroll-snap-align: end;
-}
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-    scroll-snap-type: none;
-  }
+html[data-smooth-scroll]::-webkit-scrollbar,
+html[data-smooth-scroll] body::-webkit-scrollbar {
+  display: none;
 }
