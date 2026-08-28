@@ -5,6 +5,9 @@
  * test pins the algebra the GLSL must reproduce.
  */
 
+/** which channel of which packed texture holds a cut's mask */
+export type MaskRef = { file: string; channel: number };
+
 export type Cut = {
   name: string;
   z: number;
@@ -26,6 +29,8 @@ export type Cut = {
    * top-left — the point that leaves the head for the dove (see flamePose)
    */
   at?: [number, number];
+  /** the packed mask texture and channel; absent = its own cut-<name>.png */
+  mask?: MaskRef;
 };
 
 export type UvRect = [number, number, number, number];

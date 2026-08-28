@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- the hero's textures, ahead of the bundle: the plate, its backdrop, and the
+         nearest apostles' masks (one packed file) and maps. crossorigin matches
+         three.js's anonymous image loads, or the preload is fetched twice -->
+    <link rel="preload" as="image" type="image/webp" crossorigin href="%BASE_URL%dore/2048/plate.webp" />
+    <link rel="preload" as="image" type="image/webp" crossorigin href="%BASE_URL%dore/2048/plate-backdrop.webp" />
+    <!-- as="fetch": the masks are decoded with createImageBitmap from a fetch(),
+         which an as="image" preload would never match -->
+    <link rel="preload" as="fetch" crossorigin href="%BASE_URL%dore/2048/masks-cut-0.webp" />
+    <link rel="preload" as="image" type="image/webp" crossorigin href="%BASE_URL%dore/2048/map-fig5.webp" />
+    <link rel="preload" as="image" type="image/webp" crossorigin href="%BASE_URL%dore/2048/map-fig10.webp" />
     <title>Grace City Collective</title>
   </head>
   <body>

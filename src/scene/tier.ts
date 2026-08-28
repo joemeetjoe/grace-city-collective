@@ -4,6 +4,8 @@
  * from the viewport, the pixel density and the Save-Data hint.
  */
 
+import { tierDir } from "@/components/textureManifest";
+
 export type TierName = "mobile" | "desktop";
 
 export type Tier = {
@@ -44,11 +46,10 @@ export function tierFor({ width, dpr, saveData }: TierInputs): Tier {
 
 /**
  * The `public/` directory a tier's textures live in (relative; pass through
- * `assetUrl`). Both tiers read `dore` until #26 lands the 1024 set, at which
- * point the mobile branch flips to `dore/1024`.
+ * `assetUrl`): the 2048 or 1024 set written by tools/recut/pack_textures.py.
  */
 export function textureDir(tier: Tier): string {
-  return tier.name === "mobile" ? "dore" : "dore";
+  return tierDir(tier.textures === "1024" ? 1024 : 2048);
 }
 
 type NavigatorWithConnection = Navigator & { connection?: { saveData?: boolean } };

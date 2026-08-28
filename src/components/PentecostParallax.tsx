@@ -12,21 +12,23 @@ import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
+import { channelVector, maskRef } from "./textureManifest";
 
 /**
  * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
  * reassembled in three.js. Scroll drives a camera that visits one waypoint per
  * <section data-screen-label> on the page.
  *
- * Assets expected in /public/dore/:
- *   plate.jpg            the engraving (2048x2519)
- *   plate-backdrop.png   the plate with every cutout inpainted back in
- *   cuts.json            [{ name, z, isFlame, relief?, parent?, at? }] — a
+ * Assets expected in /public/dore/<tier>/ (tools/recut/pack_textures.py):
+ *   plate.webp           the engraving (2048x2519 in the desktop tier)
+ *   plate-backdrop.webp  the plate with every cutout inpainted back in
+ *   cuts.json            [{ name, z, isFlame, relief?, parent?, at?, mask }] — a
  *                        flame's parent is the head it hangs over; it rests
  *                        just in front of that cut, on its plane (see
- *                        bindFlames), and leaves it from `at` (see flamePose)
- *   cut-<name>.png       one greyscale mask per cut
- *   depth.png            baked depth of the plate (white = near), drives the
+ *                        bindFlames), and leaves it from `at` (see flamePose);
+ *                        mask is { file, channel } into the packed textures
+ *   masks-*.webp         four greyscale masks per texture, one per channel
+ *   depth.webp           baked depth of the plate (white = near), drives the
  *                        per-figure relief displacement
  *
  * The masks are a partition of unity — they sum to 1 at every pixel — so the
@@ -116,7 +118,7 @@ void main(){
 
 const FRAG = `
 uniform sampler2D map, mask;
-uniform vec4 uMapRect;
+uniform vec4 uMapRect, uMaskChannel;
 uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat;
 varying vec2 vUv;
 void main(){
@@ -125,7 +127,8 @@ void main(){
              * smoothstep(-0.004, 0.010, uv.y) * smoothstep(1.004, 0.990, uv.y);
   // cuts fade to nothing outside the image; the backdrop clamps instead, so
   // looking past the plate shows wall rather than a void
-  float m = mix(texture2D(mask, uv).r * edge, 1.0, uFlat);
+  // the mask is one channel of a packed texture; uMaskChannel picks it
+  float m = mix(dot(texture2D(mask, uv), uMaskChannel) * edge, 1.0, uFlat);
   // a cut's own color map may cover only its mapRect of the plate (the mask
   // is zero outside it, so nothing samples past the texture)
   vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
@@ -245,13 +248,35 @@ export default function PentecostParallax({
       t.anisotropy = maxAniso;
       return t;
     };
-    const plate = sharpen(loader.load(`${BASE}/plate.jpg`), true);
-    const backdrop = sharpen(loader.load(`${BASE}/plate-backdrop.png`), true);
+    const plate = sharpen(loader.load(`${BASE}/plate.webp`), true);
+    const backdrop = sharpen(loader.load(`${BASE}/plate-backdrop.webp`), true);
     // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
-    const depthMap = loader.load(`${BASE}/depth.png`);
+    const depthMap = loader.load(`${BASE}/depth.webp`);
     depthMap.generateMipmaps = false;
     depthMap.minFilter = THREE.LinearFilter;
     depthMap.magFilter = THREE.LinearFilter;
+
+    // masks come four to a texture, one per channel, so the same file backs up
+    // to four materials. They must arrive unpremultiplied: an <img> upload may
+    // zero the colour under a zero alpha, wiping three masks wherever the
+    // fourth is empty, which only an ImageBitmap decoded without
+    // premultiplication guarantees against.
+    const bitmaps = new THREE.ImageBitmapLoader(manager);
+    bitmaps.setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" });
+    const maskTextures = new Map<string, THREE.Texture>();
+    const maskTexture = (url: string) => {
+      let t = maskTextures.get(url);
+      if (!t) {
+        t = sharpen(new THREE.Texture());
+        t.flipY = false; // orientation is fixed at decode for an ImageBitmap
+        maskTextures.set(url, t);
+        bitmaps.load(url, (bitmap) => {
+          t!.image = bitmap;
+          t!.needsUpdate = true;
+        });
+      }
+      return t;
+    };
 
     let baseZ = 20;
     const cutMaps: THREE.Texture[] = [];
@@ -292,11 +317,13 @@ export default function PentecostParallax({
       flat: number,
       depth: THREE.Texture = depthMap,
       rect: UvRect = rectToUv(undefined),
+      channel = 0,
     ) =>
       new THREE.ShaderMaterial({
         uniforms: {
           map: { value: map },
           mask: { value: mask },
+          uMaskChannel: { value: new THREE.Vector4(...channelVector(channel)) },
           depthMap: { value: depth },
           uMapRect: { value: new THREE.Vector4(...rect) },
           uRelief: { value: 0 },
@@ -362,7 +389,8 @@ export default function PentecostParallax({
       layers = bindFlames(cuts)
         .sort((a, b) => a.z - b.z)
         .map((cut, i) => {
-          const mask = sharpen(loader.load(`${BASE}/cut-${cut.name}.png`));
+          const ref = maskRef(cut, BASE);
+          const mask = maskTexture(ref.url);
           // a cut with its own color map (the crowd: its plate region contains
           // the figures; a completed figure: its hidden pixels were generated)
           // samples that instead of the shared plate, over its mapRect
@@ -376,7 +404,7 @@ export default function PentecostParallax({
             depth.magFilter = THREE.LinearFilter;
             cutMaps.push(depth);
           }
-          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect));
+          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
           const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief)), mat);
@@ -627,6 +655,7 @@ export default function PentecostParallax({
       rayLayer?.dispose();
       emberLayer?.dispose();
       for (const t of cutMaps) t.dispose();
+      for (const t of maskTextures.values()) t.dispose();
       plate.dispose();
       backdrop.dispose();
       depthMap.dispose();

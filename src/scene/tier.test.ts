@@ -32,10 +32,9 @@ describe("tierFor", () => {
 });
 
 describe("textureDir", () => {
-  // #26 produces the 1024 set; until it lands both tiers read the one directory
-  it("resolves both tiers to the existing dore directory for now", () => {
-    expect(textureDir(TIERS.desktop)).toBe("dore");
-    expect(textureDir(TIERS.mobile)).toBe("dore");
+  it("resolves each tier to its own texture set", () => {
+    expect(textureDir(TIERS.desktop)).toBe("dore/2048");
+    expect(textureDir(TIERS.mobile)).toBe("dore/1024");
   });
 });
 

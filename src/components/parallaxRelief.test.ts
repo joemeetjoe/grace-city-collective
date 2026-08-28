@@ -34,6 +34,16 @@ describe("parseCuts", () => {
     expect(cuts[1].map).toBeUndefined();
   });
 
+  it("carries a cut's packed mask reference through, absent on legacy entries", () => {
+    const cuts = parseCuts([
+      { name: "fig5", z: 2.3, isFlame: 0, relief: 1, mask: { file: "masks-cut-0.webp", channel: 1 } },
+      { name: "arch", z: -2.8, isFlame: 0 },
+    ]);
+
+    expect(cuts[0].mask).toEqual({ file: "masks-cut-0.webp", channel: 1 });
+    expect(cuts[1].mask).toBeUndefined();
+  });
+
   it("carries a flame's parent through, absent on legacy entries", () => {
     const cuts = parseCuts([
       { name: "flame4", z: -1.7, isFlame: 1, parent: "fig4" },
