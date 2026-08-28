@@ -1,73 +1,42 @@
-# React + TypeScript + Vite
+# Grace City Collective
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A single-page site for Grace City Collective: an animated intro (seal and
+lockup), then Gustave Doré's *The Descent of the Holy Spirit* cut into depth
+layers and driven by scroll as a parallax scene.
 
-Currently, two official plugins are available:
+**Demo:** https://joemeetjoe.github.io/grace-city-collective/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Develop
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev      # Vite dev server
+pnpm test     # Vitest
+pnpm lint     # ESLint
+pnpm build    # tsc + Vite → dist/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Vite 8, React 19, TypeScript, Tailwind 4, three.js, gsap.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Base path
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Runtime asset URLs (`public/dore/…`) go through `assetUrl()` in
+`src/lib/assetBase.ts`, which prefixes `import.meta.env.BASE_URL`. That value
+comes from `BASE_PATH` at build time and defaults to `/`:
+
+```bash
+pnpm build                                  # custom domain / root:  /
+BASE_PATH=/grace-city-collective/ pnpm build # project Pages URL
 ```
+
+`.github/workflows/pages.yml` builds with the Pages base on every push to
+`main` and deploys `dist/` via `actions/deploy-pages`. Point a custom domain at
+the site and drop the env var; nothing else changes.
+
+## Recut toolchain
+
+The Doré layers in `public/dore/` are produced by the Python scripts in
+`tools/recut` (SAM segmentation, depth baking, SDXL inpainting of occluded
+figures). They expect a `.venv-recut` virtualenv and write scratch output to
+`tools/recut/out-*`, both gitignored. `tools/shots/cdp-shot.mjs` takes
+headless-Chrome screenshots of the scene at scroll waypoints.

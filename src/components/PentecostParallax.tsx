@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import { readyOnce } from "@/components/parallaxLoading";
+import { assetUrl } from "@/lib/assetBase";
 import { parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
 /**
@@ -142,7 +143,7 @@ const WAYPOINTS: Waypoint[] = [
 // wall behind them — the drama comes from the dolly instead, so cap it hard
 const LATERAL_MAX = 0.06;
 
-const BASE = "/dore";
+const BASE = assetUrl("dore");
 const PLATE_W = 2048;
 const PLATE_H = 2519;
 const IW = 16;
