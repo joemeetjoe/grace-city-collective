@@ -29,3 +29,6 @@ tools/recut/dist/
 # python
 __pycache__/
 .pytest_cache/
+
+# agent worktrees
+.claude/worktrees/
