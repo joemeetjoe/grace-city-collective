@@ -72,3 +72,17 @@ describe("App intro policy", () => {
     expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
   });
 });
+
+describe("App hero seal", () => {
+  it("is the stamp-replay button; the splash's seal is not", () => {
+    const { container } = render(<App />);
+    const hero = container.querySelector("[data-hero-lockup]")!;
+    const button = hero.querySelector('button[aria-label="Replay the seal stamp"]')!;
+    expect(button).not.toBeNull();
+    const seal = button.querySelector('[data-lockup="seal"]')!;
+    // live variant, resting with its overlay off
+    expect(seal.querySelectorAll("filter").length).toBeGreaterThan(0);
+    expect((seal.querySelector('[data-seal="live"]') as SVGGElement).style.display).toBe("none");
+    expect(container.querySelector("[data-intro-splash] button")).toBeNull();
+  });
+});

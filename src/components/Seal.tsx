@@ -14,6 +14,11 @@ export type SealProps = {
    * Hide the overlay and what remains is exactly the static seal.
    */
   variant?: "live" | "static";
+  /**
+   * mount the live overlay hidden (`display: none`): the filters are in the
+   * document for a beat to switch on, but nothing is paid for at rest
+   */
+  atRest?: boolean;
   className?: string;
   /** accessible name */
   title?: string;
@@ -42,6 +47,7 @@ const LIGHT = { azimuth: 225, elevation: 48, x: 8, y: 2, z: 90 };
 export default function Seal({
   size = 28,
   variant = "live",
+  atRest = false,
   className,
   title = "Grace City Collective seal",
   style,
@@ -139,7 +145,7 @@ export default function Seal({
 
       {live && (
         /* everything that costs a filter pass, painted over the static base */
-        <g data-seal="live">
+        <g data-seal="live" style={atRest ? { display: "none" } : undefined}>
           <filter
             id={ids.wax}
             x="-8"

@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import CollectiveScript from "@/components/CollectiveScript";
 import Seal, { type SealProps } from "@/components/Seal";
 import { SCRIPT_EM, SEAL_EM, scriptHeightFor, showScript } from "@/components/lockupMetrics";
+import { STAMP_REPLAY_LABEL, useStampReplay } from "@/components/useStampReplay";
 import { cn } from "@/lib/utils";
 
 export const HERO_LOCKUP_SIZE = "clamp(30px,7.2vw,108px)";
@@ -13,6 +14,8 @@ export type LockupProps = {
   sealVariant?: SealProps["variant"];
   /** force the cursive line on regardless of measured size (the splash sizes itself so it always fits) */
   script?: boolean;
+  /** the seal is a button that replays the stamp beat (the hero easter egg) */
+  interactiveSeal?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -47,12 +50,27 @@ export default function Lockup({
   size = HERO_LOCKUP_SIZE,
   sealVariant = "static",
   script: forceScript = false,
+  interactiveSeal = false,
   className,
   style,
 }: LockupProps) {
   const wordmarkRef = useRef<HTMLSpanElement>(null);
+  const sealRef = useRef<SVGSVGElement>(null);
   const fontPx = useWordmarkFontSize(wordmarkRef);
   const script = forceScript || showScript(scriptHeightFor(fontPx));
+  const stamp = useStampReplay(sealRef);
+
+  const seal = (
+    <Seal
+      ref={sealRef}
+      data-lockup="seal"
+      data-flip-id="lockup-seal"
+      variant={sealVariant}
+      atRest={interactiveSeal}
+      size={`${SEAL_EM}em`}
+      className="shrink-0"
+    />
+  );
 
   return (
     <div
@@ -61,7 +79,19 @@ export default function Lockup({
       className={cn("flex items-center gap-[0.26em] text-cream", className)}
       style={{ fontSize: size, ...style }}
     >
-      <Seal data-lockup="seal" data-flip-id="lockup-seal" variant={sealVariant} size={`${SEAL_EM}em`} className="shrink-0" />
+      {interactiveSeal ? (
+        // the chrome layer is pointer-events-none; the button opts back in
+        <button
+          type="button"
+          aria-label={STAMP_REPLAY_LABEL}
+          className="pointer-events-auto inline-flex shrink-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream/60"
+          {...stamp}
+        >
+          {seal}
+        </button>
+      ) : (
+        seal
+      )}
       <div className="flex flex-col items-start">
         <span
           ref={wordmarkRef}

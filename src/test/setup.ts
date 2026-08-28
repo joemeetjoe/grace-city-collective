@@ -1,18 +1,20 @@
 import { cleanup } from "@testing-library/react";
-import { afterEach, vi } from "vitest";
+import { afterEach } from "vitest";
 
 // jsdom has no matchMedia; gsap's ScrollTrigger touches it on registration and
-// the intro consults prefers-reduced-motion. Tests override via vi.spyOn.
+// the intro consults prefers-reduced-motion. Tests override via vi.spyOn — the
+// stub is a plain function (not a vi.fn) so restoreAllMocks puts it back
+// rather than leaving one test's implementation on a shared mock.
 if (typeof window !== "undefined" && !window.matchMedia) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+  window.matchMedia = ((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia;
 }
 

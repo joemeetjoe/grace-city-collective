@@ -94,3 +94,16 @@ describe("Seal base artwork", () => {
     expect(parts(stillSvg)).toContain("highlight");
   });
 });
+
+describe("Seal at rest", () => {
+  it("mounts the live overlay hidden, filters and all, until a beat shows it", () => {
+    const { container } = render(<Seal variant="live" atRest />);
+    const overlay = container.querySelector('[data-seal="live"]') as SVGGElement;
+    expect(overlay).not.toBeNull();
+    expect(overlay.style.display).toBe("none");
+    expect(overlay.querySelectorAll("filter").length).toBeGreaterThan(0);
+
+    const { container: shown } = render(<Seal variant="live" />);
+    expect((shown.querySelector('[data-seal="live"]') as SVGGElement).style.display).toBe("");
+  });
+});
