@@ -82,7 +82,7 @@ export default function App() {
         />
         <nav className="pointer-events-auto absolute inset-x-[clamp(12px,2.4vw,26px)] top-[clamp(12px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)]">
           <div className="flex flex-wrap items-center gap-[clamp(14px,2.4vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70">
-            <Seal variant="static" size={28} className="shrink-0" />
+            <Seal variant="live" atRest size={28} className="shrink-0" />
             {nav.map((n) => (
               <a
                 key={n.id}
