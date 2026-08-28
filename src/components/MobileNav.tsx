@@ -12,6 +12,8 @@ const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const pill = "rounded-full px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors";
 
 export type MobileNavProps = {
+  /** the section under the viewport's midpoint; its link in the sheet is marked current */
+  activeId?: string | null;
   /** a link was chosen; the caller scrolls (the sheet has already closed) */
   onNavigate?: (id: string) => void;
   className?: string;
@@ -22,7 +24,7 @@ export type MobileNavProps = {
  * right, and a full-screen sheet on ink with every nav link plus Give and
  * Join Sunday. Escape, the Close button, and any link close it.
  */
-export default function MobileNav({ onNavigate, className }: MobileNavProps) {
+export default function MobileNav({ activeId = null, onNavigate, className }: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
   const go = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -72,8 +74,12 @@ export default function MobileNav({ onNavigate, className }: MobileNavProps) {
                 <a
                   key={n.id}
                   href={`#${n.id}`}
+                  aria-current={n.id === activeId ? "location" : undefined}
                   onClick={(e) => go(e, n.id)}
-                  className={`${serif} text-[clamp(30px,5.6svh,48px)] leading-[1.1] text-cream/90 transition-colors hover:text-cream`}
+                  className={cn(
+                    `${serif} text-[clamp(30px,5.6svh,48px)] leading-[1.1] text-cream/90 transition-colors hover:text-cream`,
+                    n.id === activeId && "text-seal hover:text-seal",
+                  )}
                 >
                   {n.label}
                 </a>

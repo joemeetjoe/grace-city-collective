@@ -33,6 +33,15 @@ describe("MobileNav", () => {
     expect(visits).toEqual(["Visit", "Join Sunday"]);
   });
 
+  it("the sheet marks the current section's link in the seal colour", () => {
+    render(<MobileNav activeId="faq" />);
+    const sheet = openSheet();
+    const current = sheet.querySelector("nav a[aria-current='location']")!;
+    expect(current.getAttribute("href")).toBe("#faq");
+    expect(current.className).toContain("text-seal");
+    expect(sheet.querySelectorAll("[aria-current]").length).toBe(1);
+  });
+
   it("Escape closes the sheet", () => {
     render(<MobileNav />);
     openSheet();

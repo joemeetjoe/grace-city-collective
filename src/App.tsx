@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import DotRail from "@/components/DotRail";
 import Lockup from "@/components/Lockup";
 import MobileNav from "@/components/MobileNav";
+import NavLinks from "@/components/NavLinks";
 import PentecostParallax from "@/components/PentecostParallax";
 import StaticPoster from "@/components/StaticPoster";
-import { type SceneSection, type SiteContent } from "@/content/site";
+import { type SceneSection, sectionIds, type SiteContent } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
@@ -12,7 +14,9 @@ import { fadeParallaxFromInk } from "@/intro/restingFade";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
 import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
 import { jumpTo as scrollJumpTo } from "@/scroll/jump";
+import { sectionMarkers } from "@/scroll/markers";
 import { getScrollDriver } from "@/scroll/position";
+import { useActiveSection } from "@/scroll/useActiveSection";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
@@ -78,6 +82,11 @@ export default function App() {
   }, [policy.reducedMotion]);
 
   const site = useSite();
+  // which section is under the viewport's midpoint: one state, read by the
+  // nav links and the dot rail alike
+  const ids = useMemo(() => sectionIds(site), [site]);
+  const markers = useMemo(() => sectionMarkers(site), [site]);
+  const activeId = useActiveSection(ids);
   const devotions = longform(site, "devotions");
   const beliefs = longform(site, "beliefs");
   const faq = longform(site, "faq");
@@ -98,19 +107,8 @@ export default function App() {
           }`}
         >
           {/* below the tablet breakpoint: the seal mark and a Menu that opens the sheet */}
-          <MobileNav className="lg:hidden" onNavigate={jumpTo} />
-          <div className="hidden flex-wrap items-center gap-[clamp(14px,2.4vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70 lg:flex">
-            {site.nav.map((n) => (
-              <a
-                key={n.id}
-                href={`#${n.id}`}
-                onClick={(e) => jump(e, n.id)}
-                className="transition-colors hover:text-cream"
-              >
-                {n.label}
-              </a>
-            ))}
-          </div>
+          <MobileNav className="lg:hidden" activeId={activeId} onNavigate={jumpTo} />
+          <NavLinks items={site.nav} activeId={activeId} onNavigate={jumpTo} className="hidden lg:flex" />
           <div className="hidden items-center gap-3 lg:flex">
             <a
               href="#give"
@@ -129,6 +127,9 @@ export default function App() {
           </div>
         </nav>
       </div>
+
+      {/* the section dots, fixed outside the smoother's content like the nav */}
+      <DotRail markers={markers} activeId={activeId} onNavigate={jumpTo} />
 
       {/* everything that scrolls lives in the smoother's content; the wrapper
           becomes its fixed viewport when the smoother is on (src/scroll) */}

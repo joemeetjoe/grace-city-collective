@@ -2,6 +2,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { sectionIds, site } from "@/content/site";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
@@ -214,6 +215,30 @@ describe("App content", () => {
       const id = a.getAttribute("href")!.slice(1);
       expect(container.querySelector(`#${id}`), `#${id}`).not.toBeNull();
     }
+  });
+});
+
+describe("App section markers", () => {
+  it("the nav link and the rail dot agree on the current section", () => {
+    const { container } = render(<App />);
+    const rail = container.querySelector("[data-dot-rail]")!;
+    expect(rail.querySelectorAll("a").length).toBe(sectionIds(site).length);
+    const current = Array.from(container.querySelectorAll("[aria-current='location']"));
+    const ids = new Set(current.map((a) => a.getAttribute("href")));
+    // one section: every current marker (nav link, rail dot) points at it
+    expect(current.length).toBeGreaterThan(0);
+    expect(ids.size).toBe(1);
+    expect(rail.querySelector("[aria-current='location']")).not.toBeNull();
+  });
+
+  it("the rail sits outside the smoother's content, and its dots jump through the driver", () => {
+    const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    const { container } = render(<App />);
+    const rail = container.querySelector("[data-dot-rail]")!;
+    expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(false);
+    installScrollDriver(driver);
+    fireEvent.click(rail.querySelector("a[href='#faq']")!);
+    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
   });
 });
 
