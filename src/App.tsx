@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Lockup from "@/components/Lockup";
 import PentecostParallax from "@/components/PentecostParallax";
 import IntroSplash from "@/intro/IntroSplash";
+import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
+import { fadeParallaxFromInk } from "@/intro/restingFade";
 import Seal from "@/components/Seal";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
@@ -45,13 +47,26 @@ function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
 }
 
 export default function App() {
-  const [intro, setIntro] = useState(true);
+  // decided once per mount: once per session, and never under reduced motion
+  const [policy] = useState(() => readPolicyInputs());
+  const [intro, setIntro] = useState(() => shouldPlayIntro(policy));
   const [ready, setReady] = useState(false);
+  const parallaxRef = useRef<HTMLDivElement>(null);
+
+  // no splash for reduced motion: the page still opens from ink with a short fade
+  useEffect(() => {
+    if (!policy.reducedMotion) return;
+    const fade = fadeParallaxFromInk(parallaxRef.current);
+    return () => {
+      fade?.kill();
+    };
+  }, [policy.reducedMotion]);
+
   return (
     <div className="relative bg-ink font-sans text-cream">
       {intro && <IntroSplash ready={ready} onDone={() => setIntro(false)} />}
       {/* the scene is sticky, not fixed: it stays put while the sections scroll over it */}
-      <div data-parallax="" className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
+      <div ref={parallaxRef} data-parallax="" className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
         <PentecostParallax layerSpread={1.25} onReady={() => setReady(true)} />
         <div
           aria-hidden

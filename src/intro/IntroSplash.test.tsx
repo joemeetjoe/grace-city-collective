@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Lockup from "@/components/Lockup";
@@ -177,6 +177,120 @@ describe("IntroSplash", () => {
     expect(parallax.style.opacity).toBe("1");
     unmount();
     expect(parallax.style.opacity).toBe("");
+  });
+
+  describe("skip gesture", () => {
+    function mountSkippable(ready = true) {
+      const { build, tl, handoff, handoffs } = capture();
+      const onDone = vi.fn();
+      const view = render(
+        <>
+          <Stage />
+          <IntroSplash ready={ready} onDone={onDone} build={build} handoff={handoff} />
+        </>,
+      );
+      return { ...view, tl, handoff, handoffs, onDone, build };
+    }
+
+    it("a click during the splash jumps to the end and, with textures in, hands off", () => {
+      stubFontSize(120);
+      const { tl, handoffs, onDone } = mountSkippable();
+      expect(tl().progress()).toBeLessThan(1);
+      act(() => {
+        fireEvent.pointerDown(window);
+      });
+      expect(tl().progress()).toBe(1);
+      expect(handoffs).toHaveLength(1);
+      act(() => {
+        handoffs[0].progress(1);
+      });
+      expect(onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it("a keypress does the same", () => {
+      stubFontSize(120);
+      const { tl, handoffs, onDone } = mountSkippable();
+      act(() => {
+        fireEvent.keyDown(window, { key: "Enter" });
+      });
+      expect(tl().progress()).toBe(1);
+      expect(handoffs).toHaveLength(1);
+      act(() => {
+        handoffs[0].progress(1);
+      });
+      expect(onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it("a wheel scroll does the same", () => {
+      stubFontSize(120);
+      const { tl, handoffs, onDone } = mountSkippable();
+      act(() => {
+        fireEvent.wheel(window, { deltaY: 40 });
+      });
+      expect(tl().progress()).toBe(1);
+      expect(handoffs).toHaveLength(1);
+      act(() => {
+        handoffs[0].progress(1);
+      });
+      expect(onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it("a touch scroll does the same", () => {
+      stubFontSize(120);
+      const { tl, handoffs } = mountSkippable();
+      act(() => {
+        fireEvent.touchMove(window);
+      });
+      expect(tl().progress()).toBe(1);
+      expect(handoffs).toHaveLength(1);
+    });
+
+    it("a skip before the textures are in does not hand off until ready flips", () => {
+      stubFontSize(120);
+      const { tl, handoffs, onDone, rerender, build, handoff } = mountSkippable(false);
+      act(() => {
+        fireEvent.pointerDown(window);
+      });
+      expect(tl().progress()).toBe(1);
+      expect(handoffs).toHaveLength(0);
+      rerender(
+        <>
+          <Stage />
+          <IntroSplash ready onDone={onDone} build={build} handoff={handoff} />
+        </>,
+      );
+      expect(handoffs).toHaveLength(1);
+      act(() => {
+        handoffs[0].progress(1);
+      });
+      expect(onDone).toHaveBeenCalledTimes(1);
+    });
+
+    it("gesture listeners are gone after unmount", () => {
+      stubFontSize(120);
+      const { handoffs, onDone, unmount } = mountSkippable(false);
+      unmount();
+      expect(() => {
+        fireEvent.pointerDown(window);
+        fireEvent.keyDown(window, { key: " " });
+        fireEvent.wheel(window);
+      }).not.toThrow();
+      expect(handoffs).toHaveLength(0);
+      expect(onDone).not.toHaveBeenCalled();
+    });
+
+    it("writes the session flag when the gate opens", () => {
+      stubFontSize(120);
+      window.sessionStorage.removeItem("gcc:intro-played");
+      const { handoffs } = mountSkippable();
+      expect(window.sessionStorage.getItem("gcc:intro-played")).toBeNull();
+      act(() => {
+        fireEvent.pointerDown(window);
+      });
+      expect(handoffs).toHaveLength(1);
+      expect(window.sessionStorage.getItem("gcc:intro-played")).not.toBeNull();
+      window.sessionStorage.removeItem("gcc:intro-played");
+    });
   });
 
   it("leaves the parallax untouched when the splash is never mounted", () => {

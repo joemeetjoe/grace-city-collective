@@ -26,4 +26,18 @@ describe("introGateOpen", () => {
   it("a skip after load opens immediately, without waiting out the intro", () => {
     expect(introGateOpen({ loaded: true, minimumElapsed: false, skipped: true })).toBe(true);
   });
+
+  it("a skip while waiting on ink after the intro finished still waits for textures", () => {
+    expect(introGateOpen({ loaded: false, minimumElapsed: true, skipped: true })).toBe(false);
+  });
+
+  it("a skip changes nothing once the gate is already open", () => {
+    expect(introGateOpen({ loaded: true, minimumElapsed: true, skipped: true })).toBe(true);
+  });
+
+  it("flipping skipped is the only way to open the gate early once textures are in", () => {
+    const before = { loaded: true, minimumElapsed: false, skipped: false };
+    expect(introGateOpen(before)).toBe(false);
+    expect(introGateOpen({ ...before, skipped: true })).toBe(true);
+  });
 });

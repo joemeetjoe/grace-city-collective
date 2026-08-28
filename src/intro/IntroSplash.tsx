@@ -5,6 +5,7 @@ import { gsap } from "@/lib/gsap";
 import { introBeats } from "@/intro/beats";
 import { introGateOpen } from "@/intro/gate";
 import { buildHandoff } from "@/intro/handoff";
+import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
 import { introTargets } from "@/intro/targets";
 import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
 
@@ -43,6 +44,8 @@ export default function IntroSplash({
   const introRef = useRef<gsap.core.Timeline | null>(null);
   const handoffRef = useRef<gsap.core.Timeline | null>(null);
   const [minimumElapsed, setMinimumElapsed] = useState(false);
+  const [gestured, setGestured] = useState(false);
+  const stopListeningRef = useRef<() => void>(() => {});
   const onDoneRef = useRef(onDone);
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -71,9 +74,23 @@ export default function IntroSplash({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // any gesture is the skip: the first one lands the intro on its resting state
+  useEffect(() => {
+    const stop = listenForSkip(window, () => {
+      introRef.current?.progress(1);
+      setGestured(true);
+    });
+    stopListeningRef.current = stop;
+    return stop;
+  }, []);
+
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || handoffRef.current || !introGateOpen({ loaded: ready, minimumElapsed, skipped })) return;
+    const gate = { loaded: ready, minimumElapsed, skipped: skipped || gestured };
+    if (!root || handoffRef.current || !introGateOpen(gate)) return;
+    // the intro counts as played (or skipped) for the rest of the session
+    markIntroPlayed();
+    stopListeningRef.current();
     // a skip lands the intro on its resting state so the lockup travels whole
     introRef.current?.progress(1);
     handoffRef.current = handoff({
@@ -84,7 +101,7 @@ export default function IntroSplash({
     });
     // handoff is configuration fixed for the life of the splash
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, minimumElapsed, skipped]);
+  }, [ready, minimumElapsed, skipped, gestured]);
 
   return (
     <div
