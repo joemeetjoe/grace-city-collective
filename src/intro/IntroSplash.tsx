@@ -65,8 +65,14 @@ export default function IntroSplash({
     return () => {
       tl.kill();
       introRef.current = null;
-      // a finished handoff has already cleared the hero; an interrupted one jumps to its end
-      handoffRef.current?.revert();
+      // never revert: that would re-apply Flip's from-state to the hero lockup.
+      // A finished handoff has already left the hero at rest; an interrupted
+      // one is jumped to its end so the hero lands where it belongs.
+      const handoff = handoffRef.current;
+      if (handoff) {
+        if (handoff.progress() < 1) handoff.progress(1);
+        handoff.kill();
+      }
       handoffRef.current = null;
       if (parallax) gsap.set(parallax, { clearProps: "opacity" });
     };

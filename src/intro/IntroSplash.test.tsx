@@ -127,6 +127,49 @@ describe("IntroSplash", () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves the hero lockup in its resting state once the handoff has finished and the splash is gone", () => {
+    stubFontSize(120);
+    // distinct geometry for the two lockups, so Flip has a real transform to animate (and to leak)
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      const inSplash = !!this.closest("[data-intro-splash]");
+      const r = inSplash ? { x: 400, y: 300, width: 600, height: 160 } : { x: 20, y: 700, width: 300, height: 80 };
+      return { ...r, top: r.y, left: r.x, right: r.x + r.width, bottom: r.y + r.height, toJSON: () => r } as DOMRect;
+    });
+    const { build, tl, handoff, handoffs } = capture();
+    let done = false;
+    const { rerender, unmount } = render(
+      <>
+        <Stage />
+        <IntroSplash ready={false} onDone={() => (done = true)} build={build} handoff={handoff} />
+      </>,
+    );
+    act(() => {
+      tl().progress(1);
+    });
+    rerender(
+      <>
+        <Stage />
+        <IntroSplash ready onDone={() => (done = true)} build={build} handoff={handoff} />
+      </>,
+    );
+    act(() => {
+      handoffs[0].progress(1);
+    });
+    expect(done).toBe(true);
+    unmount(); // App removes the splash once it's done
+    const hero = document.querySelector("[data-hero-lockup]");
+    // Stage was unmounted too; re-render just the hero to inspect what the handoff left on it
+    expect(hero).toBeNull();
+    for (const part of handoffs[0].getChildren(true, true, false)) {
+      for (const target of part.targets() as unknown[]) {
+        if (!(target instanceof Element) || target.closest("[data-intro-splash]")) continue;
+        const style = (target as HTMLElement).style;
+        expect(style.transform, `${target.getAttribute("data-flip-id")} transform`).toBe("");
+        expect(style.position, `${target.getAttribute("data-flip-id")} position`).toBe("");
+      }
+    }
+  });
+
   it("hands off only once even as the gate inputs keep changing", () => {
     stubFontSize(120);
     const { build, tl, handoff, handoffs } = capture();
