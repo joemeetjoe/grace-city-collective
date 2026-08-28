@@ -105,3 +105,22 @@ export function displaceLocal(
   // applied in local units or the xy compensation no longer cancels it
   return { x: local.x * shrink, y: local.y * shrink, z: dz / u.uScale };
 }
+
+/** the luminance band a flame's alpha ramps over: below is wall, above is tongue */
+export const FLAME_KEY: [number, number] = [0.16, 0.44];
+
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * The fragment shader's flame key — keep in sync with FRAG. A flame cut's
+ * feathered mask carries a rim of the dark wall around the tongue; keying
+ * the alpha on luminance drops that rim so a risen flame doesn't smudge the
+ * beam. Non-flame cuts (isFlame 0) pass through.
+ */
+export function flameKey(lum: number, isFlame = 1): number {
+  const key = smoothstep(FLAME_KEY[0], FLAME_KEY[1], lum);
+  return 1 - isFlame + isFlame * key;
+}

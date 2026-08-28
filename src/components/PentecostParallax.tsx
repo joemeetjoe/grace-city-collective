@@ -135,6 +135,8 @@ void main(){
   vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
 
   float lum = dot(col, vec3(0.333));
+  // a flame's mask carries a rim of dark wall; key it out (see flameKey())
+  m *= 1.0 - uIsFlame + uIsFlame * smoothstep(0.16, 0.44, lum);
   float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
   col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * vec3(1.0, 0.84, 0.58);
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  flameKey,
   FLAME_LIFT,
   bindFlames,
   displaceLocal,
@@ -178,5 +179,26 @@ describe("rectToUv", () => {
     expect(rectToUv([0.1, 0.2, 0.2, 0.3])).toEqual([0.1, 0.5, 0.2, 0.3]);
     // the plate's bottom-most strip becomes v = 0
     expect(rectToUv([0, 0.9, 1, 0.1])[1]).toBeCloseTo(0, 12);
+  });
+});
+
+describe("flameKey", () => {
+  // a flame cut carries a rim of dark wall inside its feathered mask; it is
+  // invisible on the wall but reads as a smudge once the flame rises into the
+  // beam, so the flame's alpha is keyed on luminance
+  it("keeps the bright tongue and drops the dark wall around it", () => {
+    expect(flameKey(0.9)).toBe(1);
+    expect(flameKey(0.05)).toBe(0);
+  });
+
+  it("ramps smoothly between the wall and the tongue", () => {
+    const mid = flameKey(0.3);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).toBeLessThan(1);
+    expect(flameKey(0.2)).toBeLessThan(flameKey(0.4));
+  });
+
+  it("leaves non-flame cuts alone", () => {
+    expect(flameKey(0.05, 0)).toBe(1);
   });
 });
