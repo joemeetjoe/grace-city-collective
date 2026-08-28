@@ -46,12 +46,13 @@ function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
 
 export default function App() {
   const [intro, setIntro] = useState(true);
+  const [ready, setReady] = useState(false);
   return (
     <div className="relative bg-ink font-sans text-cream">
-      {intro && <IntroSplash onDone={() => setIntro(false)} />}
+      {intro && <IntroSplash ready={ready} onDone={() => setIntro(false)} />}
       {/* the scene is sticky, not fixed: it stays put while the sections scroll over it */}
-      <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
-        <PentecostParallax layerSpread={1.25} />
+      <div data-parallax="" className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden">
+        <PentecostParallax layerSpread={1.25} onReady={() => setReady(true)} />
         <div
           aria-hidden
           className="absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_38%,transparent_0%,rgba(20,16,14,0.30)_65%,rgba(20,16,14,0.72)_100%)]"
@@ -95,7 +96,10 @@ export default function App() {
             </a>
           </div>
         </nav>
-        <div className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)]">
+        <div
+          data-hero-lockup=""
+          className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)]"
+        >
           <Lockup />
         </div>
       </div>

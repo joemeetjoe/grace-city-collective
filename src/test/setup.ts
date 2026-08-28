@@ -16,4 +16,13 @@ if (typeof window !== "undefined" && !window.matchMedia) {
   })) as unknown as typeof window.matchMedia;
 }
 
+// jsdom lays nothing out: no SVG CTM either. gsap's Flip reads it to place
+// the lockup's seal and script, so hand it an identity matrix.
+if (typeof SVGGraphicsElement !== "undefined" && !SVGGraphicsElement.prototype.getCTM) {
+  const identity = (): DOMMatrix =>
+    ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse: identity }) as unknown as DOMMatrix;
+  SVGGraphicsElement.prototype.getCTM = identity;
+  SVGGraphicsElement.prototype.getScreenCTM = identity;
+}
+
 afterEach(() => cleanup());

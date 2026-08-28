@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
+import { readyOnce } from "@/components/parallaxLoading";
 import { parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
 /**
@@ -55,6 +56,8 @@ export type PentecostParallaxProps = {
   idleDrift?: boolean;
   /** how far the camera pushes in across the page (0–0.5) */
   dollyIntensity?: number;
+  /** every texture (and cuts.json) has arrived; fires once */
+  onReady?: () => void;
   className?: string;
 };
 
@@ -156,9 +159,14 @@ export default function PentecostParallax({
   flameDrift = true,
   idleDrift = false,
   dollyIntensity = 0.46,
+  onReady,
   className,
 }: PentecostParallaxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const onReadyRef = useRef(onReady);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({ layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity });
   useEffect(() => {
@@ -175,7 +183,10 @@ export default function PentecostParallax({
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
 
-    const loader = new THREE.TextureLoader();
+    // every load goes through one manager so the ready signal waits for all of
+    // them — including the cut masks requested only after cuts.json arrives
+    const manager = new THREE.LoadingManager();
+    const loader = new THREE.TextureLoader(manager);
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
     const sharpen = (t: THREE.Texture, srgb = false) => {
       if (srgb) t.colorSpace = THREE.SRGBColorSpace;
@@ -433,10 +444,21 @@ export default function PentecostParallax({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("deviceorientation", onTilt);
 
-    fetch(`${BASE}/cuts.json`)
-      .then((r) => r.json())
-      .then((raw) => start(parseCuts(raw)))
-      .catch((err) => console.error("[PentecostParallax] could not load cuts.json", err));
+    // FileLoader calls onLoad before it reports itemEnd to the manager, so the
+    // cut textures requested inside start() are counted before the queue drains
+    const cutsLoader = new THREE.FileLoader(manager);
+    cutsLoader.setResponseType("json");
+    cutsLoader.load(
+      `${BASE}/cuts.json`,
+      (raw) => start(parseCuts(raw)),
+      undefined,
+      (err) => console.error("[PentecostParallax] could not load cuts.json", err),
+    );
+    // once per effect run; a run torn down by StrictMode is disposed and never reports
+    const reportReady = readyOnce(() => onReadyRef.current?.());
+    manager.onLoad = () => {
+      if (!disposed) reportReady();
+    };
 
     return () => {
       disposed = true;

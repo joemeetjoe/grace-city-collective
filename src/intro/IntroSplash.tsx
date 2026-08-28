@@ -1,31 +1,48 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Lockup from "@/components/Lockup";
 import { gsap } from "@/lib/gsap";
 import { introBeats } from "@/intro/beats";
+import { introGateOpen } from "@/intro/gate";
+import { buildHandoff } from "@/intro/handoff";
 import { introTargets } from "@/intro/targets";
 import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
 
 /** Title-card size: the script line stands ≥ 28px on any phone (28 / SCRIPT_EM ≈ 61px). */
 export const SPLASH_LOCKUP_SIZE = "clamp(62px,12vw,160px)";
 
-export const SPLASH_FADE_SECONDS = 0.5;
-
 export type IntroSplashProps = {
   /** beats beyond the wordmark wipe, each landing in its own label */
   beats?: IntroBeat[];
-  /** the splash has faded; unmount it */
+  /** every parallax texture has arrived */
+  ready: boolean;
+  /** the visitor gestured past the intro; the gate no longer waits for the full run */
+  skipped?: boolean;
+  /** the handoff has landed; unmount the splash */
   onDone: () => void;
   /** timeline factory — injectable so tests can scrub the sequence */
   build?: typeof buildIntroTimeline;
+  /** handoff factory — injectable so tests can scrub the Flip */
+  handoff?: typeof buildHandoff;
 };
 
 /**
- * Full-screen intro on ink: the lockup plays its beats, then the splash fades
- * and the hero underneath is shown as normal.
+ * Full-screen intro on ink that doubles as the loading screen: the lockup plays
+ * its beats, then waits until the parallax is ready, and hands the lockup off
+ * to the hero with a layout animation while the scene fades up underneath.
  */
-export default function IntroSplash({ beats = introBeats, onDone, build = buildIntroTimeline }: IntroSplashProps) {
+export default function IntroSplash({
+  beats = introBeats,
+  ready,
+  skipped = false,
+  onDone,
+  build = buildIntroTimeline,
+  handoff = buildHandoff,
+}: IntroSplashProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const introRef = useRef<gsap.core.Timeline | null>(null);
+  const handoffRef = useRef<gsap.core.Timeline | null>(null);
+  const [minimumElapsed, setMinimumElapsed] = useState(false);
   const onDoneRef = useRef(onDone);
   useEffect(() => {
     onDoneRef.current = onDone;
@@ -34,18 +51,40 @@ export default function IntroSplash({ beats = introBeats, onDone, build = buildI
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
+    // the scene sits on ink until the handoff fades it up
+    const parallax = document.querySelector<HTMLElement>("[data-parallax]");
+    if (parallax) gsap.set(parallax, { opacity: 0 });
+
     const tl = build(introTargets(root), beats);
-    tl.addLabel("exit");
-    tl.to(root, { opacity: 0, duration: SPLASH_FADE_SECONDS, ease: "power2.inOut" }, "exit");
-    tl.eventCallback("onComplete", () => onDoneRef.current());
+    tl.eventCallback("onComplete", () => setMinimumElapsed(true));
     tl.play();
+    introRef.current = tl;
     return () => {
       tl.kill();
-      gsap.set(root, { clearProps: "opacity" });
+      introRef.current = null;
+      // a finished handoff has already cleared the hero; an interrupted one jumps to its end
+      handoffRef.current?.revert();
+      handoffRef.current = null;
+      if (parallax) gsap.set(parallax, { clearProps: "opacity" });
     };
     // beats/build are configuration fixed for the life of the splash
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || handoffRef.current || !introGateOpen({ loaded: ready, minimumElapsed, skipped })) return;
+    // a skip lands the intro on its resting state so the lockup travels whole
+    introRef.current?.progress(1);
+    handoffRef.current = handoff({
+      root,
+      hero: document.querySelector<HTMLElement>("[data-hero-lockup]"),
+      parallax: document.querySelector<HTMLElement>("[data-parallax]"),
+      onComplete: () => onDoneRef.current(),
+    });
+    // handoff is configuration fixed for the life of the splash
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, minimumElapsed, skipped]);
 
   return (
     <div

@@ -37,6 +37,9 @@ function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
 /**
  * The resting logo lockup: seal · "Grace City" · "Collective" in script.
  * "Collective" is only rendered when it would stand at least 18px tall.
+ *
+ * Every instance carries the same `data-flip-id`s so GSAP Flip can carry one
+ * instance's layout over to another (the splash hands off to the hero).
  */
 export default function Lockup({ size = HERO_LOCKUP_SIZE, sealVariant = "static", className, style }: LockupProps) {
   const wordmarkRef = useRef<HTMLSpanElement>(null);
@@ -46,14 +49,16 @@ export default function Lockup({ size = HERO_LOCKUP_SIZE, sealVariant = "static"
   return (
     <div
       data-lockup=""
+      data-flip-id="lockup"
       className={cn("flex items-center gap-[0.26em] text-cream", className)}
       style={{ fontSize: size, ...style }}
     >
-      <Seal data-lockup="seal" variant={sealVariant} size={`${SEAL_EM}em`} className="shrink-0" />
+      <Seal data-lockup="seal" data-flip-id="lockup-seal" variant={sealVariant} size={`${SEAL_EM}em`} className="shrink-0" />
       <div className="flex flex-col items-start">
         <span
           ref={wordmarkRef}
           data-lockup="wordmark"
+          data-flip-id="lockup-wordmark"
           className="[font-family:'Cormorant_Garamond',Georgia,serif] leading-[0.9] tracking-[-0.01em] whitespace-nowrap"
         >
           Grace City
@@ -61,6 +66,7 @@ export default function Lockup({ size = HERO_LOCKUP_SIZE, sealVariant = "static"
         {script && (
           <CollectiveScript
             data-lockup="script"
+            data-flip-id="lockup-script"
             className="-mt-[0.02em] ml-[0.34em]"
             style={{ height: `${SCRIPT_EM}em` }}
           />
