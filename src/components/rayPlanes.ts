@@ -130,6 +130,9 @@ export function rayRenderOrder(sortedLayerZ: number[], z: number): number {
   return (front < 0 ? sortedLayerZ.length : front) + 0.5;
 }
 
+// how much brighter the plate gets under a ray at full intensity, relative
+const RAY_LIGHT = 1.6;
+
 const VERT = `
 uniform float uFit;
 varying vec2 vUv;
@@ -140,6 +143,7 @@ void main(){
 
 const FRAG = `
 uniform float uTime, uIntensity, uBeamMax, uAspect, uPhase, uGain, uWidth, uTop;
+#define RAY_LIGHT ${RAY_LIGHT.toFixed(2)}
 uniform vec2 uOrigin, uDir;
 varying vec2 vUv;
 void main(){
@@ -163,7 +167,9 @@ void main(){
   float b = across * emerge * fall * shimmer * e.x * e.y * uGain;
   // additive: the colour is the contribution, so the overall alpha
   // (uIntensity * uBeamMax) multiplies it here rather than saturating at 1
-  gl_FragColor = vec4(vec3(0.98, 0.90, 0.72) * b * uIntensity * uBeamMax, 1.0);
+  // multiplicative light needs more gain than the additive glow it replaces:
+  // the wall it lands on is dark, so the same b moves it far less
+  gl_FragColor = vec4(vec3(0.98, 0.90, 0.72) * b * uIntensity * uBeamMax * RAY_LIGHT, 1.0);
 }`;
 
 export type RayFrame = {
@@ -220,7 +226,16 @@ export function createRayLayer(specs: RaySpec[], opts: RayLayerOptions): RayLaye
       vertexShader: VERT,
       fragmentShader: FRAG,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      // light on an engraving scales the plate's own tone: out = dst * (1 + ray).
+      // Additive glow lifts the dark hatching to flat grey, and everything the
+      // rays cross in the backdrop (the uncut apostles) turns to blurred wall
+      // under the crisp cut heads
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation,
+      blendSrc: THREE.DstColorFactor,
+      blendDst: THREE.OneFactor,
+      blendSrcAlpha: THREE.ZeroFactor,
+      blendDstAlpha: THREE.OneFactor,
       depthTest: false,
       depthWrite: false,
     });

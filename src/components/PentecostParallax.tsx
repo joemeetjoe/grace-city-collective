@@ -165,12 +165,20 @@ void main(){
   float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
   col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * vec3(1.0, 0.84, 0.58);
 
-  // the dove's halo; the rays themselves are their own planes (rayPlanes.ts).
-  // Measured against the plate, not the oversized plane, so it stays put
+  // the light column as ILLUMINATION on every layer — the apostles' robes in
+  // the beam are lit by it, which is what keeps their hatching legible at the
+  // deep dolly; without it only the wall behind them is lit and they read as
+  // dark bodies under bright faces. The volumetric rays are their own planes
+  // (rayPlanes.ts), so this term is softer than the flat beam it replaces.
+  // Measured against the plate, not the oversized plane, so it stays put;
+  // clamped before pow(): a negative base is NaN in GLSL
   vec2 cv = clamp(uv, 0.0, 1.0);
+  float spread = mix(0.055, 0.34, pow(1.0 - cv.y, 1.5));
+  float bx = (cv.x - 0.5) / spread;
+  float beam = exp(-bx * bx * 1.9) * smoothstep(0.26, 0.96, cv.y);
   float dv = distance(cv * vec2(1.0, 1.22), vec2(0.5, 0.965 * 1.22));
   float halo = exp(-dv * dv * 180.0);
-  col += halo * 0.34 * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
+  col += (beam * 0.22 + halo * 0.34) * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
 
   col = col / (1.0 + col * 0.30);
   col = pow(col, vec3(1.12)) * vec3(1.05, 1.0, 0.92);
@@ -469,6 +477,8 @@ export default function PentecostParallax({
           return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, at: cut.at, flame };
         });
       doveLayer = layers.find((l) => l.name === "dove");
+      // a debug build exposes the layers so a shot script can solo them
+      if (import.meta.env.VITE_SCENE_DEBUG) window.__gccScene = { layers, scene, camera };
 
       // the light, as planes of its own between the dove and the crowd, drawn
       // right after the crowd (see RAY_NEAR_Z) and registered like the cuts
@@ -728,4 +738,10 @@ export default function PentecostParallax({
   }, []);
 
   return <canvas ref={canvasRef} aria-hidden className={className ?? "absolute inset-0 block h-full w-full"} />;
+}
+
+declare global {
+  interface Window {
+    __gccScene?: { layers: Layer[]; scene: THREE.Scene; camera: THREE.Camera };
+  }
 }
