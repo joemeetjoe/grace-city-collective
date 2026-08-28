@@ -6,6 +6,7 @@ import { createRenderGate } from "@/components/renderGate";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
+import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 
 /**
  * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
@@ -53,8 +54,10 @@ export type PentecostParallaxProps = {
   layerSpread?: number;
   /** depth of the per-figure relief in world units; 0 = flat cards as before */
   figureRelief?: number;
-  /** intensity of the light beam and the dove's halo */
+  /** intensity of the light rays and the dove's halo */
   beamGlow?: number;
+  /** how many ray planes fan out from the dove (read once, when the scene builds) */
+  rays?: number;
   /** flame flicker */
   flameDrift?: boolean;
   /** slow autonomous drift when the page is idle */
@@ -115,16 +118,12 @@ void main(){
   float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
   col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * vec3(1.0, 0.84, 0.58);
 
-  // clamp before pow(): outside the plate 1.0 - uv.y goes negative, and pow()
-  // with a negative base is undefined in GLSL — it returns NaN and blackens
-  // everything above the image
+  // the dove's halo; the rays themselves are their own planes (rayPlanes.ts).
+  // Measured against the plate, not the oversized plane, so it stays put
   vec2 cv = clamp(uv, 0.0, 1.0);
-  float spread = mix(0.055, 0.34, pow(1.0 - cv.y, 1.5));
-  float bx = (cv.x - 0.5) / spread;
-  float beam = exp(-bx * bx * 1.9) * smoothstep(0.26, 0.96, cv.y);
   float dv = distance(cv * vec2(1.0, 1.22), vec2(0.5, 0.965 * 1.22));
   float halo = exp(-dv * dv * 180.0);
-  col += (beam * 0.30 + halo * 0.34) * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
+  col += halo * 0.34 * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
 
   col = col / (1.0 + col * 0.30);
   col = pow(col, vec3(1.12)) * vec3(1.05, 1.0, 0.92);
@@ -174,6 +173,7 @@ export default function PentecostParallax({
   layerSpread = 1,
   figureRelief = 0.5,
   beamGlow = 1,
+  rays = 4,
   flameDrift = true,
   idleDrift = false,
   dollyIntensity = 0.46,
@@ -190,13 +190,13 @@ export default function PentecostParallax({
   }, [onReady]);
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({
-    layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+    layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
   });
   useEffect(() => {
     opts.current = {
-      layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+      layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
     };
-  }, [layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax]);
+  }, [layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -236,6 +236,7 @@ export default function PentecostParallax({
     let layers: Layer[] = [];
     let backdropLayer: Layer | null = null;
     let doveLayer: Layer | undefined;
+    let rayLayer: RayLayer | null = null;
     let raf = 0;
     let disposed = false;
     let gate: ReturnType<typeof createRenderGate> | null = null;
@@ -359,6 +360,18 @@ export default function PentecostParallax({
         });
       doveLayer = layers.find((l) => l.name === "dove");
 
+      // the light, as planes of its own between the dove and the crowd, drawn
+      // right after the crowd (see RAY_NEAR_Z) and registered like the cuts
+      const layerZ = layers.map((l) => l.z);
+      rayLayer = createRayLayer(raySpecs(opts.current.rays), {
+        geom: (z) => geom(z),
+        fit: FIT,
+        plate: { w: IW, h: IH },
+        origin: [0.5, 1 - DOVE_V],
+        renderOrder: () => rayRenderOrder(layerZ, RAY_NEAR_Z),
+      });
+      for (const m of rayLayer.meshes) scene.add(m);
+
       const t0 = performance.now();
       // the camera chases its target through this state, so scroll jumps
       // (snap, fast flicks) arrive as a glide instead of a lurch
@@ -448,7 +461,8 @@ export default function PentecostParallax({
         const relief = reliefGain(pointer.x, o.figureRelief, o.reliefMax);
 
         const all = backdropLayer ? [backdropLayer, ...layers] : layers;
-        const beam = 0.3 + Math.pow(sp / (WAYPOINTS.length - 1), 1.15) * 0.95;
+        const beam = rayIntensity(sp / (WAYPOINTS.length - 1));
+        rayLayer?.update({ time: t, intensity: beam, glow: o.beamGlow, zScale: spread + ease * 0.35, baseZ, cam: camera.position });
         for (const l of all) {
           l.mat.uniforms.uTime.value = t;
           l.mat.uniforms.uBeam.value = beam;
@@ -496,6 +510,7 @@ export default function PentecostParallax({
         l.mesh.geometry.dispose();
         l.mesh.geometry = geom(l.z, l.fit ?? FIT, segmentsFor(l.relief));
       }
+      rayLayer?.resize();
     };
     const onMove = (e: PointerEvent) => {
       pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
@@ -538,6 +553,7 @@ export default function PentecostParallax({
         l.mesh.geometry.dispose();
         l.mat.dispose();
       }
+      rayLayer?.dispose();
       for (const t of cutMaps) t.dispose();
       plate.dispose();
       backdrop.dispose();
