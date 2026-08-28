@@ -4,6 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 
+// jsdom cannot probe for WebGL; each test says whether it is there
+const seams = vi.hoisted(() => ({ webgl: true }));
+vi.mock("@/scene/fallback", async (orig) => ({
+  ...(await orig<typeof import("@/scene/fallback")>()),
+  detectWebgl: () => seams.webgl,
+}));
+
 // WebGL does not exist in jsdom: stand in for the scene and report ready at once
 vi.mock("@/components/PentecostParallax", async () => {
   const { useEffect } = await import("react");
@@ -40,6 +47,7 @@ function preferReducedMotion() {
 beforeEach(() => {
   window.sessionStorage.clear();
   stubFontSize(120);
+  seams.webgl = true;
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -88,9 +96,53 @@ describe("App hero seal", () => {
 });
 
 describe("App nav", () => {
-  it("carries no seal — the mark lives only in the lockup", () => {
+  it("the desktop nav carries no seal — the mark lives in the lockup and the mobile nav", () => {
     const { container } = render(<App />);
-    expect(container.querySelector('nav svg[role="img"]')).toBeNull();
+    const marks = Array.from(container.querySelectorAll('nav svg[role="img"]'));
+    expect(marks.length).toBeGreaterThan(0);
+    for (const mark of marks) expect(mark.closest("[data-mobile-nav]")).not.toBeNull();
+  });
+
+  it("the mobile nav sits in the same sticky nav as the desktop links", () => {
+    const { container } = render(<App />);
+    const mobile = container.querySelector("nav [data-mobile-nav]")!;
+    expect(mobile).not.toBeNull();
+    expect(mobile.querySelector("button")?.textContent).toBe("Menu");
+  });
+});
+
+describe("App static fallback", () => {
+  it("with WebGL and full motion the scene renders, not the poster", () => {
+    const { container } = render(<App />);
+    expect(container.querySelector("[data-parallax] [data-parallax-stub]")).not.toBeNull();
+    expect(container.querySelector("[data-poster]")).toBeNull();
+  });
+
+  it("without WebGL the poster covers the scene container instead", () => {
+    seams.webgl = false;
+    const { container } = render(<App />);
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    const img = container.querySelector("[data-parallax] [data-poster] img")!;
+    expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-1280/);
+  });
+
+  it("under reduced motion the poster stands in and still fades up from ink", () => {
+    preferReducedMotion();
+    const { container } = render(<App />);
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    expect(container.querySelector("[data-parallax] [data-poster]")).not.toBeNull();
+    const parallax = container.querySelector("[data-parallax]") as HTMLElement;
+    expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
+  });
+
+  it("under Save-Data the poster stands in", () => {
+    Object.defineProperty(navigator, "connection", { value: { saveData: true }, configurable: true });
+    try {
+      const { container } = render(<App />);
+      expect(container.querySelector("[data-parallax] [data-poster]")).not.toBeNull();
+    } finally {
+      delete (navigator as { connection?: unknown }).connection;
+    }
   });
 });
 

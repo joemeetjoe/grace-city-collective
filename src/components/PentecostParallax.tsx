@@ -7,6 +7,8 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
+import { armGyroOnFirstTouch } from "@/scene/gyro";
+import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 
@@ -78,6 +80,8 @@ export type PentecostParallaxProps = {
   reliefGain?: number;
   /** every texture (and cuts.json) has arrived; fires once */
   onReady?: () => void;
+  /** asset tier (scene/tier.ts): picks the texture directory; read once at mount */
+  tier?: Tier;
   className?: string;
 };
 
@@ -165,7 +169,6 @@ const POINTER_SLIDE = 0.12;
 // per-frame chase factor at 60 fps, made framerate-independent by chase()
 const CHASE = 0.08;
 
-const BASE = assetUrl("dore");
 const PLATE_W = 2048;
 const PLATE_H = 2519;
 const IW = 16;
@@ -187,9 +190,11 @@ export default function PentecostParallax({
   orbitPitch = 2.5,
   reliefGain: reliefMax = 0.8,
   onReady,
+  tier = TIERS.desktop,
   className,
 }: PentecostParallaxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tierRef = useRef(tier);
   const onReadyRef = useRef(onReady);
   useEffect(() => {
     onReadyRef.current = onReady;
@@ -207,6 +212,7 @@ export default function PentecostParallax({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const BASE = assetUrl(textureDir(tierRef.current));
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -558,6 +564,8 @@ export default function PentecostParallax({
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("deviceorientation", onTilt);
+    // iOS only delivers those events after a permission prompt raised from a touch
+    const disarmGyro = armGyroOnFirstTouch(window);
 
     // FileLoader calls onLoad before it reports itemEnd to the manager, so the
     // cut textures requested inside start() are counted before the queue drains
@@ -583,6 +591,7 @@ export default function PentecostParallax({
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
+      disarmGyro();
       for (const l of backdropLayer ? [backdropLayer, ...layers] : layers) {
         l.mesh.geometry.dispose();
         l.mat.dispose();

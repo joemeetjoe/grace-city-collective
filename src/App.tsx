@@ -1,21 +1,29 @@
 import { useEffect, useRef, useState } from "react";
 
 import Lockup from "@/components/Lockup";
+import MobileNav from "@/components/MobileNav";
 import PentecostParallax from "@/components/PentecostParallax";
+import StaticPoster from "@/components/StaticPoster";
 import { type SceneSection, type SiteContent } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
+import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
+import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const gutter = "px-[clamp(20px,4.4vw,60px)]";
 const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
 
-function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
-  e.preventDefault();
+function jumpTo(id: string) {
   const el = document.getElementById(id);
   if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY, behavior: "smooth" });
+}
+
+function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
+  e.preventDefault();
+  jumpTo(id);
 }
 
 /** whether an element is on screen; true wherever IntersectionObserver is missing */
@@ -39,6 +47,11 @@ export default function App() {
   // decided once per mount: once per session, and never under reduced motion
   const [policy] = useState(() => readPolicyInputs());
   const [intro, setIntro] = useState(() => shouldPlayIntro(policy));
+  // the still poster stands in for the scene: no WebGL, reduced motion, or Save-Data
+  const [fallback] = useState(() =>
+    shouldUseStaticFallback({ webgl: detectWebgl(), reducedMotion: policy.reducedMotion, saveData: readSaveData() }),
+  );
+  const [tier] = useState(() => tierFor(readTierInputs()));
   const [ready, setReady] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -73,7 +86,9 @@ export default function App() {
             sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
           }`}
         >
-          <div className="flex flex-wrap items-center gap-[clamp(14px,2.4vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70">
+          {/* below the tablet breakpoint: the seal mark and a Menu that opens the sheet */}
+          <MobileNav className="lg:hidden" onNavigate={jumpTo} />
+          <div className="hidden flex-wrap items-center gap-[clamp(14px,2.4vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70 lg:flex">
             {site.nav.map((n) => (
               <a
                 key={n.id}
@@ -85,7 +100,7 @@ export default function App() {
               </a>
             ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 lg:flex">
             <a
               href="#give"
               onClick={(e) => jump(e, "give")}
@@ -118,7 +133,11 @@ export default function App() {
           data-parallax=""
           className="sticky top-0 col-start-1 row-start-1 h-[100svh] self-start overflow-hidden"
         >
-          <PentecostParallax layerSpread={1.25} onReady={() => setReady(true)} />
+          {fallback ? (
+            <StaticPoster onReady={() => setReady(true)} />
+          ) : (
+            <PentecostParallax layerSpread={1.25} tier={tier} onReady={() => setReady(true)} />
+          )}
           <div
             aria-hidden
             className="absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_38%,transparent_0%,rgba(20,16,14,0.30)_65%,rgba(20,16,14,0.72)_100%)]"
@@ -292,6 +311,9 @@ export default function App() {
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
   const base = `relative z-10 flex min-h-[100svh] ${gutter}`;
+  // below lg the seal row sits over the top of every section and the lockup
+  // over its foot; desktop keeps its unpadded frames
+  const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
   if (s.id === "hero") {
     return (
       <section
@@ -299,8 +321,10 @@ function Scene({ section: s }: { section: SceneSection }) {
         data-screen-label={s.label}
         className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-[clamp(150px,24vh,220px)]`}
       >
-        <p className={`mb-[22px] ${kickerCls}`}>{s.kicker}</p>
-        <h1 className={`max-w-[15ch] text-[clamp(42px,5.6vw,84px)] leading-[1.02] tracking-[-0.005em] text-pretty ${serif}`}>
+        <p className={`mb-[22px] text-balance ${kickerCls}`}>{s.kicker}</p>
+        <h1
+          className={`max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
+        >
           {s.heading}
         </h1>
       </section>
@@ -308,18 +332,19 @@ function Scene({ section: s }: { section: SceneSection }) {
   }
   if (s.id === "gatherings") {
     return (
-      <section id={s.id} data-screen-label={s.label} className={`${base} items-center`}>
-        <div className="flex w-full max-w-[1080px] flex-col gap-11">
-          <div className="flex flex-col gap-4">
+      <section id={s.id} data-screen-label={s.label} className={`${base} ${clear} items-center`}>
+        {/* three cards stack on a phone, so they tighten up to fit one viewport */}
+        <div className="flex w-full max-w-[1080px] flex-col gap-7 md:gap-11">
+          <div className="flex flex-col gap-3 md:gap-4">
             <p className={kickerCls}>{s.kicker}</p>
-            <h2 className={`text-[clamp(30px,3.4vw,48px)] leading-[1.06] ${serif}`}>{s.heading}</h2>
+            <h2 className={`text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
           </div>
-          <div className="grid gap-10 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+          <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] md:gap-10">
             {site.gatherings.map((g) => (
-              <div key={g.title} className="flex flex-col gap-3 border-t border-cream/25 pt-[22px]">
-                <h3 className={`text-[31px] leading-[1.12] ${serif}`}>{g.title}</h3>
+              <div key={g.title} className="flex flex-col gap-2 border-t border-cream/25 pt-4 md:gap-3 md:pt-[22px]">
+                <h3 className={`text-[24px] leading-[1.12] md:text-[31px] ${serif}`}>{g.title}</h3>
                 <p className="text-xs uppercase tracking-[0.16em] text-seal">{g.when}</p>
-                <p className="text-base leading-relaxed text-cream/70">{g.body}</p>
+                <p className="text-sm leading-relaxed text-cream/70 md:text-base">{g.body}</p>
               </div>
             ))}
           </div>
@@ -333,17 +358,17 @@ function Scene({ section: s }: { section: SceneSection }) {
     const place =
       s.id === "visit"
         ? "justify-end pb-[clamp(150px,20vh,190px)]"
-        : "justify-center pb-[clamp(150px,20vh,190px)]";
+        : `justify-center ${clear} lg:pb-[clamp(150px,20vh,190px)]`;
     return (
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} flex-col items-center gap-[26px] text-center ${place}`}
+        className={`${base} flex-col items-center gap-5 text-center md:gap-[26px] ${place}`}
       >
         <p className={kickerCls}>{s.kicker}</p>
-        <h2 className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] ${serif}`}>{s.heading}</h2>
+        <h2 className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${serif}`}>{s.heading}</h2>
         {s.body.map((p) => (
-          <p key={p} className="max-w-[52ch] text-lg leading-relaxed text-pretty text-cream/80">
+          <p key={p} className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
             {p}
           </p>
         ))}
@@ -366,12 +391,12 @@ function Scene({ section: s }: { section: SceneSection }) {
   // about and house churches: a single column, left or right of the crowd
   const side = s.id === "house-churches" ? "justify-end" : "";
   return (
-    <section id={s.id} data-screen-label={s.label} className={`${base} items-center ${side}`}>
-      <div className="flex max-w-[600px] flex-col gap-[26px]">
+    <section id={s.id} data-screen-label={s.label} className={`${base} ${clear} items-center ${side}`}>
+      <div className="flex max-w-[600px] flex-col gap-5 md:gap-[26px]">
         <p className={kickerCls}>{s.kicker}</p>
-        <h2 className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}>{s.heading}</h2>
+        <h2 className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
         {s.body.map((p) => (
-          <p key={p} className="text-lg leading-relaxed text-pretty text-cream/80">
+          <p key={p} className="text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
             {p}
           </p>
         ))}
