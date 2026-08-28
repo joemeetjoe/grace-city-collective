@@ -10,6 +10,8 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { FLEUR_CC0, FLEUR_CC0_BOX } from "./fleur_cc0.mjs";
+
 const f = (n) => (Math.round(n * 10) / 10).toString();
 
 /** Catmull-Rom spline through pts → cubic Bézier path (open or closed). */
@@ -112,117 +114,65 @@ function sweep(centre, widthAt, n = 14) {
 const mirrorPath = (d) => d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, x, y) => `${f(100 - Number(x))},${y}`);
 
 // ---------------------------------------------------------------------------
-// The wax disc: a hand-cut edge — a few low-frequency lobes, a little jitter,
-// and one heavier squeeze-out bulge at the lower left where the wax was thumbed.
-const wax = (() => {
+// The wax disc. Real wax settles into a soft, slightly uneven puddle: a few
+// broad, gentle lobes and no sharp features, so the edge reads as poured, not
+// cut. Sampled densely so the Catmull-Rom stays smooth everywhere.
+const puddle = (base, amp, N) => {
   const pts = [];
-  const N = 40;
   for (let i = 0; i < N; i++) {
     const th = (i / N) * Math.PI * 2;
-    let r =
-      44.6 +
-      1.1 * Math.sin(3 * th + 0.4) +
-      0.7 * Math.sin(5 * th + 2.1) +
-      0.45 * Math.sin(8 * th + 1.0) +
-      0.3 * Math.sin(13 * th + 3.3);
-    const bulge = Math.exp(-((th - 2.35) ** 2) / 0.09); // lower-left thumb
-    r += 2.4 * bulge;
-    const nick = Math.exp(-((th - 5.4) ** 2) / 0.02); // small nick top-right
-    r -= 1.2 * nick;
-    const lip = Math.exp(-((th - 0.35) ** 2) / 0.06); // softer lip on the right
-    r += 1.3 * lip;
+    const r =
+      base +
+      amp * (0.9 * Math.sin(2 * th + 0.6) + 0.7 * Math.sin(3 * th + 2.4) + 0.35 * Math.sin(5 * th + 1.1) + 0.15 * Math.sin(7 * th + 4.0));
     pts.push([50 + r * Math.cos(th), 50 + r * Math.sin(th)]);
   }
   return catmullRom(pts, true);
-})();
+};
+const wax = puddle(45.2, 1.6, 64);
 
-// The pressed field inside the raised rim (a slightly irregular near-circle).
+// The pressed field: the die's face, a true circle sunk into the wax.
 const field = (() => {
   const pts = [];
-  const N = 28;
+  const N = 48;
   for (let i = 0; i < N; i++) {
     const th = (i / N) * Math.PI * 2;
-    const r = 38.2 + 0.5 * Math.sin(4 * th + 1.2) + 0.3 * Math.sin(7 * th);
+    const r = 36.5;
     pts.push([50 + r * Math.cos(th), 50 + r * Math.sin(th)]);
   }
   return catmullRom(pts, true);
 })();
 
 // ---------------------------------------------------------------------------
-// Fleur-de-lis. Band centre y≈57; overall extent y 17 → 82.
+// Fleur-de-lis: the classic heraldic form (see fleur_cc0.mjs), scaled so it
+// stands FLEUR_HEIGHT tall and centred on the field.
+const FLEUR_HEIGHT = 54;
+const FLEUR_CENTRE = [50, 51.5];
+const lis = (() => {
+  const s = FLEUR_HEIGHT / FLEUR_CC0_BOX.height;
+  const cx = FLEUR_CC0_BOX.x + FLEUR_CC0_BOX.width / 2;
+  const cy = FLEUR_CC0_BOX.y + FLEUR_CC0_BOX.height / 2;
+  return FLEUR_CC0.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, x, y) =>
+    `${f(FLEUR_CENTRE[0] + (Number(x) - cx) * s)},${f(FLEUR_CENTRE[1] + (Number(y) - cy) * s)}`,
+  ).replace(/\s+/g, " ").trim();
+})();
 
-// Centre petal: a spear — concave flanks near the point, widest two-thirds down.
-const centre = [
-  "M50,16.5",
-  "C50.6,23.5 53.8,31 56.4,39.5",
-  "C58.4,46 57.6,50.5 56.2,54",
-  "L43.8,54",
-  "C42.4,50.5 41.6,46 43.6,39.5",
-  "C46.2,31 49.4,23.5 50,16.5Z",
-].join("");
-
-// Outer petal (left): rises beside the centre, arches out and over, then
-// curls down to a tip that turns back in toward the band.
-const petalL = sweep(
-  [
-    [42.6, 57],
-    [42, 50],
-    [40, 43.5],
-    [36.4, 37],
-    [31, 32.4],
-    [25.4, 31.6],
-    [21, 34.6],
-    [19.4, 39.8],
-    [20.4, 45.6],
-    [23.4, 50.6],
-  ],
-  profile([
-    [0, 7],
-    [0.2, 7.8],
-    [0.42, 8.6],
-    [0.64, 6.4],
-    [0.84, 3.8],
-    [1, 2.2],
-  ]),
-);
-const petalR = mirrorPath(petalL);
-
-// The band: a solid bar, a shade heavier than any petal, with flared ends.
-const band = [
-  "M32.6,53.2",
-  "C33.6,53.6 66.4,53.6 67.4,53.2",
-  "C68.6,56 68.6,58.4 67.4,61.4",
-  "C66.4,61 33.6,61 32.6,61.4",
-  "C31.4,58.4 31.4,56 32.6,53.2Z",
-].join("");
-
-// Feet: a slender centre point and two small curls that mirror the petals.
-const footC = [
-  "M50,82.5",
-  "C52.8,76 54.9,68.5 54.4,60.5",
-  "L45.6,60.5",
-  "C45.1,68.5 47.2,76 50,82.5Z",
-].join("");
-
-const footL = sweep(
-  [
-    [42.4, 58],
-    [40.8, 63.4],
-    [37.6, 68.4],
-    [32.6, 71.4],
-    [27.6, 70.6],
-    [24.6, 67],
-    [24.8, 62.8],
-  ],
-  profile([
-    [0, 6],
-    [0.3, 6.4],
-    [0.6, 4.6],
-    [0.85, 2.6],
-    [1, 1.3],
-  ]),
-);
-const footR = mirrorPath(footL);
+// The band: its own shape, laid over the fleur's own tie and a touch heavier,
+// with softly flared ends — so it can be read as the Trinity's binding.
+const BAND_Y = 51.5 + FLEUR_HEIGHT * 0.128; // the tie sits just below the fleur's centre
+const band = (() => {
+  const h = 4.6;
+  const w = 12.6;
+  const flare = 0.9;
+  const y0 = BAND_Y - h / 2;
+  const y1 = BAND_Y + h / 2;
+  return [
+    `M${f(50 - w)},${f(y0 - flare)}`,
+    `C${f(50 - w * 0.55)},${f(y0 + 0.5)} ${f(50 + w * 0.55)},${f(y0 + 0.5)} ${f(50 + w)},${f(y0 - flare)}`,
+    `C${f(50 + w + 0.9)},${f(BAND_Y)} ${f(50 + w + 0.9)},${f(BAND_Y)} ${f(50 + w)},${f(y1 + flare)}`,
+    `C${f(50 + w * 0.55)},${f(y1 - 0.5)} ${f(50 - w * 0.55)},${f(y1 - 0.5)} ${f(50 - w)},${f(y1 + flare)}`,
+    `C${f(50 - w - 0.9)},${f(BAND_Y)} ${f(50 - w - 0.9)},${f(BAND_Y)} ${f(50 - w)},${f(y0 - flare)}Z`,
+  ].join("");
+})();
 
 // ---------------------------------------------------------------------------
 // The pour: a bead of wax with a tapering tail, drawn in place over the disc so
@@ -254,12 +204,7 @@ export const WAX = "${wax}";
 export const FIELD = "${field}";
 /** fleur-de-lis pieces, excluding the band */
 export const FLEUR = {
-  centre: "${centre}",
-  petalL: "${petalL}",
-  petalR: "${petalR}",
-  footC: "${footC}",
-  footL: "${footL}",
-  footR: "${footR}",
+  lis: "${lis}",
 } as const;
 /** the horizontal band across the fleur-de-lis */
 export const BAND = "${band}";

@@ -30,15 +30,17 @@ export const SEAL_VIEWBOX = 100;
 /** token colour as a CSS var with the literal as fallback, so the mark survives without the stylesheet */
 const c = (t: Token) => `var(${cssVar(t)}, ${tokens[t]})`;
 
-/** pre-flattened tones: raised wax catches the flame, pressed wax falls into shadow */
+/** pre-flattened tones: one crimson wax, modelled only by light — lit faces warm toward the flame, recesses fall to sealDeep */
 const tone = {
-  rimLit: mix(tokens.seal, tokens.sealHighlight, 0.18),
-  field: mix(tokens.seal, tokens.sealDeep, 0.12),
-  shade: mix(tokens.seal, tokens.sealDeep, 0.55),
-  fleurLit: mix(tokens.seal, tokens.sealHighlight, 0.5),
-  fleur: mix(tokens.seal, tokens.sealHighlight, 0.28),
-  bandLit: mix(tokens.seal, tokens.sealHighlight, 0.58),
-  edge: mix(tokens.sealHighlight, tokens.cream, 0.35),
+  lit: mix(tokens.seal, tokens.sealHighlight, 0.22),
+  body: tokens.seal,
+  shade: mix(tokens.seal, tokens.sealDeep, 0.5),
+  field: mix(tokens.seal, tokens.sealDeep, 0.3),
+  faceLit: mix(tokens.seal, tokens.sealHighlight, 0.34),
+  face: mix(tokens.seal, tokens.sealHighlight, 0.14),
+  bandLit: mix(tokens.seal, tokens.sealHighlight, 0.42),
+  edge: mix(tokens.sealHighlight, tokens.cream, 0.4),
+  gloss: mix(tokens.sealHighlight, tokens.cream, 0.55),
 };
 
 /** the light sits top-left, as if the seal were lit by the flames */
@@ -63,6 +65,7 @@ export default function Seal({
     emboss: `${id}-emboss`,
     goo: `${id}-goo`,
     impression: `${id}-impression`,
+    fieldClip: `${id}-field`,
   };
   const live = variant === "live";
 
@@ -77,44 +80,63 @@ export default function Seal({
     >
       <title>{title}</title>
       <defs>
-        <radialGradient id={ids.body} cx="0.36" cy="0.32" r="0.78">
-          <stop offset="0" stopColor={tone.rimLit} />
-          <stop offset="0.5" stopColor={c("seal")} />
-          <stop offset="0.86" stopColor={tone.shade} />
+        <radialGradient id={ids.body} cx="0.38" cy="0.34" r="0.72">
+          <stop offset="0" stopColor={tone.lit} />
+          <stop offset="0.55" stopColor={tone.body} />
+          <stop offset="0.9" stopColor={tone.shade} />
           <stop offset="1" stopColor={c("sealDeep")} />
         </radialGradient>
-        <linearGradient id={ids.face} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={tone.fleurLit} />
-          <stop offset="1" stopColor={tone.fleur} />
+        <linearGradient id={ids.face} x1="0.2" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor={tone.faceLit} />
+          <stop offset="1" stopColor={tone.face} />
         </linearGradient>
         <radialGradient id={ids.glow} cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stopColor={c("sealHighlight")} stopOpacity="0.55" />
-          <stop offset="1" stopColor={c("sealHighlight")} stopOpacity="0" />
+          <stop offset="0" stopColor={tone.gloss} stopOpacity="0.5" />
+          <stop offset="0.6" stopColor={tone.gloss} stopOpacity="0.12" />
+          <stop offset="1" stopColor={tone.gloss} stopOpacity="0" />
         </radialGradient>
         <clipPath id={ids.clip}>
           <path d={WAX} />
         </clipPath>
+        <clipPath id={ids.fieldClip}>
+          <path d={FIELD} />
+        </clipPath>
       </defs>
 
-      {/* the wax: an irregular disc with a raised rim around the pressed field */}
+      {/* the wax: a poured disc whose rim is bevelled by the light, around the die's sunken face */}
       <g data-seal="body">
         <path data-seal="wax" d={WAX} fill={`url(#${ids.body})`} />
-        <path
-          d={WAX}
-          fill="none"
-          stroke={c("sealDeep")}
-          strokeWidth="3"
-          strokeOpacity="0.5"
-          clipPath={`url(#${ids.clip})`}
-        />
+        <g clipPath={`url(#${ids.clip})`}>
+          {/* the outer bevel: lit on the flame side, falling into shade opposite */}
+          <path d={WAX} fill="none" stroke={tone.lit} strokeWidth="1.6" strokeOpacity="0.9" transform="translate(-0.9 -1)" />
+          {[
+            [6.5, 0.22],
+            [4.2, 0.3],
+            [2.2, 0.45],
+          ].map(([w, o]) => (
+            <path key={w} d={WAX} fill="none" stroke={c("sealDeep")} strokeWidth={w} strokeOpacity={o} transform="translate(1.5 1.7)" />
+          ))}
+        </g>
         <path d={FIELD} fill={tone.field} />
-        <path d={FIELD} fill="none" stroke={c("sealDeep")} strokeOpacity="0.45" strokeWidth="0.9" />
+        <g clipPath={`url(#${ids.fieldClip})`}>
+          {/* the sunken face: shadow under its top-left wall, a glint on the lower-right */}
+          {[
+            [7, 0.2],
+            [4.4, 0.3],
+            [2.2, 0.5],
+          ].map(([w, o]) => (
+            <path key={w} d={FIELD} fill="none" stroke={c("sealDeep")} strokeWidth={w} strokeOpacity={o} transform="translate(1.6 1.8)" />
+          ))}
+          <path d={FIELD} fill="none" stroke={tone.lit} strokeWidth="1.2" strokeOpacity="0.55" transform="translate(-0.9 -1)" />
+        </g>
       </g>
 
       {/* the impression: fleur-de-lis with its band as its own, heavier shape */}
       <g data-seal="relief">
-        <use href={`#${ids.impression}`} fill={c("sealDeep")} fillOpacity="0.8" transform="translate(1.1 1.2)" />
-        <use href={`#${ids.impression}`} fill={tone.edge} fillOpacity="0.55" transform="translate(-0.6 -0.7)" />
+        {/* a soft press-line around the relief, then its shadow and its lit edge */}
+        <use href={`#${ids.impression}`} fill="none" stroke={c("sealDeep")} strokeWidth="2.4" strokeOpacity="0.45" />
+        <use href={`#${ids.impression}`} fill={c("sealDeep")} fillOpacity="0.95" transform="translate(1.3 1.5)" />
+        <use href={`#${ids.impression}`} fill={tone.edge} fillOpacity="0.85" transform="translate(-0.8 -0.9)" />
         <g id={ids.impression}>
           <g fill={`url(#${ids.face})`}>
             <g data-seal="fleur">
@@ -133,13 +155,13 @@ export default function Seal({
       <g clipPath={`url(#${ids.clip})`}>
         <ellipse
           data-seal="highlight"
-          cx="30"
-          cy="27"
-          rx="21"
-          ry="15"
-          transform="rotate(-38 30 27)"
+          cx="31"
+          cy="26"
+          rx="24"
+          ry="13"
+          transform="rotate(-40 31 26)"
           fill={`url(#${ids.glow})`}
-          opacity="0.8"
+          opacity="0.9"
         />
       </g>
 
@@ -155,20 +177,20 @@ export default function Seal({
             filterUnits="userSpaceOnUse"
             colorInterpolationFilters="sRGB"
           >
-            <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="3" seed="11" result="mottle" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="11" result="mottle" />
             <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="5" result="grain" />
             <feComposite in="mottle" in2="grain" operator="arithmetic" k2="0.75" k3="0.18" result="texture" />
             <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="bevel" />
-            <feComposite in="bevel" in2="texture" operator="arithmetic" k2="0.86" k3="0.06" result="bump" />
-            <feDiffuseLighting in="bump" surfaceScale="5" diffuseConstant="1" lightingColor="#fff" result="diff">
+            <feComposite in="bevel" in2="texture" operator="arithmetic" k2="0.9" k3="0.025" result="bump" />
+            <feDiffuseLighting in="bump" surfaceScale="4" diffuseConstant="1" lightingColor="#fff" result="diff">
               <feDistantLight azimuth={LIGHT.azimuth} elevation={LIGHT.elevation} />
             </feDiffuseLighting>
             <feComposite in="diff" in2="SourceGraphic" operator="arithmetic" k1="0.9" k3="0.18" result="lit" />
             <feSpecularLighting
               in="bump"
               surfaceScale="5"
-              specularConstant="0.45"
-              specularExponent="36"
+              specularConstant="0.35"
+              specularExponent="48"
               lightingColor={tokens.sealHighlight}
               result="spec"
             >
@@ -241,17 +263,16 @@ export default function Seal({
             <g filter={`url(#${ids.wax})`}>
               <path d={WAX} fill={`url(#${ids.body})`} />
               <path d={FIELD} fill={tone.field} fillOpacity="0.9" />
-              <path d={FIELD} fill="none" stroke={c("sealDeep")} strokeOpacity="0.45" strokeWidth="0.9" />
             </g>
             <g clipPath={`url(#${ids.clip})`}>
               <ellipse
-                cx="30"
-                cy="27"
-                rx="21"
-                ry="15"
-                transform="rotate(-38 30 27)"
+                cx="31"
+                cy="26"
+                rx="24"
+                ry="13"
+                transform="rotate(-40 31 26)"
                 fill={`url(#${ids.glow})`}
-                opacity="0.85"
+                opacity="0.9"
               />
             </g>
           </g>
