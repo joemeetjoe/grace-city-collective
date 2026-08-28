@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import Lockup from "@/components/Lockup";
 import PentecostParallax from "@/components/PentecostParallax";
-import { site, type SceneSection } from "@/content/site";
+import { type SceneSection, type SiteContent } from "@/content/site";
+import { useSite } from "@/content/useSite";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
@@ -30,7 +31,7 @@ function useInView(ref: React.RefObject<HTMLElement | null>) {
   return inView;
 }
 
-function longform(id: string) {
+function longform(site: SiteContent, id: string) {
   return site.longform.find((s) => s.id === id)!;
 }
 
@@ -54,10 +55,11 @@ export default function App() {
     };
   }, [policy.reducedMotion]);
 
-  const devotions = longform("devotions");
-  const beliefs = longform("beliefs");
-  const faq = longform("faq");
-  const messages = longform("messages");
+  const site = useSite();
+  const devotions = longform(site, "devotions");
+  const beliefs = longform(site, "beliefs");
+  const faq = longform(site, "faq");
+  const messages = longform(site, "messages");
   const { contact } = site;
 
   return (
@@ -288,6 +290,7 @@ export default function App() {
 
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
+  const site = useSite();
   const base = `relative z-10 flex min-h-[100svh] ${gutter}`;
   if (s.id === "hero") {
     return (

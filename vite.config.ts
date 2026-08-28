@@ -12,6 +12,15 @@ const base = process.env.BASE_PATH || '/'
 export default defineConfig({
   base,
   plugins: [react(), tailwindcss()],
+  build: {
+    rolldownOptions: {
+      // two pages: the site, and the content editor at /admin.html
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        admin: path.resolve(__dirname, 'admin.html'),
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

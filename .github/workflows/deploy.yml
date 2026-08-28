@@ -60,6 +60,12 @@ jobs:
         env:
           # CloudFront serves from the root (also on a custom domain).
           BASE_PATH: /
+          # Editor stack outputs (infra/README.md); empty until that stack
+          # exists, in which case /admin.html shows "editor not configured".
+          VITE_EDITOR_API_URL: ${{ vars.EDITOR_API_URL }}
+          VITE_EDITOR_REGION: ${{ vars.EDITOR_REGION }}
+          VITE_EDITOR_USER_POOL_ID: ${{ vars.EDITOR_USER_POOL_ID }}
+          VITE_EDITOR_CLIENT_ID: ${{ vars.EDITOR_CLIENT_ID }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -74,14 +80,23 @@ jobs:
           --cache-control "public, max-age=31536000, immutable"
 
       # Everything else that is not fingerprinted (Doré textures, icons):
-      # a day in cache, invalidated below when it changes.
+      # a day in cache, invalidated below when it changes. content/* is the
+      # editor's (infra/editor.yml), never in dist/, so --delete must skip it.
       - name: Sync unhashed files (1 day)
         run: >
           aws s3 sync dist/ "s3://$S3_BUCKET/"
           --delete
           --exclude "assets/*"
           --exclude "index.html"
+          --exclude "admin.html"
+          --exclude "content/*"
           --cache-control "public, max-age=86400"
+
+      # The admin page is a second entry (src/admin); short cache like index.html.
+      - name: Upload admin.html (60s, revalidate)
+        run: >
+          aws s3 cp dist/admin.html "s3://$S3_BUCKET/admin.html"
+          --cache-control "public, max-age=60, must-revalidate"
 
       # index.html last, so it never references an asset that is not there yet.
       - name: Upload index.html (60s, revalidate)
@@ -93,4 +108,4 @@ jobs:
         run: >
           aws cloudfront create-invalidation
           --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID"
-          --paths "/" "/index.html" "/dore/*"
+          --paths "/" "/index.html" "/admin.html" "/dore/*"
