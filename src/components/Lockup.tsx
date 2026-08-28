@@ -40,8 +40,9 @@ function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
 }
 
 /**
- * The resting logo lockup: seal · "Grace City" · "Collective" in script.
- * "Collective" is only rendered when it would stand at least 18px tall.
+ * The resting logo lockup: seal · "Grace City" · "Collective" in script, all
+ * on one line. "Collective" is only rendered when it would stand at least
+ * 18px tall.
  *
  * Every instance carries the same `data-flip-id`s so GSAP Flip can carry one
  * instance's layout over to another (the splash hands off to the hero).
@@ -92,7 +93,8 @@ export default function Lockup({
       ) : (
         seal
       )}
-      <div className="flex flex-col items-start">
+      {/* the name on one line: "Grace City" with "Collective" written beside it, sharing a baseline */}
+      <div className="flex items-baseline gap-[0.16em]">
         <span
           ref={wordmarkRef}
           data-lockup="wordmark"
@@ -105,7 +107,7 @@ export default function Lockup({
           <CollectiveScript
             data-lockup="script"
             data-flip-id="lockup-script"
-            className="-mt-[0.02em] ml-[0.34em]"
+            className="shrink-0 translate-y-[0.03em]"
             style={{ height: `${SCRIPT_EM}em` }}
           />
         )}

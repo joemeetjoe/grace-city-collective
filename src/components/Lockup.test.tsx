@@ -71,6 +71,16 @@ describe("Lockup", () => {
     expect(container.querySelector('[data-lockup="script"]')).not.toBeNull();
   });
 
+  it("writes Collective beside the wordmark on a shared baseline", () => {
+    stubFontSize(108);
+    const { container } = render(<Lockup />);
+    const wordmark = container.querySelector('[data-lockup="wordmark"]')!;
+    const script = container.querySelector('[data-lockup="script"]')!;
+    expect(script.parentElement).toBe(wordmark.parentElement);
+    expect(wordmark.nextElementSibling).toBe(script);
+    expect(wordmark.parentElement!.className).toMatch(/items-baseline/);
+  });
+
   it("marks its parts for layout animation", () => {
     stubFontSize(108);
     const { container } = render(<Lockup />);

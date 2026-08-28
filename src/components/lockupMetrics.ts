@@ -2,7 +2,7 @@
 export const SCRIPT_MIN_PX = 18;
 
 /** Height of the "Collective" script line as a fraction of the wordmark's font size. */
-export const SCRIPT_EM = 0.46;
+export const SCRIPT_EM = 0.55;
 
 /** Seal height as a multiple of the wordmark's cap height (≈0.7em for Cormorant). */
 export const SEAL_EM = 1.2 * 0.7;

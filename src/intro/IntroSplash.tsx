@@ -9,8 +9,12 @@ import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
 import { introTargets } from "@/intro/targets";
 import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
 
-/** Title-card size: the script line stands ≥ 28px on any phone (28 / SCRIPT_EM ≈ 61px). */
-export const SPLASH_LOCKUP_SIZE = "clamp(62px,12vw,160px)";
+/**
+ * Title-card size. The one-line lockup is ≈6.9em wide, so the floor is set by
+ * a 390px phone: 46px leaves a margin either side, with the script line
+ * standing ≈25px there (46 × SCRIPT_EM).
+ */
+export const SPLASH_LOCKUP_SIZE = "clamp(46px,11.5vw,160px)";
 
 export type IntroSplashProps = {
   /** beats beyond the wordmark wipe, each landing in its own label */
