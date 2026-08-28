@@ -1,5 +1,7 @@
 import * as THREE from "three";
 
+import { VIGNETTE_GLSL } from "./vignette";
+
 /**
  * Ember-warm particles drifting in the foreground of the Pentecost scene: one
  * THREE.Points draw in front of `floor`, animated entirely in the vertex
@@ -232,8 +234,10 @@ void main() {
 
 const FRAG = `
 uniform vec3 uTint;
-uniform float uOpacity;
+uniform float uOpacity, uVignette;
+uniform vec2 uResolution;
 varying float vAlpha;
+${VIGNETTE_GLSL}
 void main() {
   float r = length(gl_PointCoord - 0.5) * 2.0;
   if (r > 1.0) discard;
@@ -241,7 +245,9 @@ void main() {
   a *= a;
   // a paler, hotter core inside the ember's warmth
   vec3 col = mix(uTint, vec3(1.0, 0.96, 0.86), a * 0.5);
-  gl_FragColor = vec4(col, a * vAlpha * uOpacity);
+  // the front canvas has no DOM vignette over it: dim the ember by the same falloff here
+  float v = 1.0 - vignetteAlpha(gl_FragCoord.xy, uResolution) * uVignette;
+  gl_FragColor = vec4(col, a * vAlpha * uOpacity * v);
 }`;
 
 export type EmberFrame = {
@@ -270,13 +276,27 @@ export type CreateEmbersOptions = {
   seed?: number;
   /** drawn after everything in the scene */
   renderOrder?: number;
+  /**
+   * the drawing buffer's size, when the embers draw to the front canvas: it
+   * has no DOM vignette, so the shader applies the scene's own (vignette.ts)
+   */
+  resolution?: THREE.Vector2;
 };
 
 /**
  * One Points draw of `count` embers added to `scene`. Nothing is uploaded per
- * frame: update() sets uniforms only.
+ * frame: update() sets uniforms only. Ordinary over-compositing rather than
+ * additive: on the transparent front canvas an additive sprite would write
+ * its full alpha and land as a black square over the page.
  */
-export function createEmbers({ scene, camera, count, seed = 1, renderOrder = 1000 }: CreateEmbersOptions): EmberLayer {
+export function createEmbers({
+  scene,
+  camera,
+  count,
+  seed = 1,
+  renderOrder = 1000,
+  resolution,
+}: CreateEmbersOptions): EmberLayer {
   const seeds = seedEmbers(count, seed);
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(seeds.origin, 3));
@@ -301,11 +321,13 @@ export function createEmbers({ scene, camera, count, seed = 1, renderOrder = 100
       uCam: { value: new THREE.Vector3() },
       uTint: { value: new THREE.Vector3(...EMBER_TINT) },
       uOpacity: { value: 1 },
+      uVignette: { value: resolution ? 1 : 0 },
+      uResolution: { value: resolution ?? new THREE.Vector2(1, 1) },
     },
     vertexShader: VERT,
     fragmentShader: FRAG,
     transparent: true,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     depthTest: false,
     depthWrite: false,
   });

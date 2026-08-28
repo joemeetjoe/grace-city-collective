@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import DotRail from "@/components/DotRail";
+import { STACK } from "@/components/layerSplit";
 import Lockup from "@/components/Lockup";
 import MobileNav from "@/components/MobileNav";
 import NavLinks from "@/components/NavLinks";
 import PentecostParallax from "@/components/PentecostParallax";
 import StaticPoster from "@/components/StaticPoster";
+import { vignetteCss } from "@/components/vignette";
 import { type SceneSection, sectionIds, type SiteContent } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import IntroSplash from "@/intro/IntroSplash";
@@ -22,6 +24,9 @@ import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const gutter = "px-[clamp(20px,4.4vw,60px)]";
 const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
+// section copy stacks above the front canvas (layerSplit.ts); only the hero
+// headline and the kicker rules sit under it, where the nearest layers cross
+const above = `relative ${STACK.copy}`;
 
 function jumpTo(id: string) {
   // through the smoother when one is running, native smooth scroll otherwise
@@ -62,11 +67,16 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const chromeRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const frontRef = useRef<HTMLDivElement>(null);
+  const frontCanvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  // the smoother's sticky stand-ins; a stable list so the hook runs once
-  const [held] = useState(() => [parallaxRef, chromeRef]);
+  // the smoother's sticky stand-ins — every sticky layer of the scene, so the
+  // front canvas and the frame ride with the back canvas; a stable list so
+  // the hook runs once
+  const [held] = useState(() => [parallaxRef, chromeRef, frontRef, frameRef]);
   useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held }, policy.reducedMotion);
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible
@@ -100,7 +110,7 @@ export default function App() {
       {/* the nav outlives the scene: fixed for the whole page, zero height so it
           takes no room. Fixed, and outside the smoother's content — a transformed
           ancestor would turn fixed into absolute */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-30 h-0">
+      <div className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}>
         <nav
           className={`pointer-events-auto absolute inset-x-[clamp(12px,2.4vw,26px)] top-[clamp(12px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
             sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
@@ -128,8 +138,9 @@ export default function App() {
         </nav>
       </div>
 
-      {/* the section dots, fixed outside the smoother's content like the nav */}
-      <DotRail markers={markers} activeId={activeId} onNavigate={jumpTo} />
+      {/* the section dots, fixed outside the smoother's content like the nav,
+          and stacked with it so section copy never covers a dot */}
+      <DotRail markers={markers} activeId={activeId} onNavigate={jumpTo} className={STACK.nav} />
 
       {/* everything that scrolls lives in the smoother's content; the wrapper
           becomes its fixed viewport when the smoother is on (src/scroll) */}
@@ -143,34 +154,37 @@ export default function App() {
           sticky element's margin box is what gets constrained, so -mb-[100svh]
           would let it linger one viewport into the long-form.) While the
           smoother transforms the content the sticky is inert and
-          useSmoothScroll holds these two layers with a scrubbed translate. */}
+          useSmoothScroll holds the sticky layers with a scrubbed translate.
+          A held layer is transformed, so it is a stacking context of its
+          own: each carries one step of STACK (layerSplit.ts), which is why
+          the border and the wordmark are two layers rather than one. */}
       <div ref={sceneRef} data-scene="" className="relative grid">
         {/* sticky, not fixed: it stays put while the sections scroll over it */}
         <div
           ref={parallaxRef}
           data-parallax=""
-          className="sticky top-0 col-start-1 row-start-1 h-[100svh] self-start overflow-hidden"
+          className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100svh] self-start overflow-hidden`}
         >
           {fallback ? (
             <StaticPoster onReady={() => setReady(true)} />
           ) : (
-            <PentecostParallax layerSpread={1.25} tier={tier} onReady={() => setReady(true)} />
+            <PentecostParallax
+              layerSpread={1.25}
+              tier={tier}
+              frontCanvas={frontCanvasRef}
+              onReady={() => setReady(true)}
+            />
           )}
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_38%,transparent_0%,rgba(20,16,14,0.30)_65%,rgba(20,16,14,0.72)_100%)]"
-          />
+          {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}
+          <div aria-hidden className="absolute inset-0" style={{ background: vignetteCss() }} />
         </div>
 
-        {/* stationary chrome for the scene: border and wordmark */}
+        {/* the wordmark: stationary chrome under the front canvas, so the
+            nearest layers can cross it */}
         <div
           ref={chromeRef}
-          className="pointer-events-none sticky top-0 z-20 col-start-1 row-start-1 h-[100svh] self-start"
+          className={`pointer-events-none sticky top-0 ${STACK.wordmark} col-start-1 row-start-1 h-[100svh] self-start`}
         >
-          <div
-            aria-hidden
-            className="absolute inset-[clamp(12px,2.4vw,26px)] rounded-[clamp(16px,2.4vw,26px)] border border-cream/35"
-          />
           <div
             data-hero-lockup=""
             className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex justify-end"
@@ -180,8 +194,34 @@ export default function App() {
           </div>
         </div>
 
+        {/* the front canvas: the floor, the two nearest apostles on the left
+            and the embers, drawn from the same scene over the wordmark and
+            the hero headline (layerSplit.ts). Transparent, and no pointer
+            events, so the seal under it still takes its click */}
+        {!fallback && (
+          <div
+            ref={frontRef}
+            data-parallax-front=""
+            className={`pointer-events-none sticky top-0 ${STACK.front} col-start-1 row-start-1 h-[100svh] self-start overflow-hidden`}
+          >
+            <canvas ref={frontCanvasRef} aria-hidden className="absolute inset-0 block h-full w-full" />
+          </div>
+        )}
+
+        {/* the frame border: stationary chrome above the front canvas */}
+        <div
+          ref={frameRef}
+          className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100svh] self-start`}
+        >
+          <div
+            aria-hidden
+            data-scene-frame=""
+            className="absolute inset-[clamp(12px,2.4vw,26px)] rounded-[clamp(16px,2.4vw,26px)] border border-cream/35"
+          />
+        </div>
+
         {/* every scene section is exactly one viewport tall — one camera waypoint each */}
-        <div className="relative z-10 col-start-1 row-start-1">
+        <div className="relative col-start-1 row-start-1">
           {site.scene.map((s) => (
             <Scene key={s.id} section={s} />
           ))}
@@ -330,10 +370,26 @@ export default function App() {
   );
 }
 
+/**
+ * A section's kicker with the hairline rule under it. The rule is one of the
+ * three things the front canvas may cross (with the hero headline and the
+ * wordmark); the kicker itself stays above it with the rest of the copy.
+ */
+function Kicker({ children, className = "", centred = false }: { children: React.ReactNode; className?: string; centred?: boolean }) {
+  return (
+    <div className={`flex flex-col gap-3 ${centred ? "items-center" : ""} ${className}`}>
+      <p className={`${above} text-balance ${kickerCls}`}>{children}</p>
+      <hr aria-hidden data-kicker-rule="" className={`relative ${STACK.between} h-px w-12 border-0 bg-cream/30`} />
+    </div>
+  );
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
-  const base = `relative z-10 flex min-h-[100svh] ${gutter}`;
+  // no z-index: a section must not form a stacking context, or its headline
+  // could never sit under the front canvas while its copy sits over it
+  const base = `relative flex min-h-[100svh] ${gutter}`;
   // below lg the seal row sits over the top of every section and the lockup
   // over its foot; desktop keeps its unpadded frames
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
@@ -344,9 +400,10 @@ function Scene({ section: s }: { section: SceneSection }) {
         data-screen-label={s.label}
         className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-[clamp(150px,24vh,220px)]`}
       >
-        <p className={`mb-[22px] text-balance ${kickerCls}`}>{s.kicker}</p>
+        <Kicker className="mb-[22px]">{s.kicker}</Kicker>
+        {/* the one headline the nearest figures may clip at its edges */}
         <h1
-          className={`max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
+          className={`relative ${STACK.between} max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
         >
           {s.heading}
         </h1>
@@ -359,10 +416,10 @@ function Scene({ section: s }: { section: SceneSection }) {
         {/* three cards stack on a phone, so they tighten up to fit one viewport */}
         <div className="flex w-full max-w-[1080px] flex-col gap-7 md:gap-11">
           <div className="flex flex-col gap-3 md:gap-4">
-            <p className={kickerCls}>{s.kicker}</p>
-            <h2 className={`text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
+            <Kicker>{s.kicker}</Kicker>
+            <h2 className={`${above} text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
           </div>
-          <div className="grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] md:gap-10">
+          <div className={`${above} grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] md:gap-10`}>
             {site.gatherings.map((g) => (
               <div key={g.title} className="flex flex-col gap-2 border-t border-cream/25 pt-4 md:gap-3 md:pt-[22px]">
                 <h3 className={`text-[24px] leading-[1.12] md:text-[31px] ${serif}`}>{g.title}</h3>
@@ -388,26 +445,28 @@ function Scene({ section: s }: { section: SceneSection }) {
         data-screen-label={s.label}
         className={`${base} flex-col items-center gap-5 text-center md:gap-[26px] ${place}`}
       >
-        <p className={kickerCls}>{s.kicker}</p>
-        <h2 className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${serif}`}>{s.heading}</h2>
-        {s.body.map((p) => (
-          <p key={p} className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
-            {p}
-          </p>
-        ))}
-        {s.cta && (
-          <a
-            href={s.cta.href}
-            className="rounded-full bg-seal px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em] text-cream transition-colors hover:bg-seal-deep"
-          >
-            {s.cta.label}
-          </a>
-        )}
-        {s.id === "visit" && (
-          <p className="mt-3.5 text-[10px] uppercase tracking-[0.24em] text-cream/50">
-            {contact.address.street} {contact.address.suite} · {contact.address.city}
-          </p>
-        )}
+        <Kicker centred>{s.kicker}</Kicker>
+        <div className={`${above} flex flex-col items-center gap-5 md:gap-[26px]`}>
+          <h2 className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${serif}`}>{s.heading}</h2>
+          {s.body.map((p) => (
+            <p key={p} className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
+              {p}
+            </p>
+          ))}
+          {s.cta && (
+            <a
+              href={s.cta.href}
+              className="rounded-full bg-seal px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em] text-cream transition-colors hover:bg-seal-deep"
+            >
+              {s.cta.label}
+            </a>
+          )}
+          {s.id === "visit" && (
+            <p className="mt-3.5 text-[10px] uppercase tracking-[0.24em] text-cream/50">
+              {contact.address.street} {contact.address.suite} · {contact.address.city}
+            </p>
+          )}
+        </div>
       </section>
     );
   }
@@ -416,13 +475,15 @@ function Scene({ section: s }: { section: SceneSection }) {
   return (
     <section id={s.id} data-screen-label={s.label} className={`${base} ${clear} items-center ${side}`}>
       <div className="flex max-w-[600px] flex-col gap-5 md:gap-[26px]">
-        <p className={kickerCls}>{s.kicker}</p>
-        <h2 className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
-        {s.body.map((p) => (
-          <p key={p} className="text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
-            {p}
-          </p>
-        ))}
+        <Kicker>{s.kicker}</Kicker>
+        <div className={`${above} flex flex-col gap-5 md:gap-[26px]`}>
+          <h2 className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] text-balance ${serif}`}>{s.heading}</h2>
+          {s.body.map((p) => (
+            <p key={p} className="text-base leading-relaxed text-pretty text-cream/80 md:text-lg">
+              {p}
+            </p>
+          ))}
+        </div>
       </div>
     </section>
   );

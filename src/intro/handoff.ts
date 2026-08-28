@@ -1,3 +1,4 @@
+import { STACK } from "@/components/layerSplit";
 import { Flip, gsap } from "@/lib/gsap";
 
 export const HANDOFF_SECONDS = 0.8;
@@ -5,18 +6,18 @@ export const HANDOFF_EASE = "power3.inOut";
 
 /**
  * Where the splash sits once the hero lockup has taken over: under the
- * stationary chrome (z-20) so the travelling lockup shows through the fading
- * ink, over the sections (z-10) so they fade up with the parallax.
+ * wordmark so the travelling lockup shows through the fading ink, over the
+ * hero headline so it fades up with the parallax (see STACK in layerSplit.ts).
  */
-export const HANDOFF_Z_INDEX = 15;
+export const HANDOFF_Z_INDEX: number = STACK.handoff;
 
 export type HandoffContext = {
   /** the splash root; its ink fades to transparent */
   root: HTMLElement;
   /** the hero's lockup wrapper (`[data-hero-lockup]`), if rendered */
   hero: HTMLElement | null;
-  /** the parallax scene wrapper (`[data-parallax]`), if rendered */
-  parallax: HTMLElement | null;
+  /** the scene's canvases (`[data-parallax]`, `[data-parallax-front]`), whichever are rendered */
+  parallax: HTMLElement | HTMLElement[] | null;
   onComplete: () => void;
 };
 
@@ -66,6 +67,8 @@ export function buildHandoff({ root, hero, parallax, onComplete }: HandoffContex
   }
 
   tl.to(root, { opacity: 0, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, 0);
-  if (parallax) tl.to(parallax, { opacity: 1, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, 0);
+  if (parallax && (!Array.isArray(parallax) || parallax.length)) {
+    tl.to(parallax, { opacity: 1, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, 0);
+  }
   return tl;
 }

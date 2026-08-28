@@ -2,7 +2,9 @@ import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { STACK } from "@/components/layerSplit";
 import { sectionIds, site } from "@/content/site";
+import { HANDOFF_Z_INDEX } from "@/intro/handoff";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
@@ -12,6 +14,20 @@ vi.mock("@/scene/fallback", async (orig) => ({
   ...(await orig<typeof import("@/scene/fallback")>()),
   detectWebgl: () => seams.webgl,
 }));
+
+// the smoother runs for real; the hook's arguments are recorded so a test can
+// see which layers it was asked to hold
+const smoother = vi.hoisted(() => ({ calls: [] as Array<{ held: Array<{ current: HTMLElement | null }> }> }));
+vi.mock("@/scroll/useSmoothScroll", async (orig) => {
+  const mod = await orig<typeof import("@/scroll/useSmoothScroll")>();
+  return {
+    ...mod,
+    useSmoothScroll: (refs: Parameters<typeof mod.useSmoothScroll>[0], reduced: boolean) => {
+      smoother.calls.push({ held: refs.held });
+      return mod.useSmoothScroll(refs, reduced);
+    },
+  };
+});
 
 // WebGL does not exist in jsdom: stand in for the scene and report ready at once
 vi.mock("@/components/PentecostParallax", async () => {
@@ -276,5 +292,91 @@ describe("App page structure", () => {
     // position: fixed does not survive a transformed ancestor
     expect(wrapper.contains(container.querySelector("nav"))).toBe(false);
     expect(wrapper.contains(container.querySelector("[data-intro-splash]"))).toBe(false);
+  });
+});
+
+describe("App canvas split", () => {
+  const has = (el: Element | null, cls: string) => !!el && el.classList.contains(cls);
+
+  it("a front canvas sits in the scene above the wordmark and the hero headline, taking no pointer events", () => {
+    const { container } = render(<App />);
+    const front = container.querySelector("[data-parallax-front]")!;
+    expect(front).not.toBeNull();
+    expect(container.querySelector("[data-scene]")!.contains(front)).toBe(true);
+    expect(front.querySelector("canvas")).not.toBeNull();
+    expect(has(front, STACK.front)).toBe(true);
+    expect(has(front, "pointer-events-none")).toBe(true);
+    // the back canvas paints under everything
+    expect(has(container.querySelector("[data-parallax]"), STACK.back)).toBe(true);
+  });
+
+  it("only the wordmark, the hero headline and the kicker rules sit between the canvases", () => {
+    const { container } = render(<App />);
+    expect(container.querySelector("[data-hero-lockup]")!.closest(`.${STACK.wordmark}`)).not.toBeNull();
+    expect(has(container.querySelector("#hero h1"), STACK.between)).toBe(true);
+    const rules = container.querySelectorAll("section[data-screen-label] [data-kicker-rule]");
+    expect(rules.length).toBe(6);
+    for (const rule of rules) expect(has(rule, STACK.between)).toBe(true);
+  });
+
+  it("body copy, cards and buttons in the scene sections stack above the front canvas", () => {
+    const { container } = render(<App />);
+    const copy = container.querySelectorAll("section[data-screen-label] :is(p, h2, h3, a)");
+    expect(copy.length).toBeGreaterThan(10);
+    for (const el of copy) {
+      const section = el.closest("section")!;
+      const above = el.closest(`.${STACK.copy}`);
+      expect(above, el.textContent ?? "").not.toBeNull();
+      expect(section.contains(above)).toBe(true);
+    }
+  });
+
+  it("neither the scene, the sections nor their wrapper forms a stacking context of its own", () => {
+    const { container } = render(<App />);
+    const scene = container.querySelector("[data-scene]")!;
+    const sections = scene.querySelectorAll("section[data-screen-label]");
+    const wrapper = sections[0].parentElement!;
+    for (const el of [scene, wrapper, ...sections]) {
+      expect([...el.classList].some((c) => /^z-/.test(c)), el.className).toBe(false);
+    }
+  });
+
+  it("each sticky layer of the scene carries exactly one step of the stack (the smoother transforms them)", () => {
+    const { container } = render(<App />);
+    const scene = container.querySelector("[data-scene]")!;
+    const layers = [...scene.children].filter((el) => el.classList.contains("sticky"));
+    expect(layers.length).toBe(4);
+    const steps = layers.map((el) => [...el.classList].filter((c) => /^z-/.test(c)));
+    expect(steps).toEqual([[STACK.back], [STACK.wordmark], [STACK.front], [STACK.copy]]);
+    expect(layers[1].querySelector("[data-hero-lockup]")).not.toBeNull();
+    expect(layers[3].querySelector("[data-scene-frame]")).not.toBeNull();
+  });
+
+  it("the nav, the dot rail and the frame border stay above the front canvas", () => {
+    const { container } = render(<App />);
+    expect(container.querySelector("nav")!.closest(`.${STACK.nav}`)).not.toBeNull();
+    expect(has(container.querySelector("[data-dot-rail]"), STACK.nav)).toBe(true);
+    expect(container.querySelector("[data-scene-frame]")!.closest(`.${STACK.copy}`)).not.toBeNull();
+  });
+
+  it("the smoother holds every sticky layer, the front canvas and the frame included", () => {
+    const { container } = render(<App />);
+    const call = smoother.calls.at(-1)!;
+    const held = call.held.map((ref) => ref.current);
+    for (const sel of ["[data-parallax]", "[data-parallax-front]"]) {
+      expect(held, sel).toContain(container.querySelector(sel));
+    }
+    expect(held).toContain(container.querySelector("[data-hero-lockup]")!.parentElement);
+    expect(held).toContain(container.querySelector("[data-scene-frame]")!.parentElement);
+  });
+
+  it("the splash's handoff sits over the headline and under the wordmark", () => {
+    expect(HANDOFF_Z_INDEX).toBe(STACK.handoff);
+  });
+
+  it("the static poster renders no front canvas", () => {
+    seams.webgl = false;
+    const { container } = render(<App />);
+    expect(container.querySelector("[data-parallax-front]")).toBeNull();
   });
 });

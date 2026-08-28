@@ -6,6 +6,7 @@ import { introBeats } from "@/intro/beats";
 import { introGateOpen } from "@/intro/gate";
 import { buildHandoff } from "@/intro/handoff";
 import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
+import { parallaxLayers } from "@/intro/restingFade";
 import { introTargets } from "@/intro/targets";
 import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
 
@@ -59,8 +60,8 @@ export default function IntroSplash({
     const root = rootRef.current;
     if (!root) return;
     // the scene sits on ink until the handoff fades it up
-    const parallax = document.querySelector<HTMLElement>("[data-parallax]");
-    if (parallax) gsap.set(parallax, { opacity: 0 });
+    const parallax = parallaxLayers();
+    if (parallax.length) gsap.set(parallax, { opacity: 0 });
 
     const tl = build(introTargets(root), beats);
     tl.eventCallback("onComplete", () => setMinimumElapsed(true));
@@ -78,7 +79,7 @@ export default function IntroSplash({
         handoff.kill();
       }
       handoffRef.current = null;
-      if (parallax) gsap.set(parallax, { clearProps: "opacity" });
+      if (parallax.length) gsap.set(parallax, { clearProps: "opacity" });
     };
     // beats/build are configuration fixed for the life of the splash
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,7 +107,7 @@ export default function IntroSplash({
     handoffRef.current = handoff({
       root,
       hero: document.querySelector<HTMLElement>("[data-hero-lockup]"),
-      parallax: document.querySelector<HTMLElement>("[data-parallax]"),
+      parallax: parallaxLayers(),
       onComplete: () => onDoneRef.current(),
     });
     // handoff is configuration fixed for the life of the splash

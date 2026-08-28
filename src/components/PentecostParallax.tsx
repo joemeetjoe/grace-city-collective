@@ -2,6 +2,14 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import { createEmbers, emberCount, type EmberLayer } from "@/components/embers";
+import {
+  EMBERS_SIDE,
+  assignLayer,
+  canvasFor,
+  renderPasses,
+  type CanvasSide,
+  type RenderPass,
+} from "@/components/layerSplit";
 import { readyOnce } from "@/components/parallaxLoading";
 import { createRenderGate } from "@/components/renderGate";
 import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
@@ -14,6 +22,7 @@ import { getScrollTop } from "@/scroll/position";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { channelVector, maskRef } from "./textureManifest";
+import { VIGNETTE_GLSL } from "./vignette";
 
 /**
  * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
@@ -34,6 +43,15 @@ import { channelVector, maskRef } from "./textureManifest";
  *
  * The masks are a partition of unity — they sum to 1 at every pixel — so the
  * layers reassemble the plate exactly, which is why the cuts leave no seams.
+ *
+ * Two canvases, one scene, one camera (layerSplit.ts): given a `frontCanvas`,
+ * the floor, the nearest apostles on the left and the embers are drawn by a
+ * second renderer to a transparent canvas that the page stacks over the
+ * wordmark and the hero headline; everything else stays on this one, under
+ * the page. The camera's layer mask is switched between the two passes.
+ * Textures load once (they are shared THREE.Texture objects) but a context
+ * can only sample what it uploaded, so the two the front figures share with
+ * the back — the plate and its depth — are uploaded to both.
  */
 
 type Layer = {
@@ -89,6 +107,11 @@ export type PentecostParallaxProps = {
   embers?: number;
   /** every texture (and cuts.json) has arrived; fires once */
   onReady?: () => void;
+  /**
+   * a second canvas, stacked above the page's type, for the nearest layers
+   * (layerSplit.ts); without it everything draws to the one canvas
+   */
+  frontCanvas?: React.RefObject<HTMLCanvasElement | null>;
   /** asset tier (scene/tier.ts): picks the texture directory; read once at mount */
   tier?: Tier;
   className?: string;
@@ -120,8 +143,10 @@ void main(){
 const FRAG = `
 uniform sampler2D map, mask;
 uniform vec4 uMapRect, uMaskChannel;
-uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat;
+uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
+uniform vec2 uResolution;
 varying vec2 vUv;
+${VIGNETTE_GLSL}
 void main(){
   vec2 uv = vUv;
   float edge = smoothstep(-0.004, 0.010, uv.x) * smoothstep(1.004, 0.990, uv.x)
@@ -149,6 +174,9 @@ void main(){
 
   col = col / (1.0 + col * 0.30);
   col = pow(col, vec3(1.12)) * vec3(1.05, 1.0, 0.92);
+  // the back canvas wears the vignette as a DOM gradient; a front layer has
+  // only the page under it, so it takes the same ink here
+  col = mix(col, uInk, vignetteAlpha(gl_FragCoord.xy, uResolution) * uVignette);
   gl_FragColor = vec4(col, m);
 }`;
 
@@ -163,7 +191,7 @@ void main(){
  * aim a waypoint there.
  */
 const WAYPOINTS: Waypoint[] = [
-  { band: [0.26, 0.84], u: 0.0 },   // hero — the whole gathering
+  { band: [0.185, 0.765], u: 0.03 }, // hero — the gathering under its flames; the near hoods reach the headline's foot
   { band: [0.30, 0.74], u: -0.05 }, // who we are — a step toward the left of the ring
   { band: [0.30, 0.58], u: 0.0 },   // house churches — centre, under the beam
   { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
@@ -205,9 +233,11 @@ export default function PentecostParallax({
   reliefGain: reliefMax = 0.8,
   embers,
   onReady,
+  frontCanvas,
   className,
 }: PentecostParallaxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frontRef = useRef(frontCanvas);
   const tierRef = useRef(tier);
   const onReadyRef = useRef(onReady);
   useEffect(() => {
@@ -233,8 +263,19 @@ export default function PentecostParallax({
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x14100e, 1);
+    // the front canvas clears to nothing: only its layers land over the page
+    const front = frontRef.current?.current ?? null;
+    const frontRenderer = front ? new THREE.WebGLRenderer({ canvas: front, antialias: true, alpha: true }) : null;
+    frontRenderer?.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    frontRenderer?.setClearColor(0x000000, 0);
+    // without a front canvas every layer draws to the one canvas
+    const sideOf = (side: CanvasSide): CanvasSide => (frontRenderer ? side : "back");
+    const passes: RenderPass[] = [{ side: "back", renderer }];
+    if (frontRenderer) passes.push({ side: "front", renderer: frontRenderer });
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+    // the drawing buffer's size, for the front layers' vignette; one vector shared by every material
+    const resolution = new THREE.Vector2(1, 1);
 
     // every load goes through one manager so the ready signal waits for all of
     // them — including the cut masks requested only after cuts.json arrives
@@ -301,6 +342,8 @@ export default function PentecostParallax({
       const w = canvas.clientWidth || window.innerWidth;
       const h = canvas.clientHeight || window.innerHeight;
       renderer.setSize(w, h, false);
+      frontRenderer?.setSize(w, h, false);
+      renderer.getDrawingBufferSize(resolution);
       camera.aspect = w / h;
       const tan = Math.tan(((camera.fov * Math.PI) / 180) / 2);
       // cover-fit against the image extent, not the deliberately larger planes
@@ -321,9 +364,12 @@ export default function PentecostParallax({
       depth: THREE.Texture = depthMap,
       rect: UvRect = rectToUv(undefined),
       channel = 0,
+      side: CanvasSide = "back",
     ) =>
       new THREE.ShaderMaterial({
         uniforms: {
+          uVignette: { value: side === "front" ? 1 : 0 },
+          uResolution: { value: resolution },
           map: { value: map },
           mask: { value: mask },
           uMaskChannel: { value: new THREE.Vector4(...channelVector(channel)) },
@@ -386,7 +432,7 @@ export default function PentecostParallax({
       bgMesh.name = "backdrop";
       bgMesh.position.z = BACKDROP_Z;
       bgMesh.renderOrder = 0;
-      scene.add(bgMesh);
+      scene.add(assignLayer(bgMesh, "back"));
       backdropLayer = { name: "backdrop", z: BACKDROP_Z, mesh: bgMesh, mat: bgMat, isFlame: 0, relief: 0, i: -1, fit: FIT_BG };
 
       // a flame at parent.z + FLAME_LIFT sorts right after its parent, so it
@@ -410,14 +456,15 @@ export default function PentecostParallax({
             depth.magFilter = THREE.LinearFilter;
             cutMaps.push(depth);
           }
-          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel);
+          const side = sideOf(canvasFor(cut));
+          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel, side);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
           const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief)), mat);
           mesh.name = `cut-${cut.name}`;
           mesh.position.z = cut.z;
           mesh.renderOrder = i + 1;
-          scene.add(mesh);
+          scene.add(assignLayer(mesh, side));
           const flame = cut.isFlame ? flameOrdinal++ : undefined;
           return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, at: cut.at, flame };
         });
@@ -433,7 +480,8 @@ export default function PentecostParallax({
         origin: [0.5, 1 - DOVE_V],
         renderOrder: () => rayRenderOrder(layerZ, RAY_NEAR_Z),
       });
-      for (const m of rayLayer.meshes) scene.add(m);
+      // the rays fan out behind the crowd (RAY_NEAR_Z), so none crosses a front figure
+      for (const m of rayLayer.meshes) scene.add(assignLayer(m, "back"));
       // embers read the viewport once, at the tier's density
       const count =
         opts.current.embers ??
@@ -445,7 +493,15 @@ export default function PentecostParallax({
           tier: tierRef.current.name,
         });
       // drawn after every cut, floor included
-      emberLayer = createEmbers({ scene, camera, count, renderOrder: layers.length + 1 });
+      const emberSide = sideOf(EMBERS_SIDE);
+      emberLayer = createEmbers({
+        scene,
+        camera,
+        count,
+        renderOrder: layers.length + 1,
+        resolution: emberSide === "front" ? resolution : undefined,
+      });
+      assignLayer(emberLayer.points, emberSide);
 
       const t0 = performance.now();
       // the camera chases its target through this state, so scroll jumps
@@ -585,7 +641,8 @@ export default function PentecostParallax({
         }
         // gl_PointSize is in device pixels, which is what the canvas buffer is sized in
         emberLayer?.update({ t, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
-        renderer.render(scene, camera);
+        // one scene, one camera, two passes: the mask picks which canvas sees what
+        renderPasses(scene, camera, passes);
       };
       // the loop runs only while the canvas is on screen: once the scene has
       // scrolled away under the long-form there is nothing to draw
@@ -666,6 +723,7 @@ export default function PentecostParallax({
       backdrop.dispose();
       depthMap.dispose();
       renderer.dispose();
+      frontRenderer?.dispose();
     };
   }, []);
 
