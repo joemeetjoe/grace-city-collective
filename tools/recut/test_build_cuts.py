@@ -11,8 +11,9 @@ import numpy as np
 
 import pytest
 
-from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, band_alpha, build_manifest, crowd_alpha, figure_z,
-                        flame_parent, merge_figures, ring_mask, synth_crowd_map)
+from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, backdrop_hole, band_alpha, build_manifest,
+                        crowd_alpha, decontaminate, erode_feather, feather, figure_z, flame_parent,
+                        merge_figures, ring_mask, synth_crowd_map)
 from dolly import BACKDROP_Z
 
 
@@ -351,3 +352,92 @@ def test_crowd_alpha_keeps_a_window_for_every_cut_behind_the_crowd():
     band = band_alpha(shape, 0.40, 0.815, 2)
     assert (a[24:40, 2:8] == 0).all()  # the arch's rows inside the band are a window
     np.testing.assert_array_equal(a[:, 10:], band[:, 10:])  # figures in front punch no hole
+
+
+def disc(r: int = 30, size: int = 100) -> np.ndarray:
+    """A solid disc of radius r centred on a size x size canvas."""
+    yy, xx = np.mgrid[0:size, 0:size]
+    return ((yy - size // 2) ** 2 + (xx - size // 2) ** 2 <= r * r).astype(np.uint8)
+
+
+def test_erode_feather_shrinks_the_support_by_px_and_keeps_a_soft_ramp():
+    m = disc()
+
+    plain = feather(m, 6)
+    eroded = erode_feather(m, px=2, feather_px=6)
+
+    # the ramp starts px further in: the pixels the erosion threw away are gone
+    # from the support, and roughly one perimeter's worth per px of erosion
+    lost = int((plain > 0).sum() - (eroded > 0).sum())
+    perimeter = 2 * np.pi * 30
+    assert 1.5 * perimeter < lost < 2.5 * perimeter
+    # still soft: a ramp of intermediate values, monotone from the edge in
+    row = eroded[50, :50]
+    assert ((row > 0) & (row < 1)).sum() >= 5
+    assert (np.diff(row) >= 0).all()
+    assert eroded[50, 50] == 1.0
+    assert eroded.dtype == np.float32
+
+
+def test_erode_feather_never_grows_past_the_mask_it_was_given():
+    # partition of unity: every pixel is owned by exactly one layer, so an
+    # eroded figure may only give pixels up (to the layer beneath), never
+    # claim any it did not own
+    m = disc()
+
+    eroded = erode_feather(m, px=1, feather_px=6)
+
+    assert eroded[m == 0].max() == 0.0
+    assert (eroded <= feather(m, 6) + 1e-6).all()
+
+
+def test_backdrop_hole_covers_every_owned_pixel_whatever_the_erosion():
+    # what an eroded figure gives up must land on inpainted backdrop, never on
+    # the plate's own pixels of that figure — so the hole is cut from the full
+    # ownership masks, not from the eroded alphas
+    a, b = disc(20, 100), disc(10, 100)
+    b = np.roll(b, 35, axis=1)
+
+    hole = backdrop_hole([a, b], grow=4)
+
+    assert hole.dtype == np.uint8
+    assert hole[(a | b) == 1].min() == 1
+    d_out = cv2.distanceTransform((1 - (a | b)).astype(np.uint8), cv2.DIST_L2, 3)
+    assert hole[(d_out > 0) & (d_out <= 3)].min() == 1  # grown past the edge
+    assert hole[d_out > 8].max() == 0  # but not indefinitely
+
+
+def test_decontaminate_paints_the_halo_band_with_the_nearest_interior_colour():
+    # a grey figure on a red ground: the red pixels just outside the support
+    # are what texture filtering drags into the feathered edge
+    m = disc(20, 80)
+    grey, red = np.array([120, 120, 120], np.uint8), np.array([200, 30, 30], np.uint8)
+    img = np.where(m[..., None] == 1, grey, red).astype(np.uint8)
+
+    out = decontaminate(img, m, px=4)
+
+    d_out = cv2.distanceTransform((1 - m).astype(np.uint8), cv2.DIST_L2, 3)
+    band = (d_out > 0) & (d_out <= 3.5)
+    assert out.shape == img.shape and out.dtype == np.uint8
+    np.testing.assert_array_equal(out[band], np.broadcast_to(grey, (int(band.sum()), 3)))
+    np.testing.assert_array_equal(out[m == 1], img[m == 1])  # the interior is untouched
+    np.testing.assert_array_equal(out[d_out > 6], img[d_out > 6])  # so is the far ground
+
+
+def test_decontaminate_pulls_each_pixel_from_its_own_nearest_interior_pixel():
+    # a two-tone figure: the band outside the left half must stay the left
+    # half's colour, not average across the figure
+    m = np.zeros((40, 80), np.uint8)
+    m[10:30, 10:70] = 1
+    img = np.zeros((40, 80, 3), np.uint8)
+    img[:, :40] = (50, 50, 50)
+    img[:, 40:] = (220, 220, 220)
+    img[m == 0] = (0, 0, 255)
+
+    out = decontaminate(img, m, px=3)
+
+    np.testing.assert_array_equal(out[8, 20], (50, 50, 50))
+    np.testing.assert_array_equal(out[31, 60], (220, 220, 220))
+    np.testing.assert_array_equal(out[20, 8], (50, 50, 50))
+    np.testing.assert_array_equal(out[20, 71], (220, 220, 220))
+    np.testing.assert_array_equal(out[2, 20], (0, 0, 255))  # beyond px: untouched

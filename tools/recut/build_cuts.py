@@ -65,6 +65,17 @@ PLATE = ROOT / "Parallax Scrolling Photo Layers" / "assets" / "dore-pentecost-da
 DIST = HERE / "dist"
 
 FEATHER_PX = 6          # soft edge width on every cut
+# a figure gives up this much of its rim before feathering (issue #28): SAM's
+# outermost pixels are the wall's, and at the community dolly they read as a
+# halo. Plate px — the shipped mask is half this resolution.
+ERODE_PX = 2
+# and its ramp is half the usual feather: every ramp pixel lets the backdrop
+# through, and the dolly magnifies a 6 px ramp into a soft dark rim
+FIG_FEATHER_PX = 3
+# a figure's own colour map is padded this far outward with its nearest edge
+# colour, so texture filtering across the feather pulls in figure, not the
+# wall the plate has there. Must stay within completions.crop_rect's pad.
+DECONTAMINATE_PX = 12
 DILATE_PX = 9           # backdrop is inpainted this far past each cut
 OUT_W = 1024            # output mask width
 IOU_DUP = 0.7           # near-identical detections above this are merged
@@ -177,6 +188,44 @@ def merge_figures(masks: list[np.ndarray], merge: dict[int, int]) -> dict[int, n
 def feather(m: np.ndarray, px: int = FEATHER_PX) -> np.ndarray:
     dist = cv2.distanceTransform(m, cv2.DIST_L2, 3)
     return np.clip(dist / px, 0, 1).astype(np.float32)
+
+
+def erode_feather(m: np.ndarray, px: int = ERODE_PX, feather_px: int = FIG_FEATHER_PX) -> np.ndarray:
+    """feather(), with the ramp starting px inside the mask instead of at its
+    boundary. The support only ever shrinks: whatever the figure gives up is
+    the layer beneath's to show (the backdrop, inpainted under the full mask by
+    backdrop_hole), so the layers still sum to 1 everywhere."""
+    dist = cv2.distanceTransform(m, cv2.DIST_L2, 3)
+    return np.clip((dist - px) / feather_px, 0, 1).astype(np.float32)
+
+
+def decontaminate(img: np.ndarray, mask: np.ndarray, px: int = DECONTAMINATE_PX) -> np.ndarray:
+    """Pad a cut's colour map outward: every pixel within px outside `mask`
+    takes the colour of the nearest pixel inside it. Linear and mipmap
+    filtering across the feathered edge then blend figure with figure, and
+    the fringe stops being the colour of whatever the plate had behind."""
+    dist, labels = cv2.distanceTransformWithLabels(
+        (1 - mask).astype(np.uint8), cv2.DIST_L2, 3, labelType=cv2.DIST_LABEL_PIXEL)
+    ys, xs = np.nonzero(mask)
+    # each interior pixel carries its own label: read the lookup off them
+    at_y = np.zeros(int(labels.max()) + 1, np.int64)
+    at_x = np.zeros_like(at_y)
+    at_y[labels[ys, xs]] = ys
+    at_x[labels[ys, xs]] = xs
+    band = (dist > 0) & (dist <= px)
+    out = img.copy()
+    out[band] = img[at_y[labels[band]], at_x[labels[band]]]
+    return out
+
+
+def backdrop_hole(masks: list[np.ndarray], grow: int = DILATE_PX) -> np.ndarray:
+    """Where the backdrop is inpainted: every pixel any layer owns, grown a
+    little. Cut from the ownership masks, never from the alphas — an eroded
+    figure's rim must land on synthesized wall, not on its own plate pixels."""
+    hole = np.zeros(masks[0].shape, np.uint8)
+    for m in masks:
+        hole |= (m > 0).astype(np.uint8)
+    return cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (grow * 2 + 1,) * 2))
 
 
 def band_alpha(shape: tuple[int, int], top_frac: float, bottom_frac: float,
@@ -583,7 +632,6 @@ def main() -> None:
         full[keeps[i] > 0] = gen_rgb[keeps[i] > 0]
         figures[i] = (figures[i] | keeps[i]).astype(np.uint8)
         x0, y0, w, h = comp.crop_rect(figures[i])
-        Image.fromarray(full[y0:y0 + h, x0:x0 + w]).save(DIST / f"map-fig{i}.jpg", quality=88)
         extras[i] = {"map": f"map-fig{i}.jpg", "mapRect": [x0 / W, y0 / H, w / W, h / H]}
         fig_maps[i] = full
         dep = comp_dir / f"fig{i}-depth.png"
@@ -604,7 +652,7 @@ def main() -> None:
     print_flame_parents(cuts)
     alphas = {}
     for i, f in figures.items():
-        alphas[f"fig{i}"] = feather(f)
+        alphas[f"fig{i}"] = erode_feather(f)
     for i, f in enumerate(flames):
         alphas[f"flame{i}"] = feather(f, 3)
     alphas["dove"] = feather(dove, 3)
@@ -615,6 +663,14 @@ def main() -> None:
     for name, a in alphas.items():
         save_mask(name, a, out_size)
     (DIST / "cuts.json").write_text(json.dumps(cuts))
+
+    # a completed figure's colour map, padded with its own edge colour around
+    # the support the eroded alpha actually shows (issue #28)
+    for i, full in fig_maps.items():
+        support = (alphas[f"fig{i}"] > 0).astype(np.uint8)
+        fig_maps[i] = full = decontaminate(full, support)
+        x0, y0, w, h = [round(v * s) for v, s in zip(extras[i]["mapRect"], (W, H, W, H))]
+        Image.fromarray(full[y0:y0 + h, x0:x0 + w]).save(DIST / f"map-fig{i}.jpg", quality=88)
 
     # crowd color map: everything in the band the crowd does not own becomes
     # shadowed crowd fill, so disocclusion reveals never fall through to wall
@@ -631,11 +687,8 @@ def main() -> None:
         crowd_map = lama_ring(crowd_map, grown)
     Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
 
-    # backdrop: fill every cut region (grown a little) from row texture
-    hole = np.zeros((H, W), np.uint8)
-    for a in alphas.values():
-        hole |= (a > 0.02).astype(np.uint8)
-    hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (DILATE_PX * 2 + 1,) * 2))
+    # backdrop: fill every owned region (grown a little) from row texture
+    hole = backdrop_hole(list(figures.values()) + flames + [dove, arch_mask, crowd, floor])
     print("filling backdrop…")
     backdrop = synth_backdrop(plate, hole)
     if fill_mode == "lama-ring":

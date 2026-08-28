@@ -9,6 +9,7 @@
  *   node tools/shots/cdp-shot.mjs --url http://localhost:4173/ --out shots/ \
  *        [--port 9333] [--size 1600x900] [--pointer 0.5,0.5] [--settle 1800] \
  *        [--labels Hero,About] [--scroll 0.5]   (fraction of a section)
+ *        [--css "section{visibility:hidden}"]   (injected after load)
  *
  * Writes <out>/<index>-<label>.png per `section[data-screen-label]`, plus
  * <out>/state.json with the page's performance.now() at each capture.
@@ -30,6 +31,7 @@ const [px, py] = arg("pointer", "0.5,0.5").split(",").map(Number);
 const settle = Number(arg("settle", 1800));
 const only = arg("labels", "")?.split(",").filter(Boolean) ?? [];
 const scroll = Number(arg("scroll", 0));
+const css = arg("css", "");
 const chrome = arg(
   "chrome",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -100,6 +102,13 @@ try {
     await sleep(200);
   }
   await sleep(1500);
+  if (css) {
+    await evaluate(`(() => {
+      const s = document.createElement("style");
+      s.textContent = ${JSON.stringify(css)};
+      document.head.appendChild(s);
+    })()`);
+  }
   await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: px * W, y: py * H });
 
   const labels = await evaluate(
