@@ -40,3 +40,15 @@ export function contrastRatio(a: string, b: string): number {
   const [hi, lo] = la > lb ? [la, lb] : [lb, la];
   return (hi + 0.05) / (lo + 0.05);
 }
+
+/** Linear sRGB-space blend of two `#rrggbb` colours; `t` = 0 gives `a`, 1 gives `b`. */
+export function mix(a: string, b: string, t: number): string {
+  const hex = (i: number) => {
+    const va = parseInt(a.slice(1 + i * 2, 3 + i * 2), 16);
+    const vb = parseInt(b.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(va + (vb - va) * t)
+      .toString(16)
+      .padStart(2, "0");
+  };
+  return `#${hex(0)}${hex(1)}${hex(2)}`;
+}
