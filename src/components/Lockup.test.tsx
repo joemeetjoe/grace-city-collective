@@ -71,14 +71,30 @@ describe("Lockup", () => {
     expect(container.querySelector('[data-lockup="script"]')).not.toBeNull();
   });
 
-  it("writes Collective beside the wordmark on a shared baseline", () => {
+  it("writes Collective beside the wordmark on a shared baseline, with the seal as the full stop", () => {
     stubFontSize(108);
     const { container } = render(<Lockup />);
     const wordmark = container.querySelector('[data-lockup="wordmark"]')!;
     const script = container.querySelector('[data-lockup="script"]')!;
+    const seal = container.querySelector('[data-lockup="seal"]')!;
     expect(script.parentElement).toBe(wordmark.parentElement);
     expect(wordmark.nextElementSibling).toBe(script);
     expect(wordmark.parentElement!.className).toMatch(/items-baseline/);
+    expect(wordmark.compareDocumentPosition(seal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(script.compareDocumentPosition(seal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("sits the seal on the tail's line after the script", () => {
+    stubFontSize(108);
+    const wrap = render(<Lockup />).container.querySelector('[data-lockup="seal"]')!.parentElement as HTMLElement;
+    expect(wrap.style.transform).toMatch(/translateY\(-?\d/);
+    expect(wrap.style.transform).not.toBe("translateY(0em)");
+  });
+
+  it("sits the seal on the baseline when the script is dropped", () => {
+    stubFontSize(30);
+    const wrap = render(<Lockup />).container.querySelector('[data-lockup="seal"]')!.parentElement as HTMLElement;
+    expect(wrap.style.transform).toBe("translateY(0em)");
   });
 
   it("marks its parts for layout animation", () => {

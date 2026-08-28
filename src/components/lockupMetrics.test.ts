@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SCRIPT_EM, SCRIPT_MIN_PX, scriptHeightFor, showScript } from "./lockupMetrics";
+import { SCRIPT_EM, SCRIPT_MIN_PX, SEAL_EM, scriptHeightFor, sealPeriodShiftEm, showScript } from "./lockupMetrics";
 
 describe("showScript", () => {
   it("renders the cursive line only when it would be at least 18px tall", () => {
@@ -23,5 +23,14 @@ describe("scriptHeightFor", () => {
     expect(showScript(scriptHeightFor(30))).toBe(false);
     // and is present at the desktop end of the clamp
     expect(showScript(scriptHeightFor(108))).toBe(true);
+  });
+});
+
+describe("sealPeriodShiftEm", () => {
+  it("centres the seal on the tail's lift-off height", () => {
+    // a tail ending right on the baseline: the seal's centre drops by half its height, less the nudge
+    expect(sealPeriodShiftEm({ y: 204 }, { height: 216 })).toBeCloseTo(SEAL_EM / 2 - ((12 / 216) * SCRIPT_EM - 0.03), 9);
+    // a tail well above the baseline lifts the seal
+    expect(sealPeriodShiftEm({ y: 100 }, { height: 216 })).toBeLessThan(sealPeriodShiftEm({ y: 204 }, { height: 216 }));
   });
 });

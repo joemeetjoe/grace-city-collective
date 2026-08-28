@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { COLLECTIVE_TAIL } from "./collectiveScriptMetrics";
 import CollectiveScript, { COLLECTIVE_BASELINE, COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX } from "./CollectiveScript";
 
 describe("CollectiveScript", () => {
@@ -60,3 +61,13 @@ function subpathCommandCounts(d: string): number[] {
   }
   return counts;
 }
+
+describe("CollectiveScript tail", () => {
+  it("records where the main stroke lifts off, so the seal can sit on its line", () => {
+    const { container } = render(<CollectiveScript />);
+    const d = container.querySelector("path")!.getAttribute("d")!;
+    const main = d.split(/(?=M)/).filter((s) => s.trim())[0];
+    const nums = main.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    expect(nums.slice(-2)).toEqual([COLLECTIVE_TAIL.x, COLLECTIVE_TAIL.y]);
+  });
+});

@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import CollectiveScript from "@/components/CollectiveScript";
 import Seal, { type SealProps } from "@/components/Seal";
-import { SCRIPT_EM, SEAL_EM, scriptHeightFor, showScript } from "@/components/lockupMetrics";
+import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "@/components/collectiveScriptMetrics";
+import { SCRIPT_EM, SEAL_EM, scriptHeightFor, sealPeriodShiftEm, showScript } from "@/components/lockupMetrics";
 import { STAMP_REPLAY_LABEL, useStampReplay } from "@/components/useStampReplay";
 import { cn } from "@/lib/utils";
 
@@ -40,9 +41,9 @@ function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
 }
 
 /**
- * The resting logo lockup: seal · "Grace City" · "Collective" in script, all
- * on one line. "Collective" is only rendered when it would stand at least
- * 18px tall.
+ * The resting logo lockup: "Grace City" · "Collective" in script · the seal
+ * as the full stop, all on one line. "Collective" is only rendered when it
+ * would stand at least 18px tall.
  *
  * Every instance carries the same `data-flip-id`s so GSAP Flip can carry one
  * instance's layout over to another (the splash hands off to the hero).
@@ -73,45 +74,48 @@ export default function Lockup({
     />
   );
 
+  // the full stop: on the tail's line after "Collective", on the baseline after "Grace City"
+  const sealShift = script ? sealPeriodShiftEm(COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX) : 0;
+
   return (
     <div
       data-lockup=""
       data-flip-id="lockup"
-      className={cn("flex items-center gap-[0.26em] text-cream", className)}
+      className={cn("flex items-baseline gap-[0.16em] text-cream", className)}
       style={{ fontSize: size, ...style }}
     >
-      {interactiveSeal ? (
-        // the chrome layer is pointer-events-none; the button opts back in
-        <button
-          type="button"
-          aria-label={STAMP_REPLAY_LABEL}
-          className="pointer-events-auto inline-flex shrink-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream/60"
-          {...stamp}
-        >
-          {seal}
-        </button>
-      ) : (
-        seal
+      <span
+        data-lockup="wordmark"
+        data-flip-id="lockup-wordmark"
+        ref={wordmarkRef}
+        className="[font-family:'Cormorant_Garamond',Georgia,serif] leading-[0.9] tracking-[-0.01em] whitespace-nowrap"
+      >
+        Grace City
+      </span>
+      {script && (
+        <CollectiveScript
+          data-lockup="script"
+          data-flip-id="lockup-script"
+          className="shrink-0 translate-y-[0.03em]"
+          style={{ height: `${SCRIPT_EM}em` }}
+        />
       )}
-      {/* the name on one line: "Grace City" with "Collective" written beside it, sharing a baseline */}
-      <div className="flex items-baseline gap-[0.16em]">
-        <span
-          ref={wordmarkRef}
-          data-lockup="wordmark"
-          data-flip-id="lockup-wordmark"
-          className="[font-family:'Cormorant_Garamond',Georgia,serif] leading-[0.9] tracking-[-0.01em] whitespace-nowrap"
-        >
-          Grace City
-        </span>
-        {script && (
-          <CollectiveScript
-            data-lockup="script"
-            data-flip-id="lockup-script"
-            className="shrink-0 translate-y-[0.03em]"
-            style={{ height: `${SCRIPT_EM}em` }}
-          />
+      {/* the transform lives on this wrapper, not the svg, so the stamp's own transform can be cleared freely */}
+      <span className="inline-flex shrink-0 -ml-[0.09em]" style={{ transform: `translateY(${sealShift}em)` }}>
+        {interactiveSeal ? (
+          // the chrome layer is pointer-events-none; the button opts back in
+          <button
+            type="button"
+            aria-label={STAMP_REPLAY_LABEL}
+            className="pointer-events-auto inline-flex shrink-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream/60"
+            {...stamp}
+          >
+            {seal}
+          </button>
+        ) : (
+          seal
         )}
-      </div>
+      </span>
     </div>
   );
 }

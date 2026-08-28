@@ -113,7 +113,7 @@ export default function App() {
         </nav>
         <div
           data-hero-lockup=""
-          className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)]"
+          className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex justify-end"
         >
           {/* the seal is live so the stamp can replay on click, resting with its filters off */}
           <Lockup sealVariant="live" interactiveSeal />
