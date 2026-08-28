@@ -21,6 +21,12 @@ function S(len, c2, e) {
   const c1 = [cur[0] + (dx / n) * len, cur[1] + (dy / n) * len];
   C(c1, c2, e);
 }
+/** draws the last `n` cubics again in reverse, so the pen doubles back over its own line */
+function retrace(n) {
+  const tail = segs.slice(-n);
+  const starts = tail.map((_, i) => segs[segs.length - n + i - 1].at(-1));
+  for (let i = n - 1; i >= 0; i--) C(tail[i][2], tail[i][1], starts[i]);
+}
 
 // ---- C ----
 M(132, 118);
@@ -50,8 +56,8 @@ S(14, [326 - 19, 198], [326 - 14, 182]);
 ell(340, false);
 
 // ---- e ----
-function e(bx) {
-  S(16, [bx - 6, 226], [bx + 8, 204]);      // upstroke through the crossing
+function e(bx, dip = 226) {
+  S(16, [bx - 6, dip], [bx + 8, 204]);      // upstroke through the crossing (shallower after a top join)
   S(8, [bx + 9, 180], [bx, 179]);            // over the top of the eye
   S(6, [bx - 12, 192], [bx - 10, 234]);      // down the left, crossing the upstroke
   S(6, [bx + 4, 254], [bx + 20, 244]);       // along the bottom, exit up-right
@@ -59,16 +65,18 @@ function e(bx) {
 e(400);
 
 // ---- c ----
+// A monoline c closes into an e if the entry hairline runs inside it, so the
+// entry is instead drawn up the c's own back: over the top hook to a free
+// terminal, then retraced down the back before rounding the bottom hook.
 function c(bx) {
-  const T = [bx + 12, 184];
-  const E = cur;
-  const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-  S(10, lerp(E, T, 0.6), T);                                // straight hairline to the c's top point
-  C([bx + 4, 176], [bx - 12, 181], [bx - 14, 202]);         // cusp: depart up-left, over and down the left
-  S(12, [bx - 10, 242], [bx + 2, 250]);                     // tucked bottom
-  S(6, [bx + 12, 249], [bx + 16, 240]);                     // exit
+  S(10, [bx - 16, 232], [bx - 15, 216]);          // bend up-left, joining the back at mid height
+  C([bx - 15, 198], [bx - 8, 180], [bx + 2, 180]); // up the back and over the top
+  C([bx + 11, 180], [bx + 18, 184], [bx + 19, 193]); // hook down to the open terminal
+  retrace(2);                                       // back over the top and down the back
+  S(12, [bx - 12, 250], [bx + 2, 250]);            // round the bottom
+  S(6, [bx + 12, 249], [bx + 16, 240]);            // exit
 }
-c(457);
+c(462);
 
 // ---- t ----
 function t(bx) {
@@ -96,14 +104,13 @@ function v(bx) {
   S(6, [bx - 10, 180], [bx - 6, 188]);
   S(20, [bx, 235], [bx + 4, 243]);
   S(8, [bx + 16, 246], [bx + 22, 230]);
-  S(14, [bx + 28, 198], [bx + 28, 188]);
-  C([bx + 28, 176], [bx + 13, 176], [bx + 15, 189]);
-  S(5, [bx + 30, 198], [bx + 44, 192]);
+  S(14, [bx + 28, 198], [bx + 28, 190]);
+  S(6, [bx + 30, 180], [bx + 40, 184]);   // open shoulder instead of a loop; exits right at x-height
 }
 v(587);
 
 // ---- e + flourish ----
-e(655);
+e(655, 216);
 S(50, [655 + 110, 190], [655 + 150, 200]);
 S(60, [655 + 225, 230], [655 + 258, 227]);
 
