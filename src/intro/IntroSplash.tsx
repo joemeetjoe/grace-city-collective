@@ -110,7 +110,7 @@ export default function IntroSplash({
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink"
       aria-hidden
     >
-      <Lockup size={SPLASH_LOCKUP_SIZE} />
+      <Lockup size={SPLASH_LOCKUP_SIZE} sealVariant="live" />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { baseMarkup } from "@/test/sealMarkup";
+
 import Seal from "./Seal";
 
 describe("Seal", () => {
@@ -55,5 +57,40 @@ describe("Seal wax", () => {
     const wax = container.querySelector('[data-seal="wax"]');
     expect(wax?.tagName).toBe("path");
     expect(container.querySelector("circle")).toBeNull();
+  });
+});
+
+describe("Seal live overlay", () => {
+  it("keeps every filter inside a [data-seal=live] overlay; the static variant has no overlay", () => {
+    const { container: live } = render(<Seal variant="live" />);
+    const overlay = live.querySelector('[data-seal="live"]');
+    expect(overlay).not.toBeNull();
+    const filters = Array.from(live.querySelectorAll("filter"));
+    expect(filters.length).toBeGreaterThan(0);
+    for (const f of filters) expect(overlay!.contains(f)).toBe(true);
+    expect(live.querySelector('[data-seal="drip"]')).not.toBeNull();
+
+    const { container: still } = render(<Seal variant="static" />);
+    expect(still.querySelector('[data-seal="live"]')).toBeNull();
+    expect(still.querySelector('[data-seal="drip"]')).toBeNull();
+  });
+});
+
+describe("Seal base artwork", () => {
+  it("is the same markup as the static variant once the live overlay is removed", () => {
+    const { container: live } = render(<Seal variant="live" />);
+    const { container: still } = render(<Seal variant="static" />);
+    const liveSvg = live.querySelector("svg")!;
+    const stillSvg = still.querySelector("svg")!;
+    expect(baseMarkup(liveSvg)).toBe(baseMarkup(stillSvg));
+    const parts = (root: Element) =>
+      Array.from(root.querySelectorAll("[data-seal]"))
+        .filter((el) => !el.closest('[data-seal="live"]'))
+        .map((el) => el.getAttribute("data-seal"));
+    expect(parts(liveSvg)).toEqual(parts(stillSvg));
+    expect(parts(stillSvg)).toContain("wax");
+    expect(parts(stillSvg)).toContain("fleur");
+    expect(parts(stillSvg)).toContain("band");
+    expect(parts(stillSvg)).toContain("highlight");
   });
 });
