@@ -3,8 +3,10 @@ import * as THREE from "three";
 
 import { readyOnce } from "@/components/parallaxLoading";
 import { createRenderGate } from "@/components/renderGate";
+import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
+import { ascentProgress, flamePose } from "./flamePose";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 
@@ -16,9 +18,10 @@ import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, typ
  * Assets expected in /public/dore/:
  *   plate.jpg            the engraving (2048x2519)
  *   plate-backdrop.png   the plate with every cutout inpainted back in
- *   cuts.json            [{ name, z, isFlame, relief?, parent? }] — a flame's
- *                        parent is the head it hangs over; it rests just in
- *                        front of that cut, on its plane (see bindFlames)
+ *   cuts.json            [{ name, z, isFlame, relief?, parent?, at? }] — a
+ *                        flame's parent is the head it hangs over; it rests
+ *                        just in front of that cut, on its plane (see
+ *                        bindFlames), and leaves it from `at` (see flamePose)
  *   cut-<name>.png       one greyscale mask per cut
  *   depth.png            baked depth of the plate (white = near), drives the
  *                        per-figure relief displacement
@@ -36,6 +39,9 @@ type Layer = {
   relief: number;
   i: number;
   fit?: number;
+  /** a flame's centre as plate fractions, and its ordinal among the flames */
+  at?: [number, number];
+  flame?: number;
 };
 
 type Waypoint = {
@@ -243,6 +249,8 @@ export default function PentecostParallax({
     let observer: IntersectionObserver | null = null;
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let sections: HTMLElement[] = [];
+    // reduced motion keeps the flames on their heads (the dolly is scroll-paced, so it stays)
+    const reducedMotion = window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
     const resize = () => {
       const w = canvas.clientWidth || window.innerWidth;
@@ -331,6 +339,7 @@ export default function PentecostParallax({
 
       // a flame at parent.z + FLAME_LIFT sorts right after its parent, so it
       // draws over the head it rests on and nothing else
+      let flameOrdinal = 0;
       layers = bindFlames(cuts)
         .sort((a, b) => a.z - b.z)
         .map((cut, i) => {
@@ -356,7 +365,8 @@ export default function PentecostParallax({
           mesh.position.z = cut.z;
           mesh.renderOrder = i + 1;
           scene.add(mesh);
-          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i };
+          const flame = cut.isFlame ? flameOrdinal++ : undefined;
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, at: cut.at, flame };
         });
       doveLayer = layers.find((l) => l.name === "dove");
 
@@ -376,6 +386,8 @@ export default function PentecostParallax({
       // the camera chases its target through this state, so scroll jumps
       // (snap, fast flicks) arrive as a glide instead of a lurch
       const cam = { x: 0, y: 0, z: 0, init: false };
+      // the flames' ascent progress, chased the same way (see flamePose)
+      const flock = { p: 0 };
       let lastT = 0;
       const tick = () => {
         if (!gate?.running) return;
@@ -389,6 +401,7 @@ export default function PentecostParallax({
         // whole page — the long-form below it must not stretch them thin
         const p = sections.length > 1 ? sp / (sections.length - 1) : 0;
         const ease = p * p * (3 - 2 * p);
+        const ascent = ascentProgress(sp, reducedMotion);
 
         const idle = o.idleDrift ? 1 : 0;
         const dx = Math.sin(t * 0.17) * 0.18 * idle;
@@ -440,10 +453,14 @@ export default function PentecostParallax({
         const ty = Math.max(-limY, Math.min(limY, yWant));
         if (!cam.init) {
           cam.x = tx; cam.y = ty; cam.z = zc; cam.init = true;
+          flock.p = ascent;
         }
         cam.x += (tx - cam.x) * k;
         cam.y += (ty - cam.y) * k;
         cam.z += (zc - cam.z) * k;
+        // the flock rides the same damping, so a snap sends it gliding with
+        // the camera instead of jumping ahead of it
+        flock.p += (ascent - flock.p) * k;
         // the pointer (and the gyro, which writes the same target) orbits the
         // camera about the plate-plane point it looks at, so the near figures
         // swing across the arch while the plate holds still; the slide it
@@ -479,9 +496,26 @@ export default function PentecostParallax({
           l.mat.uniforms.uCamZ.value = ru.uCamZ;
           l.mat.uniforms.uLayerZ.value = ru.uLayerZ;
           l.mat.uniforms.uScale.value = ru.uScale;
-          // every flame rests on its head (bindFlames); the ascent toward the
-          // dove is issue #35 — a flamePose(index, progress, t) would set
-          // position from that rest pose here
+          // a flame leaves its head for the dove (flamePose). Composition: the
+          // spread transform above puts its plane at zn, scaled so the cut
+          // registers as at the hero; on top of that, in world space, the
+          // flame's centre (`at` — an offset of (u-0.5)·IW·kn from the mesh
+          // origin, the plate being kn = (baseZ-zn)/baseZ times its z=0 size
+          // there) is carried to the pose. The scale is left alone on purpose:
+          // a tongue shrinks with bare perspective as it sinks toward the dove,
+          // which is what makes it read as receding rather than sliding
+          if (l.flame !== undefined && l.at) {
+            const kn = (baseZ - zn) / baseZ;
+            const zd = (doveLayer?.z ?? -3) * (spread + ease * 0.35);
+            const kd = (baseZ - zd) / baseZ;
+            const cx = (l.at[0] - 0.5) * IW * kn;
+            const cy = (0.5 - l.at[1]) * IH * kn;
+            const pose = flamePose(l.flame, flock.p, t, {
+              rest: { x: cx, y: cy, z: zn },
+              dove: { x: 0, y: (0.5 - DOVE_V) * IH * kd, z: zd },
+            });
+            l.mesh.position.set(pose.x - cx, pose.y - cy, pose.z);
+          }
         }
         renderer.render(scene, camera);
       };

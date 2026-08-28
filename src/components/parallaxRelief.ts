@@ -21,6 +21,11 @@ export type Cut = {
   depthMap?: string;
   /** a flame's cut it hangs over — a figure, or the crowd */
   parent?: string;
+  /**
+   * a flame's centre (its mask centroid) as [u, v] plate fractions from the
+   * top-left — the point that leaves the head for the dove (see flamePose)
+   */
+  at?: [number, number];
 };
 
 export type UvRect = [number, number, number, number];

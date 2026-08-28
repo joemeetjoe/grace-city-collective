@@ -11,7 +11,7 @@ import numpy as np
 
 import pytest
 
-from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, backdrop_hole, band_alpha, build_manifest,
+from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, backdrop_hole, band_alpha, build_manifest, flame_anchors,
                         crowd_alpha, decontaminate, erode_feather, feather, figure_z, flame_parent,
                         merge_figures, ring_mask, synth_crowd_map)
 from dolly import BACKDROP_Z
@@ -441,3 +441,18 @@ def test_decontaminate_pulls_each_pixel_from_its_own_nearest_interior_pixel():
     np.testing.assert_array_equal(out[20, 8], (50, 50, 50))
     np.testing.assert_array_equal(out[20, 71], (220, 220, 220))
     np.testing.assert_array_equal(out[2, 20], (0, 0, 255))  # beyond px: untouched
+
+
+def test_manifest_carries_each_flames_anchor():
+    # the flame's centroid in plate fractions from the top-left: the runtime
+    # ascent (#35) lifts the flame by that point, so a recut must emit it
+    flames, _ = flame_scene()
+
+    anchors = flame_anchors(flames)
+    cuts = build_manifest(fig_z={0: 1.2}, flame_count=2, flame_at=anchors)
+
+    assert anchors["flame0"] == [0.21, 0.415]
+    by_name = {c["name"]: c for c in cuts}
+    assert by_name["flame0"]["at"] == [0.21, 0.415]
+    assert by_name["flame1"]["at"] == anchors["flame1"]
+    assert "at" not in by_name["fig0"]

@@ -452,9 +452,16 @@ def assign_flame_parents(flames: dict[str, np.ndarray], figures: dict[str, np.nd
     return parents
 
 
+def flame_anchors(flames: dict[str, np.ndarray]) -> dict[str, list[float]]:
+    """Each flame's centroid as [u, v] plate fractions from the top-left —
+    the point the runtime ascent (#35) lifts the flame by."""
+    return {name: [round(c, 4) for c in centroid(m)] for name, m in flames.items()}
+
+
 def build_manifest(fig_z: dict[int, float], flame_count: int,
                    extras: dict[int, dict] | None = None,
-                   flame_parents: dict[str, str] | None = None) -> list[dict]:
+                   flame_parents: dict[str, str] | None = None,
+                   flame_at: dict[str, list[float]] | None = None) -> list[dict]:
     """The cuts.json entries. Cuts sample the shared plate unless they carry
     a dedicated color map: the crowd (its plate region contains the figures)
     and completed figures (their hidden pixels were generated), whose extras
@@ -469,7 +476,10 @@ def build_manifest(fig_z: dict[int, float], flame_count: int,
         cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra})
     for i in range(flame_count):
         parent = (flame_parents or {}).get(f"flame{i}", "crowd")
-        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent})
+        cut = {"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent}
+        if flame_at and f"flame{i}" in flame_at:
+            cut["at"] = flame_at[f"flame{i}"]
+        cuts.append(cut)
     cuts.append({"name": "crowd", "z": CROWD_Z, "isFlame": 0, "map": "map-crowd.jpg"})
     cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
     cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
@@ -510,9 +520,11 @@ def rebuild_manifest() -> list[dict]:
     figures = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["name"].startswith("fig")}
     flames = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["isFlame"]}
     parents = assign_flame_parents(flames, figures, load_flame_overrides())
+    anchors = flame_anchors(flames)
     for c in cuts:
         if c["isFlame"]:
             c["parent"] = parents[c["name"]]
+            c["at"] = anchors[c["name"]]
     (DIST / "cuts.json").write_text(json.dumps(cuts))
     return cuts
 
@@ -648,7 +660,8 @@ def main() -> None:
         {f"fig{i}": f for i, f in figures.items()},
         load_flame_overrides())
     print("flame parents:")
-    cuts = build_manifest(fig_z, len(flames), extras, parents)
+    cuts = build_manifest(fig_z, len(flames), extras, parents,
+                          flame_anchors({f"flame{i}": f for i, f in enumerate(flames)}))
     print_flame_parents(cuts)
     alphas = {}
     for i, f in figures.items():
