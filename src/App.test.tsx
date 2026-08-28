@@ -87,12 +87,9 @@ describe("App hero seal", () => {
   });
 });
 
-describe("App nav mark", () => {
-  it("is the lit seal, resting on its cached raster", () => {
+describe("App nav", () => {
+  it("carries no seal — the mark lives only in the lockup", () => {
     const { container } = render(<App />);
-    const nav = container.querySelector("nav")!;
-    const seal = nav.querySelector('svg[role="img"]')!;
-    expect(seal.querySelector('[data-seal="live"]')).not.toBeNull();
-    expect((seal.querySelector('[data-seal="live"]') as SVGElement).style.display).toBe("none");
+    expect(container.querySelector('nav svg[role="img"]')).toBeNull();
   });
 });
