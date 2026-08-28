@@ -12,7 +12,10 @@ Outputs, in tools/recut/dist/:
   plate-backdrop.png the plate with every cut region filled back in
                      (row-wise texture fill — the wall is horizontal hatching,
                      so propagating along rows preserves the line pattern)
-  cuts.json          [{name, z, isFlame}] for the component
+  cuts.json          [{name, z, isFlame, parent?}] for the component; every
+                     flame names the cut it hangs over (a figure, or crowd).
+                     The crowd — the wall behind the apostles — sits on the
+                     backdrop's plane (dolly.py mirrors the scene camera; see CROWD_Z)
   qc-masks.png       tinted composite of the final masks
   qc-rest.png        cuts composited over the backdrop at rest (should look
                      like the plate)
@@ -33,7 +36,15 @@ Fills (--fill):
   tile       the tiled fill alone; instant, but the hatch phase jumps at the
              boundary and traces each figure's silhouette.
 
+Flame parents: each flame binds to the figure whose head (mask top) is
+nearest below its centroid, else the crowd; the component then stacks it just
+in front of that parent (issue #27). flame_parents.json beside this script
+overrides the choice: {"flame6": "fig13"}.
+
 Usage: .venv-recut/bin/python tools/recut/build_cuts.py [--fill tile|lama-ring]
+       .venv-recut/bin/python tools/recut/build_cuts.py --manifest-only
+           rewrite dist/cuts.json (flame parents) from the masks already in
+           dist/, without touching any texture
 """
 
 import argparse
@@ -46,6 +57,7 @@ import numpy as np
 from PIL import Image
 
 import completions as comp
+from dolly import BACKDROP_Z
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -53,6 +65,17 @@ PLATE = ROOT / "Parallax Scrolling Photo Layers" / "assets" / "dore-pentecost-da
 DIST = HERE / "dist"
 
 FEATHER_PX = 6          # soft edge width on every cut
+# a figure gives up this much of its rim before feathering (issue #28): SAM's
+# outermost pixels are the wall's, and at the community dolly they read as a
+# halo. Plate px — the shipped mask is half this resolution.
+ERODE_PX = 2
+# and its ramp is half the usual feather: every ramp pixel lets the backdrop
+# through, and the dolly magnifies a 6 px ramp into a soft dark rim
+FIG_FEATHER_PX = 3
+# a figure's own colour map is padded this far outward with its nearest edge
+# colour, so texture filtering across the feather pulls in figure, not the
+# wall the plate has there. Must stay within completions.crop_rect's pad.
+DECONTAMINATE_PX = 12
 DILATE_PX = 9           # backdrop is inpainted this far past each cut
 OUT_W = 1024            # output mask width
 IOU_DUP = 0.7           # near-identical detections above this are merged
@@ -66,7 +89,21 @@ FIG_Z = (-0.7, 2.6)     # backmost .. frontmost figure
 # (issue #17). Chosen to reproduce the values the parallax was tuned on.
 FIG_Z_ROWS = (0.644, 0.866)
 FLAME_Z = [-2.0, -1.7, -1.4]
+# a flame binds to a head no further than this below its centroid (fraction
+# of plate height), and a lateral offset counts this many times a vertical one
+# — a tongue hangs over its head, it does not lean across to a neighbour's
+FLAME_REACH = 0.15
+FLAME_LATERAL = 2.0
+FLAME_PARENTS = HERE / "flame_parents.json"
 DOVE_Z, ARCH_Z, FLOOR_Z = -3.0, -2.8, 3.6
+# The crowd is the wall behind the apostles, and the backdrop is the same wall
+# above them: one plane, so their shared edge never slides. At -0.9 the band's
+# straight top edge crossed the backdrop's hatching 28 px out of register at
+# the community dolly (35 px at the hero) and read as a strip of foreign wall
+# between the heads and the flames (issue #29, docs/experiments/issue-29).
+CROWD_Z = BACKDROP_Z
+# plate rows (fraction of height) the crowd band spans
+CROWD_ROWS = (0.40, 0.815)
 
 # top-left gothic structure, in plate pixels (x0, y0, x1, y1)
 ARCH_BOX = (0, 120, 660, 1270)
@@ -151,6 +188,44 @@ def merge_figures(masks: list[np.ndarray], merge: dict[int, int]) -> dict[int, n
 def feather(m: np.ndarray, px: int = FEATHER_PX) -> np.ndarray:
     dist = cv2.distanceTransform(m, cv2.DIST_L2, 3)
     return np.clip(dist / px, 0, 1).astype(np.float32)
+
+
+def erode_feather(m: np.ndarray, px: int = ERODE_PX, feather_px: int = FIG_FEATHER_PX) -> np.ndarray:
+    """feather(), with the ramp starting px inside the mask instead of at its
+    boundary. The support only ever shrinks: whatever the figure gives up is
+    the layer beneath's to show (the backdrop, inpainted under the full mask by
+    backdrop_hole), so the layers still sum to 1 everywhere."""
+    dist = cv2.distanceTransform(m, cv2.DIST_L2, 3)
+    return np.clip((dist - px) / feather_px, 0, 1).astype(np.float32)
+
+
+def decontaminate(img: np.ndarray, mask: np.ndarray, px: int = DECONTAMINATE_PX) -> np.ndarray:
+    """Pad a cut's colour map outward: every pixel within px outside `mask`
+    takes the colour of the nearest pixel inside it. Linear and mipmap
+    filtering across the feathered edge then blend figure with figure, and
+    the fringe stops being the colour of whatever the plate had behind."""
+    dist, labels = cv2.distanceTransformWithLabels(
+        (1 - mask).astype(np.uint8), cv2.DIST_L2, 3, labelType=cv2.DIST_LABEL_PIXEL)
+    ys, xs = np.nonzero(mask)
+    # each interior pixel carries its own label: read the lookup off them
+    at_y = np.zeros(int(labels.max()) + 1, np.int64)
+    at_x = np.zeros_like(at_y)
+    at_y[labels[ys, xs]] = ys
+    at_x[labels[ys, xs]] = xs
+    band = (dist > 0) & (dist <= px)
+    out = img.copy()
+    out[band] = img[at_y[labels[band]], at_x[labels[band]]]
+    return out
+
+
+def backdrop_hole(masks: list[np.ndarray], grow: int = DILATE_PX) -> np.ndarray:
+    """Where the backdrop is inpainted: every pixel any layer owns, grown a
+    little. Cut from the ownership masks, never from the alphas — an eroded
+    figure's rim must land on synthesized wall, not on its own plate pixels."""
+    hole = np.zeros(masks[0].shape, np.uint8)
+    for m in masks:
+        hole |= (m > 0).astype(np.uint8)
+    return cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (grow * 2 + 1,) * 2))
 
 
 def band_alpha(shape: tuple[int, int], top_frac: float, bottom_frac: float,
@@ -325,25 +400,106 @@ def figure_z(bottoms: dict[int, float],
     return z
 
 
+def head_top(mask: np.ndarray) -> tuple[float, float]:
+    """(x, y) of a figure's topmost pixels, as plate fractions — nobody on
+    this plate raises a hand above their head, so the top is the head."""
+    H, W = mask.shape
+    ys, xs = np.nonzero(mask)
+    top = ys.min()
+    return float(xs[ys == top].mean()) / W, float(top) / H
+
+
+def centroid(mask: np.ndarray) -> tuple[float, float]:
+    H, W = mask.shape
+    ys, xs = np.nonzero(mask)
+    return float(xs.mean()) / W, float(ys.mean()) / H
+
+
+def flame_parent(flame_centroid: tuple[float, float], heads: dict[str, tuple[float, float]],
+                 reach: float = FLAME_REACH, lateral: float = FLAME_LATERAL) -> str:
+    """The figure whose head is nearest below the flame, or "crowd" when no
+    head is under it within reach. Heads above the centroid are not under
+    the flame at all (a tongue rests on a head, it is never behind one)."""
+    cx, cy = flame_centroid
+    best, best_d = "crowd", reach
+    for name, (hx, hy) in heads.items():
+        dy = hy - cy
+        if dy < 0:
+            continue
+        d = float(np.hypot(lateral * (hx - cx), dy))
+        if d < best_d:
+            best, best_d = name, d
+    return best
+
+
+def load_flame_overrides(path: Path = FLAME_PARENTS) -> dict[str, str]:
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def assign_flame_parents(flames: dict[str, np.ndarray], figures: dict[str, np.ndarray],
+                         overrides: dict[str, str] | None = None) -> dict[str, str]:
+    """{flame name: parent cut name} for every flame, by name in `figures`
+    or "crowd". Overrides win, and must name a flame and a parent that
+    exist — a stale entry after a re-cut is a mistake, not a no-op."""
+    heads = {name: head_top(m) for name, m in figures.items()}
+    parents = {name: flame_parent(centroid(m), heads) for name, m in flames.items()}
+    for flame, parent in (overrides or {}).items():
+        if flame not in parents:
+            raise KeyError(f"flame_parents: no flame named {flame}")
+        if parent != "crowd" and parent not in figures:
+            raise KeyError(f"flame_parents: {flame} -> {parent}: no such figure")
+        parents[flame] = parent
+    return parents
+
+
+def flame_anchors(flames: dict[str, np.ndarray]) -> dict[str, list[float]]:
+    """Each flame's centroid as [u, v] plate fractions from the top-left —
+    the point the runtime ascent (#35) lifts the flame by."""
+    return {name: [round(c, 4) for c in centroid(m)] for name, m in flames.items()}
+
+
 def build_manifest(fig_z: dict[int, float], flame_count: int,
-                   extras: dict[int, dict] | None = None) -> list[dict]:
+                   extras: dict[int, dict] | None = None,
+                   flame_parents: dict[str, str] | None = None,
+                   flame_at: dict[str, list[float]] | None = None) -> list[dict]:
     """The cuts.json entries. Cuts sample the shared plate unless they carry
     a dedicated color map: the crowd (its plate region contains the figures)
     and completed figures (their hidden pixels were generated), whose extras
     add map/mapRect/depthMap. A completed figure without its own depth map
-    goes flat — the shared depth under its adopted pixels is the occluder's."""
+    goes flat — the shared depth under its adopted pixels is the occluder's.
+    Every flame names the cut it hangs over (flame_parents, else the crowd);
+    the component places it just in front of that parent."""
     cuts: list[dict] = []
     for i, z in fig_z.items():
         extra = (extras or {}).get(i, {})
         relief = 0 if ("map" in extra and "depthMap" not in extra) else 1
         cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra})
     for i in range(flame_count):
-        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
-    cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0, "map": "map-crowd.jpg"})
+        parent = (flame_parents or {}).get(f"flame{i}", "crowd")
+        cut = {"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent}
+        if flame_at and f"flame{i}" in flame_at:
+            cut["at"] = flame_at[f"flame{i}"]
+        cuts.append(cut)
+    cuts.append({"name": "crowd", "z": CROWD_Z, "isFlame": 0, "map": "map-crowd.jpg"})
     cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
     cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
     cuts.append({"name": "floor", "z": FLOOR_Z, "isFlame": 0})
     return cuts
+
+
+def crowd_alpha(shape: tuple[int, int], alphas: dict[str, np.ndarray], cuts: list[dict],
+                crowd_z: float = CROWD_Z, band: tuple[float, float] = CROWD_ROWS,
+                feather_px: int = 8) -> np.ndarray:
+    """The crowd's alpha: a solid band over the figure holes (the crowd map
+    fills them), minus a window for every cut that sits BEHIND the crowd —
+    its own feathered alpha's complement — or the band would cover it at
+    rest. Cuts in front punch no hole. With the crowd on the wall plane
+    nothing is behind it and the band is plain."""
+    a = band_alpha(shape, band[0], band[1], feather_px)
+    behind = [alphas[c["name"]] for c in cuts if c["z"] < crowd_z]
+    if behind:
+        a = a * (1 - np.maximum.reduce(behind))
+    return a
 
 
 def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
@@ -351,10 +507,45 @@ def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
     img.save(DIST / f"cut-{name}.png", optimize=True)
 
 
+def load_dist_mask(name: str) -> np.ndarray:
+    """A saved cut back as a binary mask (its feather thresholded away)."""
+    return (np.asarray(Image.open(DIST / f"cut-{name}.png").convert("L")) > 64).astype(np.uint8)
+
+
+def rebuild_manifest() -> list[dict]:
+    """Recompute the flame parents from the masks already in dist/ and
+    rewrite cuts.json, every other entry and value preserved — so a change
+    of binding never re-inpaints a texture."""
+    cuts = json.loads((DIST / "cuts.json").read_text())
+    figures = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["name"].startswith("fig")}
+    flames = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["isFlame"]}
+    parents = assign_flame_parents(flames, figures, load_flame_overrides())
+    anchors = flame_anchors(flames)
+    for c in cuts:
+        if c["isFlame"]:
+            c["parent"] = parents[c["name"]]
+            c["at"] = anchors[c["name"]]
+    (DIST / "cuts.json").write_text(json.dumps(cuts))
+    return cuts
+
+
+def print_flame_parents(cuts: list[dict]) -> None:
+    for c in cuts:
+        if c["isFlame"]:
+            print(f"  {c['name']} -> {c['parent']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fill", choices=("tile", "lama-ring"), default="lama-ring")
-    fill_mode = ap.parse_args().fill
+    ap.add_argument("--manifest-only", action="store_true",
+                    help="rewrite dist/cuts.json from the existing dist/ masks; no textures")
+    args = ap.parse_args()
+    if args.manifest_only:
+        print("flame parents:")
+        print_flame_parents(rebuild_manifest())
+        return
+    fill_mode = args.fill
     DIST.mkdir(exist_ok=True)
     plate = np.asarray(Image.open(PLATE).convert("RGB"))
     gray = np.asarray(Image.open(PLATE).convert("L"))
@@ -382,7 +573,7 @@ def main() -> None:
     owner = np.full((H, W), -1, np.int16)
     layers_by_priority: list[tuple[int, np.ndarray]] = []
     crowd = np.zeros((H, W), np.uint8)
-    crowd[int(H * 0.40):int(H * 0.815), :] = 1
+    crowd[int(H * CROWD_ROWS[0]):int(H * CROWD_ROWS[1]), :] = 1
     floor = np.zeros((H, W), np.uint8)
     floor[int(H * 0.78):, :] = 1
     CROWD_ID, FLOOR_ID, ARCH_ID, DOVE_ID = 1000, 1001, 1002, 1003
@@ -453,7 +644,6 @@ def main() -> None:
         full[keeps[i] > 0] = gen_rgb[keeps[i] > 0]
         figures[i] = (figures[i] | keeps[i]).astype(np.uint8)
         x0, y0, w, h = comp.crop_rect(figures[i])
-        Image.fromarray(full[y0:y0 + h, x0:x0 + w]).save(DIST / f"map-fig{i}.jpg", quality=88)
         extras[i] = {"map": f"map-fig{i}.jpg", "mapRect": [x0 / W, y0 / H, w / W, h / H]}
         fig_maps[i] = full
         dep = comp_dir / f"fig{i}-depth.png"
@@ -465,30 +655,40 @@ def main() -> None:
               f"{'' if 'depthMap' in extras[i] else ' (no depth: flat)'}")
 
     flames = sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))
-    cuts = build_manifest(fig_z, len(flames), extras)
+    parents = assign_flame_parents(
+        {f"flame{i}": f for i, f in enumerate(flames)},
+        {f"fig{i}": f for i, f in figures.items()},
+        load_flame_overrides())
+    print("flame parents:")
+    cuts = build_manifest(fig_z, len(flames), extras, parents,
+                          flame_anchors({f"flame{i}": f for i, f in enumerate(flames)}))
+    print_flame_parents(cuts)
     alphas = {}
     for i, f in figures.items():
-        alphas[f"fig{i}"] = feather(f)
+        alphas[f"fig{i}"] = erode_feather(f)
     for i, f in enumerate(flames):
         alphas[f"flame{i}"] = feather(f, 3)
     alphas["dove"] = feather(dove, 3)
     alphas["arch"] = feather(arch_mask)
     alphas["floor"] = feather(floor)
-    # solid band over the figure holes (the crowd map fills them), but layers
-    # BEHIND the crowd keep windows complementing their own feathered alphas,
-    # or the solid band would cover them at rest
-    behind = np.maximum.reduce(
-        [alphas["dove"], alphas["arch"]] + [alphas[f"flame{i}"] for i in range(len(flames))])
-    alphas["crowd"] = band_alpha((H, W), 0.40, 0.815, 8) * (1 - behind)
+    alphas["crowd"] = crowd_alpha((H, W), alphas, cuts)
 
     for name, a in alphas.items():
         save_mask(name, a, out_size)
     (DIST / "cuts.json").write_text(json.dumps(cuts))
 
+    # a completed figure's colour map, padded with its own edge colour around
+    # the support the eroded alpha actually shows (issue #28)
+    for i, full in fig_maps.items():
+        support = (alphas[f"fig{i}"] > 0).astype(np.uint8)
+        fig_maps[i] = full = decontaminate(full, support)
+        x0, y0, w, h = [round(v * s) for v, s in zip(extras[i]["mapRect"], (W, H, W, H))]
+        Image.fromarray(full[y0:y0 + h, x0:x0 + w]).save(DIST / f"map-fig{i}.jpg", quality=88)
+
     # crowd color map: everything in the band the crowd does not own becomes
     # shadowed crowd fill, so disocclusion reveals never fall through to wall
     band = np.zeros((H, W), np.uint8)
-    band[int(H * 0.40):int(H * 0.815)] = 1
+    band[int(H * CROWD_ROWS[0]):int(H * CROWD_ROWS[1])] = 1
     print("filling crowd map…")
     crowd_hole = band & (1 - crowd)
     # the exact hole, for fill experiments that must not re-derive it
@@ -500,11 +700,8 @@ def main() -> None:
         crowd_map = lama_ring(crowd_map, grown)
     Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
 
-    # backdrop: fill every cut region (grown a little) from row texture
-    hole = np.zeros((H, W), np.uint8)
-    for a in alphas.values():
-        hole |= (a > 0.02).astype(np.uint8)
-    hole = cv2.dilate(hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (DILATE_PX * 2 + 1,) * 2))
+    # backdrop: fill every owned region (grown a little) from row texture
+    hole = backdrop_hole(list(figures.values()) + flames + [dove, arch_mask, crowd, floor])
     print("filling backdrop…")
     backdrop = synth_backdrop(plate, hole)
     if fill_mode == "lama-ring":

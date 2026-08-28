@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 .venv-recut
-tools/recut/out*/
+tools/recut/out*
 tools/recut/dist/
 
 # Editor directories and files
@@ -32,3 +32,6 @@ __pycache__/
 
 # agent worktrees
 .claude/worktrees/
+
+# local Claude Code permissions
+.claude/settings.local.json

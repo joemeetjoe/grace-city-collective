@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Grace City Collective content editor: a Cognito user pool for the editors,
+  an HTTP API with a JWT authorizer, and a Lambda that validates and writes
+  content/site.json into the site bucket, then invalidates it on CloudFront.
+  Deploy after the site stack; see infra/README.md.
+
+Parameters:
+  SiteBucketName:
+    Type: String
+    Description: BucketName output of the site stack. The function may only write content/* in it.
+  DistributionId:
+    Type: String
+    Description: DistributionId output of the site stack; invalidated on every publish.
+  AllowedOrigin:
+    Type: String
+    Description: >-
+      Origin the admin page is served from, for CORS (e.g.
+      https://d1234.cloudfront.net or https://gracecitycollective.org). No
+      trailing slash.
+  EditorEmail:
+    Type: String
+    Description: >-
+      Email of the first editor. Cognito creates the user and emails a
+      temporary password; the admin page asks for a new one on first sign-in.
+
+Resources:
+  # -------------------------------------------------------------- editors
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-editors"
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      # editors are created here (or with admin-create-user); nobody signs up
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+        InviteMessageTemplate:
+          EmailSubject: Your Grace City Collective editor account
+          EmailMessage: >-
+            You can edit the words on the site. Sign in at /admin.html with
+            {username} and the temporary password {####}; you will be asked
+            to choose a new one.
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: [email]
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: admin-page
+      UserPoolId: !Ref UserPool
+      # a browser app: no secret, plain username/password to InitiateAuth
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      # the id token is what the API's authorizer checks; an hour per sign-in
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        IdToken: minutes
+        AccessToken: minutes
+        RefreshToken: days
+
+  FirstEditor:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref EditorEmail
+      DesiredDeliveryMediums: [EMAIL]
+      UserAttributes:
+        - Name: email
+          Value: !Ref EditorEmail
+        - Name: email_verified
+          Value: "true"
+
+  # ------------------------------------------------------------- function
+  FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Editor function; may write content/* in the site bucket and invalidate the distribution.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: write-content
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: PutContent
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${SiteBucketName}/content/*"
+              - Sid: Invalidate
+                Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${DistributionId}"
+
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-put-content"
+      Description: Validates a SiteContent document and publishes it as content/site.json.
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 10
+      Role: !GetAtt FunctionRole.Arn
+      Environment:
+        Variables:
+          SITE_BUCKET: !Ref SiteBucketName
+          DISTRIBUTION_ID: !Ref DistributionId
+      # Placeholder only. The real code is the bundle from `pnpm build:editor`,
+      # uploaded with `aws lambda update-function-code` (infra/README.md).
+      # CloudFormation leaves uploaded code alone as long as this block does
+      # not change.
+      Code:
+        ZipFile: |
+          exports.handler = async () => ({
+            statusCode: 503,
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({
+              ok: false,
+              errors: ["editor code not deployed: run pnpm build:editor and upload it (infra/README.md)"],
+            }),
+          });
+
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Function}"
+      RetentionInDays: 30
+
+  # ------------------------------------------------------------------ API
+  Api:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      Description: PUT /content for the site editor.
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowMethods: [PUT, OPTIONS]
+        AllowHeaders: [authorization, content-type]
+        MaxAge: 600
+
+  Authorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref Api
+      Name: cognito-editors
+      AuthorizerType: JWT
+      IdentitySource: ["$request.header.Authorization"]
+      JwtConfiguration:
+        Audience: [!Ref UserPoolClient]
+        Issuer: !GetAtt UserPool.ProviderURL
+
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref Api
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt Function.Arn
+      PayloadFormatVersion: "2.0"
+      TimeoutInMillis: 12000
+
+  PutContentRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref Api
+      RouteKey: PUT /content
+      AuthorizationType: JWT
+      AuthorizerId: !Ref Authorizer
+      Target: !Sub "integrations/${Integration}"
+
+  Stage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref Api
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
+
+  InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref Function
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*/content"
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the API (VITE_EDITOR_API_URL). The route is PUT {ApiUrl}/content.
+    Value: !GetAtt Api.ApiEndpoint
+  UserPoolId:
+    Description: Cognito user pool id (VITE_EDITOR_USER_POOL_ID).
+    Value: !Ref UserPool
+  ClientId:
+    Description: Cognito app client id (VITE_EDITOR_CLIENT_ID).
+    Value: !Ref UserPoolClient
+  Region:
+    Description: Region of the pool and API (VITE_EDITOR_REGION).
+    Value: !Ref AWS::Region
+  FunctionName:
+    Description: Lambda to upload the bundle to with `aws lambda update-function-code`.
+    Value: !Ref Function

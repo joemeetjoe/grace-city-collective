@@ -39,6 +39,7 @@ function Stage() {
   return (
     <>
       <div data-parallax="" />
+      <div data-parallax-front="" />
       <div data-hero-lockup="">
         <Lockup />
       </div>
@@ -215,7 +216,9 @@ describe("IntroSplash", () => {
       </>,
     );
     const parallax = document.querySelector("[data-parallax]") as HTMLElement;
+    const front = document.querySelector("[data-parallax-front]") as HTMLElement;
     expect(parallax.style.opacity).toBe("0");
+    expect(front.style.opacity).toBe("0");
     act(() => {
       tl().progress(1);
     });
@@ -229,8 +232,10 @@ describe("IntroSplash", () => {
       handoffs[0].progress(1);
     });
     expect(parallax.style.opacity).toBe("1");
+    expect(front.style.opacity).toBe("1");
     unmount();
     expect(parallax.style.opacity).toBe("");
+    expect(front.style.opacity).toBe("");
   });
 
   describe("skip gesture", () => {
