@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
+import { createEmbers, emberCount, type EmberLayer } from "@/components/embers";
 import { readyOnce } from "@/components/parallaxLoading";
 import { createRenderGate } from "@/components/renderGate";
 import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
@@ -78,6 +79,11 @@ export type PentecostParallaxProps = {
   orbitPitch?: number;
   /** figureRelief ramps to this with the pointer at either edge */
   reliefGain?: number;
+  /**
+   * how many embers drift in the foreground; 0 disables the layer. Default:
+   * emberCount() of the viewport — none under prefers-reduced-motion
+   */
+  embers?: number;
   /** every texture (and cuts.json) has arrived; fires once */
   onReady?: () => void;
   /** asset tier (scene/tier.ts): picks the texture directory; read once at mount */
@@ -182,15 +188,17 @@ export default function PentecostParallax({
   layerSpread = 1,
   figureRelief = 0.5,
   beamGlow = 1,
-  rays = 4,
+  tier = TIERS.desktop,
+  // the tier's counts unless the caller pins them
+  rays = tier.rays,
   flameDrift = true,
   idleDrift = false,
   dollyIntensity = 0.46,
   orbitYaw = 3.5,
   orbitPitch = 2.5,
   reliefGain: reliefMax = 0.8,
+  embers,
   onReady,
-  tier = TIERS.desktop,
   className,
 }: PentecostParallaxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -202,12 +210,14 @@ export default function PentecostParallax({
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({
     layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+    embers,
   });
   useEffect(() => {
     opts.current = {
       layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+      embers,
     };
-  }, [layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax]);
+  }, [layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax, embers]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -249,6 +259,7 @@ export default function PentecostParallax({
     let backdropLayer: Layer | null = null;
     let doveLayer: Layer | undefined;
     let rayLayer: RayLayer | null = null;
+    let emberLayer: EmberLayer | null = null;
     let raf = 0;
     let disposed = false;
     let gate: ReturnType<typeof createRenderGate> | null = null;
@@ -310,7 +321,9 @@ export default function PentecostParallax({
     /**
      * where we are in the scene's section stack: an index plus the fraction
      * through it. Only the labelled scene sections count — the long-form
-     * below them scrolls past a scene that has already come to rest.
+     * below them scrolls past a scene that has already come to rest. Unclamped:
+     * the last section runs to `sections.length`, which is how the embers see
+     * the scene slide away; the camera clamps it to the last waypoint.
      */
     const sectionProgress = () => {
       if (!sections.length) return 0;
@@ -321,7 +334,7 @@ export default function PentecostParallax({
         const top = el.getBoundingClientRect().top + window.scrollY;
         if (y < top + el.offsetHeight || i === sections.length - 1) {
           const t = Math.min(1, Math.max(0, (y - top) / el.offsetHeight));
-          return Math.min(sections.length - 1, i + t);
+          return i + t;
         }
       }
       return 0;
@@ -387,6 +400,18 @@ export default function PentecostParallax({
         renderOrder: () => rayRenderOrder(layerZ, RAY_NEAR_Z),
       });
       for (const m of rayLayer.meshes) scene.add(m);
+      // embers read the viewport once, at the tier's density
+      const count =
+        opts.current.embers ??
+        emberCount({
+          width: window.innerWidth,
+          height: window.innerHeight,
+          dpr: window.devicePixelRatio || 1,
+          reducedMotion: window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false,
+          tier: tierRef.current.name,
+        });
+      // drawn after every cut, floor included
+      emberLayer = createEmbers({ scene, camera, count, renderOrder: layers.length + 1 });
 
       const t0 = performance.now();
       // the camera chases its target through this state, so scroll jumps
@@ -402,7 +427,8 @@ export default function PentecostParallax({
         const t = (performance.now() - t0) / 1000;
         const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
 
-        const sp = sectionProgress();
+        const spRaw = sectionProgress();
+        const sp = Math.min(sections.length - 1, spRaw);
         // the dolly and the rising flames play out across the scene, not the
         // whole page — the long-form below it must not stretch them thin
         const p = sections.length > 1 ? sp / (sections.length - 1) : 0;
@@ -523,6 +549,8 @@ export default function PentecostParallax({
             l.mesh.position.set(pose.x - cx, pose.y - cy, pose.z);
           }
         }
+        // gl_PointSize is in device pixels, which is what the canvas buffer is sized in
+        emberLayer?.update({ t, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
         renderer.render(scene, camera);
       };
       // the loop runs only while the canvas is on screen: once the scene has
@@ -597,6 +625,7 @@ export default function PentecostParallax({
         l.mat.dispose();
       }
       rayLayer?.dispose();
+      emberLayer?.dispose();
       for (const t of cutMaps) t.dispose();
       plate.dispose();
       backdrop.dispose();
