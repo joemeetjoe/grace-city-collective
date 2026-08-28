@@ -67,11 +67,14 @@ describe("seedEmbers", () => {
     }
   });
 
-  it("drifts every ember upward, slowly", () => {
+  it("hangs in the air: the vertical settle is tiny and goes either way", () => {
     for (const v of seeds.speed) {
       expect(v).toBeGreaterThanOrEqual(EMBER_SPEED.min);
       expect(v).toBeLessThanOrEqual(EMBER_SPEED.max);
     }
+    expect(EMBER_SPEED.max).toBeLessThanOrEqual(0.02);
+    expect(Array.from(seeds.speed).some((v) => v < 0)).toBe(true);
+    expect(Array.from(seeds.speed).some((v) => v > 0)).toBe(true);
   });
 
   it("sizes by depth: the nearest embers are all larger than the farthest", () => {
@@ -130,24 +133,22 @@ describe("emberWindow", () => {
 describe("emberPose / advance", () => {
   const window = { cx: 0, cy: 0, halfW: EMBER_FIELD.halfW, halfH: EMBER_FIELD.halfH };
 
-  it("rises monotonically while it stays inside the window", () => {
-    const seeds = seedEmbers(1, 3);
-    seeds.origin[1] = -EMBER_FIELD.halfH + 0.5;
-    let last = emberPose(seeds, 0, 0, window).y;
-    for (let t = 0.1; t < 2; t += 0.1) {
-      const y = emberPose(seeds, 0, t, window).y;
-      expect(y).toBeGreaterThan(last);
-      last = y;
+  it("holds its place: dust, not sparks — a mote barely moves over ten seconds", () => {
+    const seeds = seedEmbers(20, 3);
+    for (let i = 0; i < seeds.count; i++) {
+      const a = emberPose(seeds, i, 0, window);
+      const b = emberPose(seeds, i, 10, window);
+      expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeLessThan(0.25);
     }
   });
 
-  it("wraps to the bottom of the window when it leaves the top", () => {
+  it("re-enters on the far side when the camera's window slides past it", () => {
     const seeds = seedEmbers(1, 3);
-    seeds.origin[1] = EMBER_FIELD.halfH - 0.01;
-    const before = emberPose(seeds, 0, 0, window).y;
-    const after = emberPose(seeds, 0, 1, window).y;
-    expect(before).toBeCloseTo(EMBER_FIELD.halfH - 0.01);
-    expect(after).toBeLessThan(-EMBER_FIELD.halfH + 1);
+    const x0 = seeds.origin[0];
+    const slid = { ...window, cx: x0 + window.halfW + 0.5 };
+    const p = emberPose(seeds, 0, 0, slid);
+    expect(p.x).toBeGreaterThan(x0 + 1);
+    expect(Math.abs(p.x - slid.cx)).toBeLessThanOrEqual(window.halfW);
   });
 
   it("wobbles laterally within its amplitude and holds its depth", () => {

@@ -3,11 +3,14 @@ import * as THREE from "three";
 import { VIGNETTE_GLSL } from "./vignette";
 
 /**
- * Ember-warm particles drifting in the foreground of the Pentecost scene: one
- * THREE.Points draw in front of `floor`, animated entirely in the vertex
- * shader from uTime. emberPose() is the executable spec the GLSL is
- * transcribed from (as displaceLocal is for the relief), so the drift, wobble
- * and wrap rules are pinned by plain tests.
+ * Dust hanging in the air of the Pentecost scene: one THREE.Points draw in
+ * front of `floor`. The motes are fixed points in the room — a barely-there
+ * settle and sway is all the motion they have of their own — so what moves
+ * them is the camera: the orbit and the dolly parallax them exactly as the
+ * cuts. emberPose() is the executable spec the GLSL is transcribed from (as
+ * displaceLocal is for the relief), so the settle, sway and wrap rules are
+ * pinned by plain tests. (The module keeps its ember name from the sparks
+ * it first drew.)
  *
  * Where they live. Embers hold their authored depth (z 3.8–5) and take none
  * of the layer spread: they are not cut from the plate, so there is no
@@ -34,21 +37,23 @@ export const EMBER_Z = { min: 3.8, max: 5 } as const;
 /** the plate's extent, where the rest positions are scattered */
 export const EMBER_FIELD = { halfW: 8, halfH: (8 * 2519) / 2048 } as const;
 
-/** upward drift, world units per second */
-export const EMBER_SPEED = { min: 0.08, max: 0.2 } as const;
+/** vertical settle, world units per second — either way, and hardly at all */
+export const EMBER_SPEED = { min: -0.012, max: 0.012 } as const;
 
 /** world diameter of a sprite; the near end of the depth band gets the large end */
-export const EMBER_SIZE = { min: 0.035, max: 0.13 } as const;
+export const EMBER_SIZE = { min: 0.02, max: 0.085 } as const;
 
-/** lateral wobble amplitude in world units */
-export const EMBER_WOBBLE = { min: 0.06, max: 0.18 } as const;
+/** lateral sway amplitude in world units */
+export const EMBER_WOBBLE = { min: 0.008, max: 0.03 } as const;
 
-/** radians per second of the lateral wobble and the brightness flicker */
-export const WOBBLE_RATE = 0.7;
-export const FLICKER_RATE = 3.1;
+/** radians per second of the sway */
+export const WOBBLE_RATE = 0.22;
 
-/** the flames' warmth in PentecostParallax's FRAG */
-export const EMBER_TINT: [number, number, number] = [1.0, 0.84, 0.58];
+/** dust catching the light: the cream, a little grey */
+export const EMBER_TINT: [number, number, number] = [0.9, 0.86, 0.78];
+
+/** a mote's alpha, steady — dust does not flicker */
+export const EMBER_ALPHA = 0.55;
 
 /** the wrap window overshoots the frustum by this factor so re-entries happen off screen */
 export const EMBER_MARGIN = 1.15;
@@ -166,7 +171,7 @@ export function emberWindow(
   return { cx: cam.x, cy: cam.y, halfW: halfH * aspect, halfH };
 }
 
-/** where ember `i` is at time `t`: risen, wobbled, and wrapped into the window. Keep in sync with VERT. */
+/** where mote `i` is at time `t`: settled, swayed, and wrapped into the window. Keep in sync with VERT. */
 export function emberPose(seeds: EmberSeeds, i: number, t: number, w: EmberWindow): { x: number; y: number; z: number } {
   const x = seeds.origin[i * 3] + seeds.wobble[i] * Math.sin(t * WOBBLE_RATE + seeds.phase[i]);
   const y = seeds.origin[i * 3 + 1] + seeds.speed[i] * t;
@@ -224,11 +229,10 @@ void main() {
   float y = wrapInto(position.y + aSeed.x * uTime, uCam.y, halfH);
   vec4 mv = modelViewMatrix * vec4(x, y, position.z, 1.0);
   float dist = max(0.05, -mv.z);
-  // a sprite's world diameter projected to device pixels: near ones are big and soft
+  // a mote's world diameter projected to device pixels: near ones are larger and softer
   gl_PointSize = clamp(aSeed.z * uPxPerUnit / dist, 1.0, uMaxPx);
-  float flicker = 0.35 + 0.25 * (0.5 + 0.5 * sin(uTime * ${FLICKER_RATE.toFixed(3)} + aSeed.y * 7.0));
-  // an ember about to pass the camera would fill the frame — let it go instead
-  vAlpha = flicker * smoothstep(0.3, 1.4, dist);
+  // a mote about to pass the camera would fill the frame — let it go instead
+  vAlpha = ${EMBER_ALPHA.toFixed(2)} * smoothstep(0.3, 1.4, dist);
   gl_Position = projectionMatrix * mv;
 }`;
 
@@ -243,8 +247,7 @@ void main() {
   if (r > 1.0) discard;
   float a = smoothstep(1.0, 0.0, r);
   a *= a;
-  // a paler, hotter core inside the ember's warmth
-  vec3 col = mix(uTint, vec3(1.0, 0.96, 0.86), a * 0.5);
+  vec3 col = uTint;
   // the front canvas has no DOM vignette over it: dim the ember by the same falloff here
   float v = 1.0 - vignetteAlpha(gl_FragCoord.xy, uResolution) * uVignette;
   gl_FragColor = vec4(col, a * vAlpha * uOpacity * v);
