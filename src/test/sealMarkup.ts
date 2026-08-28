@@ -6,5 +6,6 @@
 export function baseMarkup(svg: Element): string {
   const clone = svg.cloneNode(true) as Element;
   clone.querySelector('[data-seal="live"]')?.remove();
+  clone.querySelector('[data-seal="rest"]')?.remove();
   return clone.outerHTML.replace(/(id="|url\(#|href="#)[^"()]+/g, "$1x").replace(/ style=""/g, "");
 }

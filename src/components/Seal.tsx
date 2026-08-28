@@ -1,5 +1,6 @@
-import { useId, type JSX, type SVGProps } from "react";
+import { useEffect, useId, useRef, useState, type JSX, type Ref, type SVGProps } from "react";
 
+import { rasterOfLiveLook } from "@/components/sealRaster";
 import { cssVar, mix, tokens, type Token } from "@/theme/tokens";
 
 import { BAND, DRIP, FIELD, FLEUR, WAX } from "./sealPaths";
@@ -15,8 +16,10 @@ export type SealProps = {
    */
   variant?: "live" | "static";
   /**
-   * mount the live overlay hidden (`display: none`): the filters are in the
-   * document for a beat to switch on, but nothing is paid for at rest
+   * rest on a cached raster of the live look: the overlay mounts hidden
+   * (`display: none`) and an `<image>` of the seal with its overlay showing is
+   * painted under it, so nothing pays for a filter at rest but the wax still
+   * looks lit. A beat switches the real overlay on above the raster.
    */
   atRest?: boolean;
   className?: string;
@@ -53,9 +56,22 @@ export default function Seal({
   className,
   title = "Grace City Collective seal",
   style,
+  ref,
   ...rest
-}: SealProps): JSX.Element {
+}: SealProps & { ref?: Ref<SVGSVGElement> }): JSX.Element {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const own = useRef<SVGSVGElement>(null);
+  const [raster, setRaster] = useState<string | null>(null);
+  const resting = variant === "live" && atRest;
+  useEffect(() => {
+    if (!resting || !own.current) return;
+    setRaster(rasterOfLiveLook(own.current));
+  }, [resting]);
+  const setRefs = (el: SVGSVGElement | null) => {
+    own.current = el;
+    if (typeof ref === "function") ref(el);
+    else if (ref) ref.current = el;
+  };
   const ids = {
     body: `${id}-body`,
     face: `${id}-face`,
@@ -76,6 +92,7 @@ export default function Seal({
       aria-label={title}
       className={className}
       style={{ width: size, height: size, ...style }}
+      ref={setRefs}
       {...rest}
     >
       <title>{title}</title>
@@ -164,6 +181,11 @@ export default function Seal({
           opacity="0.9"
         />
       </g>
+
+      {resting && raster && (
+        /* the lit look, cached: what the seal shows between beats */
+        <image data-seal="rest" href={raster} x="0" y="0" width={SEAL_VIEWBOX} height={SEAL_VIEWBOX} />
+      )}
 
       {live && (
         /* everything that costs a filter pass, painted over the static base */

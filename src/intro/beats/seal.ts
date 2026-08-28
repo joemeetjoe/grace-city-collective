@@ -18,8 +18,9 @@ const present = (...els: (SVGElement | null)[]) => els.filter((el): el is SVGEle
 /**
  * The press: a quick squash of the seal as the fleur-de-lis and its emboss
  * lighting come up. Self-contained — it shows the live overlay for its
- * duration, hides it again at the end, and clears every prop it touched, so
- * it can be replayed on the resting hero seal without stacking.
+ * duration, returns it to whatever state it rested in (hidden on the hero
+ * seal, which shows a cached raster instead; showing in the splash), and
+ * clears every prop it touched, so it can be replayed without stacking.
  */
 export function stampTween(seal: SVGSVGElement, opts: { onLive?: (live: boolean) => void } = {}): gsap.core.Timeline {
   const overlay = part(seal, "live");
@@ -28,6 +29,7 @@ export function stampTween(seal: SVGSVGElement, opts: { onLive?: (live: boolean)
   const relief = part(seal, "relief");
   const lit = present(grain, emboss, relief);
   const tl = gsap.timeline();
+  const restDisplay = overlay?.style.display === "none" ? "none" : "inline";
 
   tl.call(() => opts.onLive?.(true), [], 0);
   if (overlay) tl.set(overlay, { display: "inline" }, 0);
@@ -49,15 +51,15 @@ export function stampTween(seal: SVGSVGElement, opts: { onLive?: (live: boolean)
   // clearing transforms on an SVG group makes gsap re-parse and leave an origin)
   tl.set(lit, { clearProps: "opacity,visibility" }, STAMP_SECONDS);
   tl.set(seal, { clearProps: "transform" }, STAMP_SECONDS);
-  if (overlay) tl.set(overlay, { display: "none" }, STAMP_SECONDS);
+  if (overlay) tl.set(overlay, { display: restDisplay }, STAMP_SECONDS);
   tl.call(() => opts.onLive?.(false), [], STAMP_SECONDS);
   return tl;
 }
 
 /**
  * Pour and press. A bead of wax drops from above the seal, pools into the
- * disc, and is stamped; the beat ends on the static seal with the live
- * overlay hidden.
+ * disc, and is stamped; the beat ends on the lit seal (overlay showing) so it
+ * looks like wax while it waits on ink for the textures.
  */
 export const sealBeat: IntroBeat = {
   label: "seal",
@@ -90,7 +92,7 @@ export const sealBeat: IntroBeat = {
     // press
     tl.add(stampTween(seal), `${at}+=${POUR_SECONDS}`);
 
-    // rest: the static seal, nothing inline left behind
+    // rest: the lit seal, nothing else inline left behind
     tl.set(present(body, highlight), { clearProps: "opacity,visibility" }, `${at}+=${POUR_SECONDS + STAMP_SECONDS}`);
     if (drip) tl.set(drip, { clearProps: "all" }, `${at}+=${POUR_SECONDS + STAMP_SECONDS}`);
     tl.set(seal, { clearProps: "overflow" }, `${at}+=${POUR_SECONDS + STAMP_SECONDS}`);

@@ -21,11 +21,11 @@ function hidden(el: Element | null): boolean {
 
 const part = (seal: Element, name: string) => seal.querySelector(`[data-seal="${name}"]`);
 
-function targets(): IntroTargets & { seal: SVGSVGElement } {
+function targets(atRest = false): IntroTargets & { seal: SVGSVGElement } {
   const wordmark = document.createElement("span");
   wordmark.textContent = "Grace City";
   document.body.append(wordmark);
-  const { container } = render(createElement(Seal, { variant: "live", size: 180 }));
+  const { container } = render(createElement(Seal, { variant: "live", size: 180, atRest }));
   return { wordmark, script: null, seal: container.querySelector("svg")! };
 }
 
@@ -58,14 +58,14 @@ describe("sealBeat before its slot", () => {
 });
 
 describe("sealBeat at completion", () => {
-  it("leaves the static seal: overlay and drip hidden, wax/fleur/band shown, nothing inline left", () => {
+  it("leaves the lit seal: overlay showing, drip hidden, wax/fleur/band shown, nothing else inline", () => {
     const t = targets();
     const tl = buildIntroTimeline(t, [sealBeat]);
     tl.pause();
     tl.progress(1);
     const { seal } = t;
-    expect(hidden(part(seal, "live"))).toBe(true);
-    expect((part(seal, "live") as HTMLElement).style.display).toBe("none");
+    // the stamped seal waits on ink looking like wax, not like the flat base
+    expect(hidden(part(seal, "live"))).toBe(false);
     expect(hidden(part(seal, "drip"))).toBe(true);
     for (const name of ["wax", "fleur", "band", "highlight"]) {
       expect(hidden(part(seal, name)), name).toBe(false);
@@ -82,8 +82,8 @@ describe("sealBeat at completion", () => {
 });
 
 describe("stampTween", () => {
-  it("runs ~0.5s with the live overlay on, then hides it and clears what it touched", () => {
-    const { seal } = targets();
+  it("runs ~0.5s with the live overlay on, then puts it back to rest and clears what it touched", () => {
+    const { seal } = targets(true);
     const onLive = vi.fn();
     const tl = stampTween(seal, { onLive }).pause();
     expect(STAMP_SECONDS).toBeCloseTo(0.5, 1);
@@ -103,7 +103,7 @@ describe("stampTween", () => {
   });
 
   it("leaves the same clean end state when run twice back-to-back", () => {
-    const { seal } = targets();
+    const { seal } = targets(true);
     const { container } = render(createElement(Seal, { variant: "static", size: 180 }));
     const still = baseMarkup(container.querySelector("svg")!);
     stampTween(seal).pause().progress(1);
@@ -114,6 +114,12 @@ describe("stampTween", () => {
     second.progress(1);
     expect(baseMarkup(seal)).toBe(still);
     expect((part(seal, "live") as HTMLElement).style.display).toBe("none");
+  });
+
+  it("leaves the overlay showing on a seal that was lit before the stamp", () => {
+    const { seal } = targets();
+    stampTween(seal).pause().progress(1);
+    expect(hidden(part(seal, "live"))).toBe(false);
   });
 });
 

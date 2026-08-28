@@ -107,3 +107,28 @@ describe("Seal at rest", () => {
     expect((shown.querySelector('[data-seal="live"]') as SVGGElement).style.display).toBe("");
   });
 });
+
+describe("Seal at rest — cached raster", () => {
+  it("shows a raster of its own live look so no filter is paid for at rest", async () => {
+    const { container, findByTestId } = render(<Seal variant="live" atRest data-testid="seal" />);
+    await findByTestId("seal");
+    await new Promise((r) => setTimeout(r, 0));
+    const rest = container.querySelector('image[data-seal="rest"]');
+    expect(rest).not.toBeNull();
+    const href = rest!.getAttribute("href") ?? "";
+    expect(href.startsWith("data:image/svg+xml")).toBe(true);
+    const svg = decodeURIComponent(href.slice(href.indexOf(",") + 1));
+    expect(svg).toContain('data-seal="live"');
+    expect(svg).not.toContain('data-seal="rest"');
+    expect(svg).not.toMatch(/data-seal="live"[^>]*display:\s*none/);
+    // the raster sits under the overlay so the stamp still plays on top of it
+    const overlay = container.querySelector('[data-seal="live"]')!;
+    expect(rest!.compareDocumentPosition(overlay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("renders no raster when it is not at rest", () => {
+    const { container } = render(<Seal variant="live" />);
+    expect(container.querySelector('[data-seal="rest"]')).toBeNull();
+  });
+});
+
