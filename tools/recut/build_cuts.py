@@ -13,7 +13,9 @@ Outputs, in tools/recut/dist/:
                      (row-wise texture fill — the wall is horizontal hatching,
                      so propagating along rows preserves the line pattern)
   cuts.json          [{name, z, isFlame, parent?}] for the component; every
-                     flame names the cut it hangs over (a figure, or crowd)
+                     flame names the cut it hangs over (a figure, or crowd).
+                     The crowd — the wall behind the apostles — sits on the
+                     backdrop's plane (dolly.py mirrors the scene camera; see CROWD_Z)
   qc-masks.png       tinted composite of the final masks
   qc-rest.png        cuts composited over the backdrop at rest (should look
                      like the plate)
@@ -55,6 +57,7 @@ import numpy as np
 from PIL import Image
 
 import completions as comp
+from dolly import BACKDROP_Z
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -82,6 +85,14 @@ FLAME_REACH = 0.15
 FLAME_LATERAL = 2.0
 FLAME_PARENTS = HERE / "flame_parents.json"
 DOVE_Z, ARCH_Z, FLOOR_Z = -3.0, -2.8, 3.6
+# The crowd is the wall behind the apostles, and the backdrop is the same wall
+# above them: one plane, so their shared edge never slides. At -0.9 the band's
+# straight top edge crossed the backdrop's hatching 28 px out of register at
+# the community dolly (35 px at the hero) and read as a strip of foreign wall
+# between the heads and the flames (issue #29, docs/experiments/issue-29).
+CROWD_Z = BACKDROP_Z
+# plate rows (fraction of height) the crowd band spans
+CROWD_ROWS = (0.40, 0.815)
 
 # top-left gothic structure, in plate pixels (x0, y0, x1, y1)
 ARCH_BOX = (0, 120, 660, 1270)
@@ -410,11 +421,26 @@ def build_manifest(fig_z: dict[int, float], flame_count: int,
     for i in range(flame_count):
         parent = (flame_parents or {}).get(f"flame{i}", "crowd")
         cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent})
-    cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0, "map": "map-crowd.jpg"})
+    cuts.append({"name": "crowd", "z": CROWD_Z, "isFlame": 0, "map": "map-crowd.jpg"})
     cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
     cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
     cuts.append({"name": "floor", "z": FLOOR_Z, "isFlame": 0})
     return cuts
+
+
+def crowd_alpha(shape: tuple[int, int], alphas: dict[str, np.ndarray], cuts: list[dict],
+                crowd_z: float = CROWD_Z, band: tuple[float, float] = CROWD_ROWS,
+                feather_px: int = 8) -> np.ndarray:
+    """The crowd's alpha: a solid band over the figure holes (the crowd map
+    fills them), minus a window for every cut that sits BEHIND the crowd —
+    its own feathered alpha's complement — or the band would cover it at
+    rest. Cuts in front punch no hole. With the crowd on the wall plane
+    nothing is behind it and the band is plain."""
+    a = band_alpha(shape, band[0], band[1], feather_px)
+    behind = [alphas[c["name"]] for c in cuts if c["z"] < crowd_z]
+    if behind:
+        a = a * (1 - np.maximum.reduce(behind))
+    return a
 
 
 def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
@@ -486,7 +512,7 @@ def main() -> None:
     owner = np.full((H, W), -1, np.int16)
     layers_by_priority: list[tuple[int, np.ndarray]] = []
     crowd = np.zeros((H, W), np.uint8)
-    crowd[int(H * 0.40):int(H * 0.815), :] = 1
+    crowd[int(H * CROWD_ROWS[0]):int(H * CROWD_ROWS[1]), :] = 1
     floor = np.zeros((H, W), np.uint8)
     floor[int(H * 0.78):, :] = 1
     CROWD_ID, FLOOR_ID, ARCH_ID, DOVE_ID = 1000, 1001, 1002, 1003
@@ -584,12 +610,7 @@ def main() -> None:
     alphas["dove"] = feather(dove, 3)
     alphas["arch"] = feather(arch_mask)
     alphas["floor"] = feather(floor)
-    # solid band over the figure holes (the crowd map fills them), but layers
-    # BEHIND the crowd keep windows complementing their own feathered alphas,
-    # or the solid band would cover them at rest
-    behind = np.maximum.reduce(
-        [alphas["dove"], alphas["arch"]] + [alphas[f"flame{i}"] for i in range(len(flames))])
-    alphas["crowd"] = band_alpha((H, W), 0.40, 0.815, 8) * (1 - behind)
+    alphas["crowd"] = crowd_alpha((H, W), alphas, cuts)
 
     for name, a in alphas.items():
         save_mask(name, a, out_size)
@@ -598,7 +619,7 @@ def main() -> None:
     # crowd color map: everything in the band the crowd does not own becomes
     # shadowed crowd fill, so disocclusion reveals never fall through to wall
     band = np.zeros((H, W), np.uint8)
-    band[int(H * 0.40):int(H * 0.815)] = 1
+    band[int(H * CROWD_ROWS[0]):int(H * CROWD_ROWS[1])] = 1
     print("filling crowd map…")
     crowd_hole = band & (1 - crowd)
     # the exact hole, for fill experiments that must not re-derive it

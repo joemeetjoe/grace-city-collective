@@ -11,8 +11,9 @@ import numpy as np
 
 import pytest
 
-from build_cuts import (FIG_Z, assign_flame_parents, band_alpha, build_manifest, figure_z, flame_parent,
-                        merge_figures, ring_mask, synth_crowd_map)
+from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, band_alpha, build_manifest, crowd_alpha, figure_z,
+                        flame_parent, merge_figures, ring_mask, synth_crowd_map)
+from dolly import BACKDROP_Z
 
 
 def crowd_scene() -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
@@ -312,3 +313,41 @@ def test_build_manifest_writes_each_flames_parent():
     assert by_name["flame1"]["parent"] == "crowd"
     # a manifest built without parents binds every flame to the crowd
     assert all(c["parent"] == "crowd" for c in build_manifest({0: 1.2}, 3) if c["isFlame"])
+
+
+def test_build_manifest_puts_the_crowd_on_the_wall_plane():
+    # the wall behind the apostles is the wall above them: one plane, or its
+    # band edge slides across the backdrop's hatching on every dolly (#29)
+    cuts = build_manifest(fig_z={0: 1.2}, flame_count=2)
+
+    by_name = {c["name"]: c for c in cuts}
+    assert by_name["crowd"]["z"] == CROWD_Z == BACKDROP_Z
+    assert all(c["z"] > CROWD_Z for c in cuts if c["name"] != "crowd")
+
+
+def window_scene():
+    H, W = 60, 20
+    arch = np.zeros((H, W), np.float32)
+    arch[10:40, 2:8] = 1.0  # reaches into the band
+    alphas = {"arch": arch, "fig0": np.ones((H, W), np.float32)}
+    return (H, W), alphas
+
+
+def test_crowd_alpha_is_the_plain_band_when_nothing_sits_behind_it():
+    shape, alphas = window_scene()
+    cuts = [{"name": "arch", "z": -2.8}, {"name": "fig0", "z": 1.5}, {"name": "crowd", "z": -5.6}]
+
+    a = crowd_alpha(shape, alphas, cuts, crowd_z=-5.6, band=(0.40, 0.815), feather_px=2)
+
+    np.testing.assert_array_equal(a, band_alpha(shape, 0.40, 0.815, 2))
+
+
+def test_crowd_alpha_keeps_a_window_for_every_cut_behind_the_crowd():
+    shape, alphas = window_scene()
+    cuts = [{"name": "arch", "z": -2.8}, {"name": "fig0", "z": 1.5}, {"name": "crowd", "z": -0.9}]
+
+    a = crowd_alpha(shape, alphas, cuts, crowd_z=-0.9, band=(0.40, 0.815), feather_px=2)
+
+    band = band_alpha(shape, 0.40, 0.815, 2)
+    assert (a[24:40, 2:8] == 0).all()  # the arch's rows inside the band are a window
+    np.testing.assert_array_equal(a[:, 10:], band[:, 10:])  # figures in front punch no hole
