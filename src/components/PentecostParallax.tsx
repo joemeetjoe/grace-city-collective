@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { readyOnce } from "@/components/parallaxLoading";
 import { createRenderGate } from "@/components/renderGate";
 import { assetUrl } from "@/lib/assetBase";
+import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
 /**
@@ -60,6 +61,12 @@ export type PentecostParallaxProps = {
   idleDrift?: boolean;
   /** how far the camera pushes in across the page (0–0.5) */
   dollyIntensity?: number;
+  /** half-swing of the pointer's orbit about the look-at point, degrees */
+  orbitYaw?: number;
+  /** vertical half-swing of the same orbit, degrees */
+  orbitPitch?: number;
+  /** figureRelief ramps to this with the pointer at either edge */
+  reliefGain?: number;
   /** every texture (and cuts.json) has arrived; fires once */
   onReady?: () => void;
   className?: string;
@@ -146,6 +153,12 @@ const WAYPOINTS: Waypoint[] = [
 // lateral camera travel is what shears the figures apart and exposes the bare
 // wall behind them — the drama comes from the dolly instead, so cap it hard
 const LATERAL_MAX = 0.06;
+// the pointer's pan of the whole frame, world units per unit of pointer —
+// the depth comes from the orbit (cameraOrbit.ts), this only adds a little
+// travel where the lateral budget allows it
+const POINTER_SLIDE = 0.12;
+// per-frame chase factor at 60 fps, made framerate-independent by chase()
+const CHASE = 0.08;
 
 const BASE = assetUrl("dore");
 const PLATE_W = 2048;
@@ -164,6 +177,9 @@ export default function PentecostParallax({
   flameDrift = true,
   idleDrift = false,
   dollyIntensity = 0.46,
+  orbitYaw = 3.5,
+  orbitPitch = 2.5,
+  reliefGain: reliefMax = 0.8,
   onReady,
   className,
 }: PentecostParallaxProps) {
@@ -173,10 +189,14 @@ export default function PentecostParallax({
     onReadyRef.current = onReady;
   }, [onReady]);
   // live props, so tweaking them never rebuilds the scene
-  const opts = useRef({ layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity });
+  const opts = useRef({
+    layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+  });
   useEffect(() => {
-    opts.current = { layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity };
-  }, [layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity]);
+    opts.current = {
+      layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
+    };
+  }, [layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -360,8 +380,13 @@ export default function PentecostParallax({
         const idle = o.idleDrift ? 1 : 0;
         const dx = Math.sin(t * 0.17) * 0.18 * idle;
         const dy = Math.cos(t * 0.13) * 0.11 * idle;
-        pointer.x += (pointer.tx - pointer.x) * 0.045;
-        pointer.y += (pointer.ty - pointer.y) * 0.045;
+        // critically-damped chase: framerate-independent, no overshoot — the
+        // pointer and the camera share one rate so neither lags the other
+        const dt = Math.min(0.05, t - lastT);
+        lastT = t;
+        const k = chase(CHASE, dt);
+        pointer.x += (pointer.tx - pointer.x) * k;
+        pointer.y += (pointer.ty - pointer.y) * k;
 
         const i0 = Math.min(WAYPOINTS.length - 1, Math.floor(sp));
         const i1 = Math.min(WAYPOINTS.length - 1, i0 + 1);
@@ -396,22 +421,31 @@ export default function PentecostParallax({
         const halfH = zc * tanA;
         const limY = Math.max(0, IH * 0.9 - halfH);
         const limX = Math.min(Math.max(0, IW / 2 - halfH * camera.aspect), IW * LATERAL_MAX);
-        const xWant = wa.x + (wb.x - wa.x) * fe + pointer.x * -0.10 + dx;
-        const yWant = wa.y + (wb.y - wa.y) * fe + pointer.y * -0.18 + dy;
+        const xWant = wa.x + (wb.x - wa.x) * fe + dx;
+        const yWant = wa.y + (wb.y - wa.y) * fe + dy;
         const tx = Math.max(-limX, Math.min(limX, xWant));
         const ty = Math.max(-limY, Math.min(limY, yWant));
-        // critically-damped chase: framerate-independent, no overshoot
-        const dt = Math.min(0.05, t - lastT);
-        lastT = t;
-        const k = 1 - Math.exp(-dt * 4.2);
         if (!cam.init) {
           cam.x = tx; cam.y = ty; cam.z = zc; cam.init = true;
         }
         cam.x += (tx - cam.x) * k;
         cam.y += (ty - cam.y) * k;
         cam.z += (zc - cam.z) * k;
-        camera.position.set(cam.x, cam.y, cam.z);
-        camera.lookAt(cam.x, cam.y, 0);
+        // the pointer (and the gyro, which writes the same target) orbits the
+        // camera about the plate-plane point it looks at, so the near figures
+        // swing across the arch while the plate holds still; the slide it
+        // adds on top is what the lateral budget confines, and the orbit's own
+        // reach is capped against the same budget so the wall stays hidden
+        const yaw = Math.min(o.orbitYaw, budgetYaw(cam.z, IW * LATERAL_MAX));
+        const pose = orbitPose(cam, pointer, {
+          yawDeg: yaw,
+          pitchDeg: o.orbitPitch,
+          slide: POINTER_SLIDE,
+          limit: { x: limX, y: limY },
+        });
+        camera.position.set(pose.position.x, pose.position.y, pose.position.z);
+        camera.lookAt(pose.target.x, pose.target.y, pose.target.z);
+        const relief = reliefGain(pointer.x, o.figureRelief, o.reliefMax);
 
         const all = backdropLayer ? [backdropLayer, ...layers] : layers;
         const beam = 0.3 + Math.pow(sp / (WAYPOINTS.length - 1), 1.15) * 0.95;
@@ -427,7 +461,7 @@ export default function PentecostParallax({
           l.mesh.scale.setScalar((baseZ - zn) / (baseZ - l.z));
           // per-frame because zn moves with the scroll and baseZ with resizes
           const ru = reliefUniforms(baseZ, l.z, zn);
-          l.mat.uniforms.uRelief.value = l.relief * o.figureRelief;
+          l.mat.uniforms.uRelief.value = l.relief * relief;
           l.mat.uniforms.uCamZ.value = ru.uCamZ;
           l.mat.uniforms.uLayerZ.value = ru.uLayerZ;
           l.mat.uniforms.uScale.value = ru.uScale;
