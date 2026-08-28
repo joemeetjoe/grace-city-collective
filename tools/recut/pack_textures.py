@@ -212,9 +212,10 @@ def write_tier(cuts: list[dict], width: int, dist: Path = DIST, public: Path = P
     masks = {c["name"]: load_grey(dist / f"cut-{c['name']}.png") for c in cuts}
     packs = plan_packs(cuts)
     for file, names in packs:
-        packed = pack_channels([masks[n] for n in names])
-        im = scaled(Image.fromarray(packed, "RGBA"), scale)
-        save_lossless(np.asarray(im), out / file)
+        # scale the masks one by one: resizing the packed RGBA premultiplies by
+        # the fourth channel and zeroes the other three wherever it is empty
+        packed = pack_channels([np.asarray(scaled(Image.fromarray(masks[n], "L"), scale)) for n in names])
+        save_lossless(packed, out / file)
 
     rects = {"crowd": crowd_rect(masks["crowd"])}
     manifest = build_manifest(cuts, packs, rects)

@@ -190,3 +190,20 @@ def test_write_tier_is_idempotent_and_clears_stale_files(tmp_path):
 
     assert not (again / "cut-old.png").exists()
     assert {p.name: p.read_bytes() for p in again.iterdir()} == first
+
+
+def test_write_tier_1024_halves_each_packed_mask_on_its_own(tmp_path):
+    # resizing the packed RGBA premultiplies by the fourth channel and zeroes
+    # the other three wherever it is empty; each mask is scaled alone instead
+    dist, cuts = toy_dist(tmp_path)
+
+    big = write_tier(cuts, 2048, dist, tmp_path / "dore")
+    small = write_tier(cuts, 1024, dist, tmp_path / "dore")
+    refs = resolve_masks(json.loads((small / "cuts.json").read_text()), small)
+
+    for c in cuts:
+        path, channel = refs[c["name"]]
+        got = np.asarray(Image.open(path))[..., channel]
+        full = Image.open(big / path.name)
+        want = np.asarray(Image.fromarray(np.asarray(full)[..., channel], "L").resize(got.shape[::-1], Image.LANCZOS))
+        np.testing.assert_array_equal(got, want, err_msg=c["name"])
