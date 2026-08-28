@@ -52,3 +52,14 @@ export function mix(a: string, b: string, t: number): string {
   };
   return `#${hex(0)}${hex(1)}${hex(2)}`;
 }
+
+/**
+ * A `#rrggbb` colour as a GLSL `vec3(r, g, b)` literal for a shader template.
+ * `normalise` scales so the brightest channel is 1 — a multiplicative tint
+ * that colours without darkening.
+ */
+export function glslVec3(hex: string, { normalise = false } = {}): string {
+  const c = [0, 1, 2].map((i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255);
+  const k = normalise ? 1 / Math.max(...c) : 1;
+  return `vec3(${c.map((v) => (v * k).toFixed(3)).join(", ")})`;
+}

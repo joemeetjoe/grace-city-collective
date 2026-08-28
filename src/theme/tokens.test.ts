@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { contrastRatio, cssVar, tokens } from "./tokens";
+import { contrastRatio, cssVar, tokens, glslVec3 } from "./tokens";
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -45,5 +45,16 @@ describe("contrastRatio", () => {
   it("is 21:1 for black on white and 1:1 for a colour on itself", () => {
     expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 5);
     expect(contrastRatio("#d67f48", "#d67f48")).toBe(1);
+  });
+});
+
+describe("glslVec3", () => {
+  it("writes a token as a GLSL vec3 literal, channels 0..1", () => {
+    expect(glslVec3("#d67f48")).toBe("vec3(0.839, 0.498, 0.282)");
+    expect(glslVec3("#ffffff")).toBe("vec3(1.000, 1.000, 1.000)");
+  });
+
+  it("can normalise so the brightest channel is 1 — a tint that never darkens", () => {
+    expect(glslVec3("#d67f48", { normalise: true })).toBe("vec3(1.000, 0.593, 0.336)");
   });
 });

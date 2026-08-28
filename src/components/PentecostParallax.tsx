@@ -11,6 +11,7 @@ import {
   type RenderPass,
 } from "@/components/layerSplit";
 import { readyOnce } from "@/components/parallaxLoading";
+import { glslVec3, tokens } from "@/theme/tokens";
 import { createRenderGate } from "@/components/renderGate";
 import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
@@ -119,6 +120,10 @@ export type PentecostParallaxProps = {
 
 // the displacement below is transcribed from displaceLocal() in
 // parallaxRelief.ts, where the projection-invariance test pins the algebra
+// the flicker highlight: the seal copper warmed toward the cream so the
+// brightest pixels of a tongue read as fire, not as paint
+const FLAME_GLOW_HEX = "#f2a86a";
+
 const VERT = `
 uniform float uFit;
 uniform sampler2D depthMap;
@@ -141,6 +146,9 @@ void main(){
 }`;
 
 const FRAG = `
+#define FLAME_EMBER ${glslVec3(tokens.seal)}
+#define FLAME_BODY ${glslVec3(tokens.sealHighlight)}
+#define FLAME_GLOW ${glslVec3(FLAME_GLOW_HEX)}
 uniform sampler2D map, mask;
 uniform vec4 uMapRect, uMaskChannel;
 uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
@@ -162,8 +170,14 @@ void main(){
   float lum = dot(col, vec3(0.333));
   // a flame's mask carries a rim of dark wall; key it out (see flameKey())
   m *= 1.0 - uIsFlame + uIsFlame * smoothstep(0.16, 0.44, lum);
+  // the tongues are recoloured on a luminance ramp in the seal's family —
+  // crimson in the hollows, copper in the body, a warm glow at the tips — and
+  // lifted, since the engraving draws them as mid-grey hatching
+  vec3 fire = mix(FLAME_EMBER, mix(FLAME_BODY, FLAME_GLOW, smoothstep(0.45, 0.8, lum)), smoothstep(0.12, 0.45, lum))
+            * (0.25 + lum * 1.5);
+  col = mix(col, fire, uIsFlame);
   float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
-  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * vec3(1.0, 0.84, 0.58);
+  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * FLAME_GLOW;
 
   // the light column as ILLUMINATION on every layer — the apostles' robes in
   // the beam are lit by it, which is what keeps their hatching legible at the
