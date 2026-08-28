@@ -1,3 +1,4 @@
+import Lockup from "@/components/Lockup";
 import PentecostParallax from "@/components/PentecostParallax";
 import Seal from "@/components/Seal";
 
@@ -89,18 +90,8 @@ export default function App() {
             </a>
           </div>
         </nav>
-        <div className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex items-center gap-[clamp(12px,2vw,26px)]">
-          <svg viewBox="0 0 86 86" fill="none" className="h-auto w-[clamp(36px,6vw,86px)] shrink-0">
-            <path
-              d="M43 4v78M4 43h78M15.7 15.7l54.6 54.6M70.3 15.7L15.7 70.3"
-              stroke="currentColor"
-              strokeWidth="9"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className={`text-[clamp(30px,7.2vw,108px)] leading-[0.9] tracking-[-0.01em] ${serif}`}>
-            Grace City
-          </span>
+        <div className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)]">
+          <Lockup />
         </div>
       </div>
 
