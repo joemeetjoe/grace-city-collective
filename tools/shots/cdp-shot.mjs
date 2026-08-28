@@ -148,7 +148,7 @@ try {
       viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
       poster: !!document.querySelector("[data-poster]"),
       canvas: !!document.querySelector("canvas"),
-      bundle: (document.querySelector("script[src*='index-']")?.getAttribute("src") ?? ""),
+      bundle: (document.querySelector("script[type='module'][src*='/assets/']")?.getAttribute("src") ?? ""),
     })`),
   ];
   for (let i = 0; i < labels.length; i++) {
