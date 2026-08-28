@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 import { readyOnce } from "@/components/parallaxLoading";
+import { createRenderGate } from "@/components/renderGate";
 import { assetUrl } from "@/lib/assetBase";
 import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
@@ -135,10 +136,11 @@ void main(){
  */
 const WAYPOINTS: Waypoint[] = [
   { band: [0.26, 0.84], u: 0.0 },   // hero — the whole gathering
-  { band: [0.30, 0.74], u: -0.05 }, // about — a step toward the left of the ring
+  { band: [0.30, 0.74], u: -0.05 }, // who we are — a step toward the left of the ring
+  { band: [0.30, 0.58], u: 0.0 },   // house churches — centre, under the beam
   { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
-  { band: [0.30, 0.58], u: 0.0 },   // community — centre, under the beam
-  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.6 }, // give — the dove
+  { band: [0.36, 0.66], u: -0.03 }, // give — close on the faces, robes below
+  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7 }, // visit — the dove, with the copy under it
 ];
 
 // lateral camera travel is what shears the figures apart and exposes the bare
@@ -216,6 +218,8 @@ export default function PentecostParallax({
     let doveLayer: Layer | undefined;
     let raf = 0;
     let disposed = false;
+    let gate: ReturnType<typeof createRenderGate> | null = null;
+    let observer: IntersectionObserver | null = null;
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let sections: HTMLElement[] = [];
 
@@ -268,14 +272,20 @@ export default function PentecostParallax({
         depthWrite: false,
       });
 
-    /** where we are in the section stack: an index plus the fraction through it */
+    /**
+     * where we are in the scene's section stack: an index plus the fraction
+     * through it. Only the labelled scene sections count — the long-form
+     * below them scrolls past a scene that has already come to rest.
+     */
     const sectionProgress = () => {
       if (!sections.length) return 0;
-      const y = document.documentElement.scrollTop + window.innerHeight * 0.5;
+      const y = window.scrollY + window.innerHeight * 0.5;
       for (let i = 0; i < sections.length; i++) {
         const el = sections[i];
-        if (y < el.offsetTop + el.offsetHeight || i === sections.length - 1) {
-          const t = Math.min(1, Math.max(0, (y - el.offsetTop) / el.offsetHeight));
+        // document-relative, whatever the sections' offsetParent is
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        if (y < top + el.offsetHeight || i === sections.length - 1) {
+          const t = Math.min(1, Math.max(0, (y - top) / el.offsetHeight));
           return Math.min(sections.length - 1, i + t);
         }
       }
@@ -335,13 +345,16 @@ export default function PentecostParallax({
       const cam = { x: 0, y: 0, z: 0, init: false };
       let lastT = 0;
       const tick = () => {
+        if (!gate?.running) return;
         raf = requestAnimationFrame(tick);
         const o = opts.current;
         const t = (performance.now() - t0) / 1000;
         const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
-        const de = document.documentElement;
-        const span = de.scrollHeight - de.clientHeight;
-        const p = span > 0 ? Math.min(1, Math.max(0, de.scrollTop / span)) : 0;
+
+        const sp = sectionProgress();
+        // the dolly and the rising flames play out across the scene, not the
+        // whole page — the long-form below it must not stretch them thin
+        const p = sections.length > 1 ? sp / (sections.length - 1) : 0;
         const ease = p * p * (3 - 2 * p);
 
         const idle = o.idleDrift ? 1 : 0;
@@ -350,7 +363,6 @@ export default function PentecostParallax({
         pointer.x += (pointer.tx - pointer.x) * 0.045;
         pointer.y += (pointer.ty - pointer.y) * 0.045;
 
-        const sp = sectionProgress();
         const i0 = Math.min(WAYPOINTS.length - 1, Math.floor(sp));
         const i1 = Math.min(WAYPOINTS.length - 1, i0 + 1);
         // hold each section's own frame, then travel in its second half —
@@ -425,7 +437,22 @@ export default function PentecostParallax({
         }
         renderer.render(scene, camera);
       };
-      tick();
+      // the loop runs only while the canvas is on screen: once the scene has
+      // scrolled away under the long-form there is nothing to draw
+      gate = createRenderGate({
+        start: () => {
+          // a resumed loop must not treat the pause as one giant frame
+          lastT = (performance.now() - t0) / 1000;
+          raf = requestAnimationFrame(tick);
+        },
+        stop: () => cancelAnimationFrame(raf),
+      });
+      if (typeof IntersectionObserver === "undefined") {
+        gate.setVisible(true);
+      } else {
+        observer = new IntersectionObserver(([entry]) => gate?.setVisible(entry.isIntersecting));
+        observer.observe(canvas);
+      }
     };
 
     const onResize = () => {
@@ -467,6 +494,8 @@ export default function PentecostParallax({
 
     return () => {
       disposed = true;
+      observer?.disconnect();
+      gate?.dispose();
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);

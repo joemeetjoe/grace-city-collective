@@ -93,3 +93,87 @@ describe("App nav", () => {
     expect(container.querySelector('nav svg[role="img"]')).toBeNull();
   });
 });
+
+describe("App content", () => {
+  const facts = [
+    "Sunday Worship Gathering",
+    "10:30 a.m.",
+    "first Sunday of each month",
+    "12–20",
+    "West Georgia",
+    "lay elder/pastor",
+    "104 West Perennial Drive",
+    "#100",
+    "Temple, GA 30179",
+    "info@gracecitycollective.com",
+    "tommy@gracecitycollective.com",
+    // the six Core Devotions
+    "Loving God and Loving Others",
+    "Scriptures",
+    "Community",
+    "Prayer",
+    "Sacrificial Generosity",
+    "Intentional Missional Discipleship",
+    // the ten What We Believe headings
+    "God",
+    "Jesus",
+    "The Holy Spirit",
+    "The Bible",
+    "Human Beings",
+    "Salvation",
+    "Eternal Security",
+    "The Church",
+    "Eternity",
+    "Ordinances",
+    // latest messages
+    "Why Does God Want Christians to Gather?",
+    "All messages",
+  ];
+
+  it.each(facts)("renders %s", (fact) => {
+    const { container } = render(<App />);
+    expect(container.textContent).toContain(fact);
+  });
+
+  it("renders no placeholder copy and no personal gmail", () => {
+    const { container } = render(<App />);
+    for (const gone of ["Est. 2019", "123 Placeholder Ave", "Prayer at Dawn", "Midweek Table", "gmail.com"]) {
+      expect(container.textContent).not.toContain(gone);
+    }
+  });
+
+  it("nav links resolve to sections on the page", () => {
+    const { container } = render(<App />);
+    const links = Array.from(container.querySelectorAll("nav a[href^='#']"));
+    expect(links.length).toBeGreaterThanOrEqual(8);
+    for (const a of links) {
+      const id = a.getAttribute("href")!.slice(1);
+      expect(container.querySelector(`#${id}`), `#${id}`).not.toBeNull();
+    }
+  });
+});
+
+describe("App page structure", () => {
+  it("the scene is exactly six labelled viewports, in order", () => {
+    const { container } = render(<App />);
+    const labels = Array.from(container.querySelectorAll("section[data-screen-label]")).map(
+      (s) => (s as HTMLElement).dataset.screenLabel,
+    );
+    expect(labels).toEqual(["Hero", "Who we are", "House churches", "Gatherings", "Give", "Visit"]);
+  });
+
+  it("the long-form sections carry no screen label and sit after the scene", () => {
+    const { container } = render(<App />);
+    const longform = container.querySelector("[data-longform]")!;
+    expect(longform).not.toBeNull();
+    expect(longform.querySelector("[data-screen-label]")).toBeNull();
+    for (const id of ["devotions", "beliefs", "faq", "messages"]) {
+      expect(longform.querySelector(`#${id}`), `#${id}`).not.toBeNull();
+    }
+    // the sticky scene wrapper ends before the long-form begins
+    const scene = container.querySelector("[data-scene]")!;
+    expect(scene.contains(container.querySelector("[data-parallax]"))).toBe(true);
+    expect(scene.contains(longform)).toBe(false);
+    expect(scene.compareDocumentPosition(longform) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

@@ -152,6 +152,17 @@ section[data-screen-label] {
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
+/* the long-form is one snap area taller than the viewport, so the page snaps
+   to its top edge and then scrolls freely inside it — without this a mandatory
+   snap would drag the reader back up to the last scene section */
+[data-longform] {
+  scroll-snap-align: start;
+}
+/* and the end of the page is a snap position too, or a scroll to the bottom
+   is dragged back up to the long-form's start */
+[data-longform] > footer {
+  scroll-snap-align: end;
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
