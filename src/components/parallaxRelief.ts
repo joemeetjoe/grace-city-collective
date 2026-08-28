@@ -19,6 +19,8 @@ export type Cut = {
   mapRect?: [number, number, number, number];
   /** dedicated depth texture covering the same rectangle as `map` */
   depthMap?: string;
+  /** a flame's cut it hangs over — a figure, or the crowd */
+  parent?: string;
 };
 
 export type UvRect = [number, number, number, number];
@@ -40,6 +42,23 @@ type RawCut = Omit<Cut, "relief"> & { relief?: number };
 
 export function parseCuts(raw: unknown): Cut[] {
   return (raw as RawCut[]).map((c) => ({ ...c, relief: c.relief ?? 0 }));
+}
+
+/** how far in front of its parent a flame rests — same parallax plane, drawn just after it */
+export const FLAME_LIFT = 0.05;
+
+/**
+ * Every flame at rest on the head it hangs over: its z becomes the parent's
+ * plus FLAME_LIFT, so it rides the same plane and registers on the head at
+ * the hero framing. A flame whose parent is not in the scene keeps its
+ * authored z. Nothing else changes; the input is left untouched.
+ */
+export function bindFlames(cuts: Cut[]): Cut[] {
+  const zOf = new Map(cuts.map((c) => [c.name, c.z]));
+  return cuts.map((c) => {
+    const parentZ = c.isFlame && c.parent !== undefined ? zOf.get(c.parent) : undefined;
+    return parentZ === undefined ? c : { ...c, z: parentZ + FLAME_LIFT };
+  });
 }
 
 /** plane segments for a cut — relief needs vertices to displace, flat cuts don't */

@@ -12,7 +12,8 @@ Outputs, in tools/recut/dist/:
   plate-backdrop.png the plate with every cut region filled back in
                      (row-wise texture fill — the wall is horizontal hatching,
                      so propagating along rows preserves the line pattern)
-  cuts.json          [{name, z, isFlame}] for the component
+  cuts.json          [{name, z, isFlame, parent?}] for the component; every
+                     flame names the cut it hangs over (a figure, or crowd)
   qc-masks.png       tinted composite of the final masks
   qc-rest.png        cuts composited over the backdrop at rest (should look
                      like the plate)
@@ -33,7 +34,15 @@ Fills (--fill):
   tile       the tiled fill alone; instant, but the hatch phase jumps at the
              boundary and traces each figure's silhouette.
 
+Flame parents: each flame binds to the figure whose head (mask top) is
+nearest below its centroid, else the crowd; the component then stacks it just
+in front of that parent (issue #27). flame_parents.json beside this script
+overrides the choice: {"flame6": "fig13"}.
+
 Usage: .venv-recut/bin/python tools/recut/build_cuts.py [--fill tile|lama-ring]
+       .venv-recut/bin/python tools/recut/build_cuts.py --manifest-only
+           rewrite dist/cuts.json (flame parents) from the masks already in
+           dist/, without touching any texture
 """
 
 import argparse
@@ -66,6 +75,12 @@ FIG_Z = (-0.7, 2.6)     # backmost .. frontmost figure
 # (issue #17). Chosen to reproduce the values the parallax was tuned on.
 FIG_Z_ROWS = (0.644, 0.866)
 FLAME_Z = [-2.0, -1.7, -1.4]
+# a flame binds to a head no further than this below its centroid (fraction
+# of plate height), and a lateral offset counts this many times a vertical one
+# — a tongue hangs over its head, it does not lean across to a neighbour's
+FLAME_REACH = 0.15
+FLAME_LATERAL = 2.0
+FLAME_PARENTS = HERE / "flame_parents.json"
 DOVE_Z, ARCH_Z, FLOOR_Z = -3.0, -2.8, 3.6
 
 # top-left gothic structure, in plate pixels (x0, y0, x1, y1)
@@ -325,20 +340,76 @@ def figure_z(bottoms: dict[int, float],
     return z
 
 
+def head_top(mask: np.ndarray) -> tuple[float, float]:
+    """(x, y) of a figure's topmost pixels, as plate fractions — nobody on
+    this plate raises a hand above their head, so the top is the head."""
+    H, W = mask.shape
+    ys, xs = np.nonzero(mask)
+    top = ys.min()
+    return float(xs[ys == top].mean()) / W, float(top) / H
+
+
+def centroid(mask: np.ndarray) -> tuple[float, float]:
+    H, W = mask.shape
+    ys, xs = np.nonzero(mask)
+    return float(xs.mean()) / W, float(ys.mean()) / H
+
+
+def flame_parent(flame_centroid: tuple[float, float], heads: dict[str, tuple[float, float]],
+                 reach: float = FLAME_REACH, lateral: float = FLAME_LATERAL) -> str:
+    """The figure whose head is nearest below the flame, or "crowd" when no
+    head is under it within reach. Heads above the centroid are not under
+    the flame at all (a tongue rests on a head, it is never behind one)."""
+    cx, cy = flame_centroid
+    best, best_d = "crowd", reach
+    for name, (hx, hy) in heads.items():
+        dy = hy - cy
+        if dy < 0:
+            continue
+        d = float(np.hypot(lateral * (hx - cx), dy))
+        if d < best_d:
+            best, best_d = name, d
+    return best
+
+
+def load_flame_overrides(path: Path = FLAME_PARENTS) -> dict[str, str]:
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def assign_flame_parents(flames: dict[str, np.ndarray], figures: dict[str, np.ndarray],
+                         overrides: dict[str, str] | None = None) -> dict[str, str]:
+    """{flame name: parent cut name} for every flame, by name in `figures`
+    or "crowd". Overrides win, and must name a flame and a parent that
+    exist — a stale entry after a re-cut is a mistake, not a no-op."""
+    heads = {name: head_top(m) for name, m in figures.items()}
+    parents = {name: flame_parent(centroid(m), heads) for name, m in flames.items()}
+    for flame, parent in (overrides or {}).items():
+        if flame not in parents:
+            raise KeyError(f"flame_parents: no flame named {flame}")
+        if parent != "crowd" and parent not in figures:
+            raise KeyError(f"flame_parents: {flame} -> {parent}: no such figure")
+        parents[flame] = parent
+    return parents
+
+
 def build_manifest(fig_z: dict[int, float], flame_count: int,
-                   extras: dict[int, dict] | None = None) -> list[dict]:
+                   extras: dict[int, dict] | None = None,
+                   flame_parents: dict[str, str] | None = None) -> list[dict]:
     """The cuts.json entries. Cuts sample the shared plate unless they carry
     a dedicated color map: the crowd (its plate region contains the figures)
     and completed figures (their hidden pixels were generated), whose extras
     add map/mapRect/depthMap. A completed figure without its own depth map
-    goes flat — the shared depth under its adopted pixels is the occluder's."""
+    goes flat — the shared depth under its adopted pixels is the occluder's.
+    Every flame names the cut it hangs over (flame_parents, else the crowd);
+    the component places it just in front of that parent."""
     cuts: list[dict] = []
     for i, z in fig_z.items():
         extra = (extras or {}).get(i, {})
         relief = 0 if ("map" in extra and "depthMap" not in extra) else 1
         cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra})
     for i in range(flame_count):
-        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1})
+        parent = (flame_parents or {}).get(f"flame{i}", "crowd")
+        cuts.append({"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent})
     cuts.append({"name": "crowd", "z": -0.9, "isFlame": 0, "map": "map-crowd.jpg"})
     cuts.append({"name": "dove", "z": DOVE_Z, "isFlame": 0})
     cuts.append({"name": "arch", "z": ARCH_Z, "isFlame": 0})
@@ -351,10 +422,43 @@ def save_mask(name: str, alpha: np.ndarray, size: tuple[int, int]) -> None:
     img.save(DIST / f"cut-{name}.png", optimize=True)
 
 
+def load_dist_mask(name: str) -> np.ndarray:
+    """A saved cut back as a binary mask (its feather thresholded away)."""
+    return (np.asarray(Image.open(DIST / f"cut-{name}.png").convert("L")) > 64).astype(np.uint8)
+
+
+def rebuild_manifest() -> list[dict]:
+    """Recompute the flame parents from the masks already in dist/ and
+    rewrite cuts.json, every other entry and value preserved — so a change
+    of binding never re-inpaints a texture."""
+    cuts = json.loads((DIST / "cuts.json").read_text())
+    figures = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["name"].startswith("fig")}
+    flames = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["isFlame"]}
+    parents = assign_flame_parents(flames, figures, load_flame_overrides())
+    for c in cuts:
+        if c["isFlame"]:
+            c["parent"] = parents[c["name"]]
+    (DIST / "cuts.json").write_text(json.dumps(cuts))
+    return cuts
+
+
+def print_flame_parents(cuts: list[dict]) -> None:
+    for c in cuts:
+        if c["isFlame"]:
+            print(f"  {c['name']} -> {c['parent']}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--fill", choices=("tile", "lama-ring"), default="lama-ring")
-    fill_mode = ap.parse_args().fill
+    ap.add_argument("--manifest-only", action="store_true",
+                    help="rewrite dist/cuts.json from the existing dist/ masks; no textures")
+    args = ap.parse_args()
+    if args.manifest_only:
+        print("flame parents:")
+        print_flame_parents(rebuild_manifest())
+        return
+    fill_mode = args.fill
     DIST.mkdir(exist_ok=True)
     plate = np.asarray(Image.open(PLATE).convert("RGB"))
     gray = np.asarray(Image.open(PLATE).convert("L"))
@@ -465,7 +569,13 @@ def main() -> None:
               f"{'' if 'depthMap' in extras[i] else ' (no depth: flat)'}")
 
     flames = sorted(flames, key=lambda m: int(np.flatnonzero(m.any(axis=0)).mean()))
-    cuts = build_manifest(fig_z, len(flames), extras)
+    parents = assign_flame_parents(
+        {f"flame{i}": f for i, f in enumerate(flames)},
+        {f"fig{i}": f for i, f in figures.items()},
+        load_flame_overrides())
+    print("flame parents:")
+    cuts = build_manifest(fig_z, len(flames), extras, parents)
+    print_flame_parents(cuts)
     alphas = {}
     for i, f in figures.items():
         alphas[f"fig{i}"] = feather(f)

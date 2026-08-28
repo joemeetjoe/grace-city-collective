@@ -3,7 +3,7 @@ import * as THREE from "three";
 
 import { readyOnce } from "@/components/parallaxLoading";
 import { assetUrl } from "@/lib/assetBase";
-import { parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
+import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 
 /**
  * Doré's "The Descent of the Holy Spirit" cut into ~28 depth layers and
@@ -13,7 +13,9 @@ import { parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect
  * Assets expected in /public/dore/:
  *   plate.jpg            the engraving (2048x2519)
  *   plate-backdrop.png   the plate with every cutout inpainted back in
- *   cuts.json            [{ name, z, isFlame, relief? }]
+ *   cuts.json            [{ name, z, isFlame, relief?, parent? }] — a flame's
+ *                        parent is the head it hangs over; it rests just in
+ *                        front of that cut, on its plane (see bindFlames)
  *   cut-<name>.png       one greyscale mask per cut
  *   depth.png            baked depth of the plate (white = near), drives the
  *                        per-figure relief displacement
@@ -296,8 +298,9 @@ export default function PentecostParallax({
       scene.add(bgMesh);
       backdropLayer = { name: "backdrop", z: BACKDROP_Z, mesh: bgMesh, mat: bgMat, isFlame: 0, relief: 0, i: -1, fit: FIT_BG };
 
-      layers = cuts
-        .slice()
+      // a flame at parent.z + FLAME_LIFT sorts right after its parent, so it
+      // draws over the head it rests on and nothing else
+      layers = bindFlames(cuts)
         .sort((a, b) => a.z - b.z)
         .map((cut, i) => {
           const mask = sharpen(loader.load(`${BASE}/cut-${cut.name}.png`));
@@ -416,8 +419,9 @@ export default function PentecostParallax({
           l.mat.uniforms.uCamZ.value = ru.uCamZ;
           l.mat.uniforms.uLayerZ.value = ru.uLayerZ;
           l.mat.uniforms.uScale.value = ru.uScale;
-          // the flames rise on their own, independent of the crowd
-          l.mesh.position.y = l.isFlame ? ease * (0.5 + (l.i % 5) * 0.22) : 0;
+          // every flame rests on its head (bindFlames); the ascent toward the
+          // dove is issue #35 — a flamePose(index, progress, t) would set
+          // position from that rest pose here
         }
         renderer.render(scene, camera);
       };

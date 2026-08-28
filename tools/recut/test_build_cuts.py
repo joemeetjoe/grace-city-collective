@@ -11,7 +11,8 @@ import numpy as np
 
 import pytest
 
-from build_cuts import FIG_Z, band_alpha, build_manifest, figure_z, merge_figures, ring_mask, synth_crowd_map
+from build_cuts import (FIG_Z, assign_flame_parents, band_alpha, build_manifest, figure_z, flame_parent,
+                        merge_figures, ring_mask, synth_crowd_map)
 
 
 def crowd_scene() -> tuple[np.ndarray, np.ndarray, tuple[int, int, int, int]]:
@@ -250,3 +251,64 @@ def test_ring_mask_is_the_band_just_inside_the_hole_boundary():
     np.testing.assert_array_equal(ring == 1, (d > 0) & (d <= 20))
     assert ring[hole == 0].sum() == 0  # never touches the plate outside the hole
     assert ring[150, 200] == 0  # the deep interior is left to the base fill
+
+
+def test_flame_parent_is_the_head_nearest_below_the_flame():
+    # heads as (x, y) plate fractions of each figure's topmost pixel
+    heads = {"fig2": (0.22, 0.48), "fig4": (0.18, 0.52), "fig5": (0.29, 0.46)}
+
+    # just above fig4's head, a touch left of fig2's: the flame hangs over fig4
+    assert flame_parent((0.185, 0.465), heads) == "fig4"
+    # squarely over fig5
+    assert flame_parent((0.30, 0.39), heads) == "fig5"
+
+
+def test_flame_parent_falls_back_to_the_crowd():
+    heads = {"fig0": (0.10, 0.48)}
+
+    assert flame_parent((0.50, 0.40), heads) == "crowd"  # nothing under it
+    assert flame_parent((0.10, 0.20), heads) == "crowd"  # fig0 is too far below
+    assert flame_parent((0.10, 0.55), heads) == "crowd"  # fig0's head is above it
+    assert flame_parent((0.10, 0.40), {}) == "crowd"
+
+
+def flame_scene() -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """Two figures with heads at x 20 and 60 on a 100x100 canvas, and two
+    small flames, one over each head."""
+    figs, flames = {}, {}
+    for name, x in (("fig0", 20), ("fig1", 60)):
+        m = np.zeros((100, 100), np.uint8)
+        m[50:90, x - 5:x + 5] = 1
+        figs[name] = m
+    for name, x in (("flame0", 21), ("flame1", 58)):
+        m = np.zeros((100, 100), np.uint8)
+        m[38:46, x - 1:x + 2] = 1
+        flames[name] = m
+    return flames, figs
+
+
+def test_assign_flame_parents_binds_every_flame_and_applies_overrides():
+    flames, figs = flame_scene()
+
+    assert assign_flame_parents(flames, figs) == {"flame0": "fig0", "flame1": "fig1"}
+    assert assign_flame_parents(flames, figs, {"flame1": "crowd"}) == {"flame0": "fig0", "flame1": "crowd"}
+    assert assign_flame_parents(flames, figs, {"flame1": "fig0"})["flame1"] == "fig0"
+
+
+def test_assign_flame_parents_rejects_overrides_naming_nothing_in_the_scene():
+    flames, figs = flame_scene()
+
+    with pytest.raises(KeyError):
+        assign_flame_parents(flames, figs, {"flame9": "fig0"})
+    with pytest.raises(KeyError):
+        assign_flame_parents(flames, figs, {"flame0": "fig7"})
+
+
+def test_build_manifest_writes_each_flames_parent():
+    cuts = build_manifest(fig_z={0: 1.2}, flame_count=2, flame_parents={"flame0": "fig0", "flame1": "crowd"})
+
+    by_name = {c["name"]: c for c in cuts}
+    assert by_name["flame0"] == {"name": "flame0", "z": by_name["flame0"]["z"], "isFlame": 1, "parent": "fig0"}
+    assert by_name["flame1"]["parent"] == "crowd"
+    # a manifest built without parents binds every flame to the crowd
+    assert all(c["parent"] == "crowd" for c in build_manifest({0: 1.2}, 3) if c["isFlame"])

@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { displaceLocal, parseCuts, rectToUv, reliefDz, reliefUniforms, segmentsFor } from "./parallaxRelief";
+import {
+  FLAME_LIFT,
+  bindFlames,
+  displaceLocal,
+  parseCuts,
+  rectToUv,
+  reliefDz,
+  reliefUniforms,
+  segmentsFor,
+} from "./parallaxRelief";
 
 describe("parseCuts", () => {
   it("defaults legacy entries without a relief flag to flat", () => {
@@ -23,6 +32,51 @@ describe("parseCuts", () => {
 
     expect(cuts[0].map).toBe("map-crowd.jpg");
     expect(cuts[1].map).toBeUndefined();
+  });
+
+  it("carries a flame's parent through, absent on legacy entries", () => {
+    const cuts = parseCuts([
+      { name: "flame4", z: -1.7, isFlame: 1, parent: "fig4" },
+      { name: "flame5", z: -1.4, isFlame: 1 },
+    ]);
+
+    expect(cuts[0].parent).toBe("fig4");
+    expect(cuts[1].parent).toBeUndefined();
+  });
+});
+
+describe("bindFlames", () => {
+  const cuts = parseCuts([
+    { name: "fig5", z: 2.3, isFlame: 0, relief: 1 },
+    { name: "crowd", z: -0.9, isFlame: 0, map: "map-crowd.jpg" },
+    { name: "flame5", z: -1.4, isFlame: 1, parent: "fig5" },
+    { name: "flame6", z: -2.0, isFlame: 1, parent: "crowd" },
+    { name: "flame7", z: -1.7, isFlame: 1, parent: "fig99" },
+    { name: "flame8", z: -1.4, isFlame: 1 },
+  ]);
+
+  it("rests each flame just in front of its parent, on the same plane", () => {
+    const z = Object.fromEntries(bindFlames(cuts).map((c) => [c.name, c.z]));
+
+    expect(z.flame5).toBeCloseTo(2.3 + FLAME_LIFT, 12);
+    expect(z.flame6).toBeCloseTo(-0.85, 12); // crowd heads stay on the crowd plane
+  });
+
+  it("leaves a flame with no parent in the scene at its authored z", () => {
+    const z = Object.fromEntries(bindFlames(cuts).map((c) => [c.name, c.z]));
+
+    expect(z.flame7).toBe(-1.7);
+    expect(z.flame8).toBe(-1.4);
+  });
+
+  it("touches nothing but the bound flames' z", () => {
+    const bound = bindFlames(cuts);
+
+    expect(bound.map((c) => c.name)).toEqual(cuts.map((c) => c.name));
+    expect(bound[0]).toEqual(cuts[0]);
+    expect(bound[1]).toEqual(cuts[1]);
+    expect(bound[2]).toEqual({ ...cuts[2], z: 2.3 + FLAME_LIFT });
+    expect(cuts[2].z).toBe(-1.4); // input untouched
   });
 });
 
