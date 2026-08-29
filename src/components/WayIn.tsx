@@ -47,9 +47,10 @@ const MOVE =
 
 /**
  * A diamond arrow: a lozenge filled in the seal's red with a cream chevron
- * pointing the way — a button in the site's own shape. Under the pointer
- * it lifts and glows like the seal buttons; at the end of the way it
- * empties to a hairline and waits.
+ * pointing the way — a button in the site's own shape, with "and then" or
+ * "before that" under it, the way the story is told. Under the pointer it
+ * lifts and glows like the seal buttons; at the end of the way it empties
+ * to a hairline and waits.
  */
 function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disabled?: boolean }) {
   const cx = ARROW_W / 2;
@@ -124,7 +125,8 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         data-way-arrow={back ? "back" : "next"}
         className={cn(
           // the lozenge sits level with the rule, its word under it level with the numerals
-          "mt-[6px] flex shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:gap-[5px] transition-[opacity,color] duration-500 [--lift-glow:var(--color-seal)] hover:text-seal-deep disabled:pointer-events-none disabled:text-cream/35",
+          // both the same width, whatever their words, so the rule between them stays centred
+          "mt-[6px] flex w-[72px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:w-[96px] md:gap-[5px] transition-[opacity,color] duration-500 [--lift-glow:var(--color-seal)] hover:text-seal-deep disabled:pointer-events-none disabled:text-cream/35",
           BUTTON_LIFT,
           FOCUS_RING,
         )}
@@ -134,7 +136,9 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         }}
       >
         <DiamondArrow back={back} disabled={disabled} />
-        <span className="text-[10px] uppercase tracking-[0.2em] md:text-[11px]">{back ? "Back" : "Next"}</span>
+        <span className="text-[10px] uppercase tracking-[0.2em] md:text-[11px]">
+          {back ? "Before that" : "And then"}
+        </span>
       </button>
     );
   };

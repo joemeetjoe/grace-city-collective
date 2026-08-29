@@ -26,6 +26,7 @@ import MobileNav from "@/components/MobileNav";
 import NavLinks from "@/components/NavLinks";
 import OrnateRule from "@/components/OrnateRule";
 import ScriptureRefs from "@/components/ScriptureRefs";
+import SmoothHeight from "@/components/SmoothHeight";
 import PentecostParallax from "@/components/PentecostParallax";
 import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
@@ -813,10 +814,24 @@ function GatheringsCalendar({ lit }: { lit: Mark | null }) {
  * church of one's own, drawn in with the panel's brackets; the reader walks
  * them by pointer, tap, or the diamond arrows.
  */
-function TheWayIn({ step, onStep }: { step: number; onStep: (step: number) => void }) {
+function TheWayIn({
+  step,
+  onStep,
+}: {
+  step: number;
+  onStep: (step: number) => void;
+}) {
   const site = useSite();
   const shown = useContext(PanelShownContext);
-  return <WayIn steps={wayIn(site)} step={step} onStep={onStep} shown={shown} className="pt-1" />;
+  return (
+    <WayIn
+      steps={wayIn(site)}
+      step={step}
+      onStep={onStep}
+      shown={shown}
+      className="pt-1"
+    />
+  );
 }
 
 /**
@@ -990,29 +1005,37 @@ function Scene({ section: s }: { section: SceneSection }) {
           {/* the kicker stands at the panel's left, its rule drawn from there; the rest is centred */}
           <Kicker className="self-start text-left">{s.kicker}</Kicker>
           <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
-            <div
-              key={way}
-              data-way-words=""
-              aria-live="polite"
-              className="way-in-rise flex flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
-            >
-              <h2
-                className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
-              >
-                {at?.title}
-              </h2>
-              <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base">
-                {at?.body}
-              </p>
-              {/* the call to write sits under the first step's words, and goes with them */}
-              {way === 0 && s.cta && (
-                <a
-                  href={s.cta.href}
-                  className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
+            {/* the words' height eases from one step to the next, so the glass
+                grows and shrinks with them instead of jumping */}
+            {/* wrapped, so the reveal's own transition stays on the wrapper
+                and the height's on the block (Reveal) */}
+            <div className="w-full">
+              <SmoothHeight className="w-full">
+                <div
+                  key={way}
+                  data-way-words=""
+                  aria-live="polite"
+                  className="way-in-rise flex flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
                 >
-                  {s.cta.label}
-                </a>
-              )}
+                  <h2
+                    className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
+                  >
+                    {at?.title}
+                  </h2>
+                  <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base">
+                    {at?.body}
+                  </p>
+                  {/* the call to write sits under the first step's words, and goes with them */}
+                  {way === 0 && s.cta && (
+                    <a
+                      href={s.cta.href}
+                      className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
+                    >
+                      {s.cta.label}
+                    </a>
+                  )}
+                </div>
+              </SmoothHeight>
             </div>
             <TheWayIn step={way} onStep={setWay} />
           </PanelReveal>
