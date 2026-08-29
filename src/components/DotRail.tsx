@@ -18,7 +18,8 @@ export type DotRailProps = {
  * written out beside the dot and revealed on hover or focus. Fixed, and kept
  * outside the smoother's content like the nav (a transformed ancestor would
  * pin it to the page). Hidden below the tablet breakpoint, where it would
- * compete with thumbs.
+ * compete with thumbs. Each dot is a piece of the nav's cascade
+ * (src/intro/navReveal.ts), and the glass strip fades up with it.
  */
 export default function DotRail({
   markers,
@@ -41,6 +42,7 @@ export default function DotRail({
       <span
         aria-hidden
         data-dot-glass=""
+        data-nav-glass=""
         className={cn(
           "absolute -inset-y-2.5 -right-[7px] -z-10 w-7 rounded-tl-[12px] rounded-br-[12px]",
           GLASS,
@@ -52,6 +54,7 @@ export default function DotRail({
           <a
             key={m.id}
             href={`#${m.id}`}
+            data-nav-reveal=""
             aria-label={m.label}
             aria-current={active ? "location" : undefined}
             onClick={(e) => {
@@ -64,7 +67,7 @@ export default function DotRail({
               aria-hidden
               data-dot-label=""
               className={cn(
-                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap text-cream/80 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 motion-safe:transition-opacity motion-safe:duration-200",
+                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap text-cream/80 opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
                 active && "text-seal",
               )}
             >
@@ -74,8 +77,8 @@ export default function DotRail({
               aria-hidden
               data-dot=""
               className={cn(
-                "block size-1.5 rounded-full border border-cream/55 transition-colors group-hover:border-cream",
-                active && "border-seal bg-seal group-hover:border-seal",
+                "block size-1.5 rounded-full border border-cream/55 transition-[background-color,border-color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:border-cream",
+                active && "scale-[1.4] border-seal bg-seal group-hover:border-seal",
               )}
             />
           </a>

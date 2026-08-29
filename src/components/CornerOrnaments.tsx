@@ -37,7 +37,9 @@ const ENTER =
 /**
  * An arm's resting or waiting style. Waiting, it sits out past its corner
  * along both axes, shrunk towards the corner and faded; shown, it slides
- * home and grows to full length, each arm a beat after the last.
+ * home and grows to full length, each arm a beat after the last, its line
+ * drawing out from the corner and its lozenges tracing in as it lands
+ * (OrnateRule's drawn, on the same beat).
  */
 function entrance(
   shown: boolean,
@@ -86,6 +88,8 @@ export default function CornerOrnaments({
       {/* top-right: an arm running left along the top, one running down the side; both grow from the corner */}
       <OrnateRule
         ends="start"
+        drawn={shown}
+        delay={0 * ENTER_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           top: inset,
@@ -97,6 +101,8 @@ export default function CornerOrnaments({
       <OrnateRule
         ends="end"
         vertical
+        drawn={shown}
+        delay={1 * ENTER_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           top: inset,
@@ -108,6 +114,8 @@ export default function CornerOrnaments({
       {/* bottom-left: an arm running right along the bottom, one running up the side */}
       <OrnateRule
         ends="end"
+        drawn={shown}
+        delay={2 * ENTER_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           bottom: inset,
@@ -119,6 +127,8 @@ export default function CornerOrnaments({
       <OrnateRule
         ends="start"
         vertical
+        drawn={shown}
+        delay={3 * ENTER_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           bottom: inset,

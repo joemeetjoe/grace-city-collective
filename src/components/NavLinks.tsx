@@ -1,3 +1,4 @@
+import { FOCUS_RING } from "@/components/interact";
 import type { NavItem } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,9 @@ export type NavLinksProps = {
 /**
  * The desktop nav's row of section links. The current section's link takes
  * the seal colour and a hairline underline, and says so to assistive tech
- * with aria-current.
+ * with aria-current; on any other link the underline sweeps in from the
+ * left under the pointer. Each link is a piece of the nav's cascade
+ * (src/intro/navReveal.ts), and the row wears the glass that fades up with it.
  */
 export default function NavLinks({
   items,
@@ -24,6 +27,7 @@ export default function NavLinks({
   return (
     <div
       data-nav-links=""
+      data-nav-glass=""
       className={cn(
         "flex flex-wrap items-center gap-[clamp(12px,1.7vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70",
         className,
@@ -35,14 +39,16 @@ export default function NavLinks({
           <a
             key={n.id}
             href={`#${n.id}`}
+            data-nav-reveal=""
             aria-current={active ? "location" : undefined}
             onClick={(e) => {
               e.preventDefault();
               onNavigate?.(n.id);
             }}
             className={cn(
-              "relative transition-colors after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:bg-seal after:opacity-0 after:transition-opacity hover:text-cream",
-              active && "text-seal after:opacity-100 hover:text-seal",
+              "relative rounded-sm transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:scale-x-0 after:bg-seal after:transition-transform after:duration-500 after:ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-cream hover:after:scale-x-100",
+              FOCUS_RING,
+              active && "text-seal after:scale-x-100 hover:text-seal",
             )}
           >
             {n.label}

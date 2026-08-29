@@ -267,6 +267,26 @@ describe("App content", () => {
   });
 });
 
+describe("App gatherings calendar", () => {
+  it("the calendar sits in the gatherings panel and lights for the gathering under the pointer", () => {
+    const { container } = render(<App />);
+    const panel = container.querySelector("#gatherings [data-copy-panel]")!;
+    const grid = panel.querySelector("[data-gathering-calendar]")!;
+    expect(grid.getAttribute("data-lit")).toBeNull();
+    const homes = panel.querySelector("[data-gathering=homes]")!;
+    const feast = panel.querySelector("[data-gathering=feast]")!;
+    fireEvent.mouseEnter(homes);
+    expect(grid.getAttribute("data-lit")).toBe("homes");
+    fireEvent.mouseLeave(homes);
+    expect(grid.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(feast);
+    expect(grid.getAttribute("data-lit")).toBe("feast");
+    // leaving one after entering the other does not put the lit one out
+    fireEvent.mouseLeave(homes);
+    expect(grid.getAttribute("data-lit")).toBe("feast");
+  });
+});
+
 describe("App section markers", () => {
   it("the nav link and the rail dot agree on the current section", () => {
     const { container } = render(<App />);

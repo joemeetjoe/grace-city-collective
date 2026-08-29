@@ -66,3 +66,14 @@ describe("CornerOrnaments", () => {
     expect(topA.style.transform).toBe("translate(0px, 0px) scale(1)");
   });
 });
+
+describe("CornerOrnaments drawing", () => {
+  it("each arm draws its line and lozenges on its own beat as it slides home", () => {
+    const { container } = render(<CornerOrnaments shown={false} />);
+    const all = arms(container);
+    expect(all.map((a) => a.getAttribute("data-drawn"))).toEqual(["false", "false", "false", "false"]);
+    expect(
+      all.map((a) => a.querySelector<HTMLElement>("[data-rule-line]")!.style.transitionDelay),
+    ).toEqual([0, 1, 2, 3].map((i) => `${i * ENTER_STAGGER_MS}ms`));
+  });
+});

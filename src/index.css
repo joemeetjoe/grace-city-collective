@@ -140,7 +140,11 @@
     }
 }
 
-html {
+/* the page's ground is ink, on the body as well as the root: shadcn's base
+   paints the body white, and it shows for a frame wherever the scene's held
+   layers trail a jump of the smoother */
+html,
+body {
   background: var(--color-ink);
 }
 /* Scrolling is smoothed and snapped by ScrollSmoother + ScrollTrigger
@@ -156,4 +160,97 @@ html[data-smooth-scroll] {
 html[data-smooth-scroll]::-webkit-scrollbar,
 html[data-smooth-scroll] body::-webkit-scrollbar {
   display: none;
+}
+/* ---- motion ------------------------------------------------------------ */
+
+/* Reveal (src/components/Reveal.tsx): a block's children rise into place one
+   after another the first time it is seen; a child marked rule-draw has its
+   top hairline drawn left to right a beat ahead of its words. In the
+   components layer, so a child's own utilities win where they clash; inside
+   the motion query, so under reduced motion nothing is ever hidden. */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reveal] > * {
+      --reveal-at: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--reveal-stagger, 110ms));
+      transition:
+        opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--reveal-at) + 200ms),
+        transform 1100ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--reveal-at) + 200ms);
+    }
+    [data-reveal="false"] > * {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    .rule-draw::before {
+      transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-at, 0ms);
+    }
+    [data-reveal="false"] > .rule-draw::before {
+      transform: scaleX(0);
+    }
+  }
+}
+
+/* a card's top hairline, as a pseudo-element so Reveal can draw it */
+@utility rule-draw {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: color-mix(in oklab, var(--color-cream) 25%, transparent);
+    transform-origin: 0 50%;
+  }
+}
+
+/* a text link: a hairline underline sweeps in from the left on hover or focus */
+@utility link-sweep {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition:
+    background-size 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 300ms ease;
+  &:hover,
+  &:focus-visible {
+    background-size: 100% 1px;
+  }
+}
+
+/* a button: a pixel's lift and a soft glow of its own colour (--lift-glow) on
+   hover; it settles quickly on press */
+@utility btn-lift {
+  --lift-glow: var(--color-seal);
+  transition:
+    background-color 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -12px color-mix(in oklab, var(--lift-glow) 70%, transparent);
+  }
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px -8px color-mix(in oklab, var(--lift-glow) 70%, transparent);
+    transition-duration: 120ms;
+  }
+}
+
+/* While the splash is up (App.tsx sets data-intro-pending on the root) the
+   nav's pieces and the hero headline wait unseen, so the ink lifts on an
+   empty bar; the handoff's cascade (src/intro/navReveal.ts) and the
+   headline's rise (src/intro/heroRise.ts) bring them in. Unlayered, so
+   they beat the elements' own utilities. */
+[data-intro-pending] [data-nav-reveal] {
+  opacity: 0;
+}
+[data-intro-pending] [data-nav-glass] {
+  background-color: transparent;
+  border-color: transparent;
+}
+[data-intro-pending] [data-hero-headline] {
+  visibility: hidden;
 }
