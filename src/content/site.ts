@@ -155,9 +155,11 @@ export const site: SiteContent = {
     {
       id: "visit",
       label: "Visit",
-      kicker: "Visit",
+      // the stop's own words are its kicker and the way in (below): the
+      // headline and body under the kicker are the current step's
+      kicker: "Come and see.",
       heading: "Come and see.",
-      body: ["Sundays at 10:30 a.m. There is no right way to arrive, and no wrong time to come back."],
+      body: [],
       cta: { label: "Email us", href: "mailto:info@gracecitycollective.com" },
     },
   ],

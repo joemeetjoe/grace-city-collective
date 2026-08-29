@@ -813,10 +813,10 @@ function GatheringsCalendar({ lit }: { lit: Mark | null }) {
  * church of one's own, drawn in with the panel's brackets; the reader walks
  * them by pointer, tap, or the diamond arrows.
  */
-function TheWayIn() {
+function TheWayIn({ step, onStep }: { step: number; onStep: (step: number) => void }) {
   const site = useSite();
   const shown = useContext(PanelShownContext);
-  return <WayIn steps={wayIn(site)} shown={shown} className="pt-1" />;
+  return <WayIn steps={wayIn(site)} step={step} onStep={onStep} shown={shown} className="pt-1" />;
 }
 
 /**
@@ -878,6 +878,8 @@ function Scene({ section: s }: { section: SceneSection }) {
   const [over, setOver] = useState(false);
   // whether the pointer is over the giving, filling the field beside its words
   const [giving, setGiving] = useState(false);
+  // the step of the way in the reader stands on (visit)
+  const [way, setWay] = useState(0);
   // no z-index: a section must not form a stacking context, or its headline
   // could never sit under the front canvas while its copy sits over it
   const base = `relative flex min-h-[100svh] ${gutter}`;
@@ -971,9 +973,12 @@ function Scene({ section: s }: { section: SceneSection }) {
   }
   if (s.id === "visit") {
     const { contact } = site;
-    // the dove hangs in the upper third of the visit frame; the panel — the
-    // words, the way in, and the call to action — sits under it, and fills
-    // the frame's width up to a reading measure
+    const steps = wayIn(site);
+    const at = steps[Math.min(way, steps.length - 1)];
+    // the dove hangs in the upper third of the visit frame; the panel sits
+    // under it, and fills the frame's width up to a reading measure. Its
+    // headline and body are the current step's, and rise in each time the
+    // traveller lands; the way in itself stands at the panel's foot
     return (
       <section
         id={s.id}
@@ -985,21 +990,22 @@ function Scene({ section: s }: { section: SceneSection }) {
         <Bracketed className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
           <Kicker centred>{s.kicker}</Kicker>
           <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
-            <h2
-              className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
+            <div
+              key={way}
+              data-way-words=""
+              aria-live="polite"
+              className="way-in-rise flex flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
             >
-              {s.heading}
-            </h2>
-            {s.body.map((p) => (
-              <p
-                key={p}
-                className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base"
+              <h2
+                className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
               >
-                {p}
+                {at?.title}
+              </h2>
+              <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base">
+                {at?.body}
               </p>
-            ))}
-            <TheWayIn />
-            <div className="flex flex-col items-center gap-3.5 pt-1 [@media(max-height:820px)]:lg:gap-2.5 [@media(max-height:820px)]:lg:pt-0">
+            </div>
+            <div className="flex flex-col items-center gap-3.5 [@media(max-height:820px)]:lg:gap-2.5">
               {s.cta && (
                 <a
                   href={s.cta.href}
@@ -1013,6 +1019,7 @@ function Scene({ section: s }: { section: SceneSection }) {
                 {contact.address.city}
               </p>
             </div>
+            <TheWayIn step={way} onStep={setWay} />
           </PanelReveal>
         </Bracketed>
       </section>

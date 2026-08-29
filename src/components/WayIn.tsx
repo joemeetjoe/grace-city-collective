@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 import GatheringMark, {
   type Emblem,
@@ -13,13 +13,15 @@ import { cn } from "@/lib/utils";
 export type WayInProps = {
   /** the five steps, in order; each takes the emblem at its position */
   steps: Waymark[];
+  /** the step the traveller stands on */
+  step: number;
+  /** the arrows ask for another step */
+  onStep: (step: number) => void;
   /**
    * whether the way is drawn; while false the rule and the emblems wait,
    * and draw in from the first step when it turns true
    */
   shown?: boolean;
-  /** which step the traveller starts on */
-  initial?: number;
   className?: string;
 };
 
@@ -85,17 +87,15 @@ function DiamondArrow({ back = false }: { back?: boolean }) {
  * the rule from step to step. Each step is an emblem in the gatherings'
  * hollow-lozenge hairline (GatheringMark), which gathers itself when the
  * traveller arrives; the steps already walked stay traced in cream, the
- * steps ahead wait fainter. The step's words sit under the rule and rise
- * in when the traveller lands. When `shown` turns true the rule draws from
+ * steps ahead wait fainter. When `shown` turns true the rule draws from
  * the first step to the last, the emblems trace in one after the next, and
  * the traveller appears on the first. Only the arrows move the traveller
- * — a step under the pointer stays put — and the words follow it.
+ * — a step under the pointer stays put. The step itself is the caller's:
+ * the visit stop keeps it, and sets the step's words above the rule.
  */
-export default function WayIn({ steps, shown = true, initial = 0, className }: WayInProps) {
-  const [step, setStep] = useState(initial);
+export default function WayIn({ steps, step, onStep, shown = true, className }: WayInProps) {
   const count = steps.length;
   const last = count - 1;
-  const current = steps[step];
   // the emblems trace in after the rule has reached them
   const traceAt = (i: number) => i * (RULE_STAGGER_MS + TRACE_STAGGER_MS);
   const railDone = traceAt(last) + TRACE_MS;
@@ -117,7 +117,7 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
         type="button"
         aria-label={back ? "Back a step" : "Next step"}
         disabled={disabled}
-        onClick={() => setStep((s) => Math.max(0, Math.min(last, s + (back ? -1 : 1))))}
+        onClick={() => onStep(Math.max(0, Math.min(last, step + (back ? -1 : 1))))}
         data-way-arrow={back ? "back" : "next"}
         className={cn(
           "group mt-[10px] shrink-0 cursor-pointer self-start rounded-sm p-1 text-cream/60 md:mt-[12px] transition-[opacity,color] duration-500 hover:text-seal disabled:pointer-events-none disabled:opacity-25",
@@ -208,21 +208,6 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
         </ol>
         {arrow(false)}
       </div>
-      {current && (
-        <div
-          key={step}
-          aria-live="polite"
-          data-way-words=""
-          className="way-in-rise mt-3 flex flex-col items-center gap-2 text-center md:mt-4 [@media(max-height:820px)]:lg:gap-1.5"
-        >
-          <h3 className="text-[24px] leading-[1.12] md:text-[30px] [@media(max-height:820px)]:lg:text-[26px] [font-family:'Cormorant_Garamond',Georgia,serif]">
-            {current.title}
-          </h3>
-          <p className="max-w-[46ch] text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-[17px] md:leading-relaxed [@media(max-height:820px)]:lg:text-[15px]">
-            {current.body}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
