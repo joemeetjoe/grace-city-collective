@@ -66,6 +66,8 @@ export default function App() {
   );
   const [tier] = useState(() => tierFor(readTierInputs()));
   const [ready, setReady] = useState(false);
+  // the textures' share so far, for the splash's loading trace
+  const [progress, setProgress] = useState(0);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const chromeRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
@@ -106,7 +108,7 @@ export default function App() {
 
   return (
     <div className="relative bg-ink font-sans text-cream">
-      {intro && <IntroSplash ready={ready} onDone={() => setIntro(false)} />}
+      {intro && <IntroSplash ready={ready} progress={progress} onDone={() => setIntro(false)} />}
 
       {/* the nav outlives the scene: fixed for the whole page, zero height so it
           takes no room. Fixed, and outside the smoother's content — a transformed
@@ -187,6 +189,7 @@ export default function App() {
               tier={tier}
               frontCanvas={frontCanvasRef}
               onReady={() => setReady(true)}
+              onProgress={(loaded, total) => setProgress(total ? loaded / total : 0)}
             />
           )}
           {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}

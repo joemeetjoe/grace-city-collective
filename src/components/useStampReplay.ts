@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent, type RefObject } from "react";
 
-import { stampTween } from "@/intro/beats/seal";
+import { stampTween } from "@/components/sealStamp";
 import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 
 export const STAMP_REPLAY_LABEL = "Replay the seal stamp";

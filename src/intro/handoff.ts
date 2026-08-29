@@ -1,74 +1,82 @@
 import { STACK } from "@/components/layerSplit";
-import { Flip, gsap } from "@/lib/gsap";
+import { TRACE_FINISH_SECONDS } from "@/intro/trace";
+import { gsap } from "@/lib/gsap";
 
 export const HANDOFF_SECONDS = 0.8;
 export const HANDOFF_EASE = "power3.inOut";
 
 /**
- * Where the splash sits once the hero lockup has taken over: under the
- * wordmark so the travelling lockup shows through the fading ink, over the
- * hero headline so it fades up with the parallax (see STACK in layerSplit.ts).
+ * Where the splash sits once it starts to hand off: over the hero headline
+ * (which fades up with the parallax) and under the nav, whose own mark the
+ * travelling one lands on (see STACK in layerSplit.ts).
  */
 export const HANDOFF_Z_INDEX: number = STACK.handoff;
+
+/** the ink, fully transparent, for the splash's fade */
+const INK_CLEAR = "rgba(20, 16, 14, 0)";
 
 export type HandoffContext = {
   /** the splash root; its ink fades to transparent */
   root: HTMLElement;
-  /** the hero's lockup wrapper (`[data-hero-lockup]`), if rendered */
-  hero: HTMLElement | null;
+  /** the splash's G mark, which travels to the nav */
+  mark: SVGSVGElement | null;
+  /** the mark's red rule, which closes before anything moves */
+  rule: SVGPathElement | null;
+  /** the nav's own G mark, if rendered at this breakpoint */
+  nav: SVGSVGElement | null;
   /** the scene's canvases (`[data-parallax]`, `[data-parallax-front]`), whichever are rendered */
   parallax: HTMLElement | HTMLElement[] | null;
   onComplete: () => void;
 };
 
-const LOCKUP = '[data-lockup=""]';
-
-function flipParts(lockup: Element): Element[] {
-  return [lockup, ...lockup.querySelectorAll("[data-flip-id]")];
+/** whether an element takes up room on screen (not display: none) */
+function laidOut(el: Element | null): el is SVGSVGElement {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
 }
 
 /**
- * The handoff: the hero lockup takes over from the splash lockup via Flip —
- * travelling from the centred title card to its bottom-left slot and size —
- * while the splash's ink fades out and the parallax fades up underneath.
+ * The handoff: the rule closes its last corner, then the big mark shrinks
+ * into the nav's mark while the splash's ink fades out and the parallax
+ * fades up underneath. Where the nav has no mark (below xl), the mark fades
+ * in place instead.
  */
-export function buildHandoff({ root, hero, parallax, onComplete }: HandoffContext): gsap.core.Timeline {
+export function buildHandoff({ root, mark, rule, nav, parallax, onComplete }: HandoffContext): gsap.core.Timeline {
   const tl = gsap.timeline({ onComplete });
-  const from = root.querySelector(LOCKUP);
-  const to = hero?.querySelector(LOCKUP) ?? null;
 
-  if (from && to) {
-    const fromParts = flipParts(from);
-    const toParts = flipParts(to);
-    const state = Flip.getState(fromParts);
-    const carried = new Set(toParts.map((el) => el.getAttribute("data-flip-id")));
-    for (const part of fromParts.slice(1)) {
-      if (carried.has(part.getAttribute("data-flip-id"))) {
-        // the hero copy takes over from here
-        gsap.set(part, { opacity: 0 });
-      } else {
-        // no counterpart in the hero (the script drops on small screens): fade in place
-        tl.to(part, { opacity: 0, duration: HANDOFF_SECONDS / 2, ease: "power2.out" }, 0);
-      }
-    }
-    gsap.set(root, { zIndex: HANDOFF_Z_INDEX });
-    tl.add(
-      Flip.from(state, {
-        targets: toParts,
+  if (rule) {
+    tl.to(rule, { attr: { "stroke-dashoffset": 0 }, duration: TRACE_FINISH_SECONDS, ease: "power2.inOut" }, 0);
+  }
+  const at = TRACE_FINISH_SECONDS;
+
+  gsap.set(root, { zIndex: HANDOFF_Z_INDEX });
+  if (mark && laidOut(nav)) {
+    const from = mark.getBoundingClientRect();
+    const to = nav.getBoundingClientRect();
+    // the nav's copy waits, hidden, until the traveller has landed on it
+    gsap.set(nav, { opacity: 0 });
+    tl.to(
+      mark,
+      {
+        x: to.left - from.left,
+        y: to.top - from.top,
+        scale: to.height / from.height,
+        transformOrigin: "0 0",
         duration: HANDOFF_SECONDS,
         ease: HANDOFF_EASE,
-        scale: true,
-        nested: true,
-        absolute: true,
-        onEnter: (els) => gsap.fromTo(els, { opacity: 0 }, { opacity: 1, duration: HANDOFF_SECONDS, ease: "power2.in" }),
-      }),
-      0,
+      },
+      at,
     );
+    tl.set(nav, { clearProps: "opacity" }, at + HANDOFF_SECONDS);
+  } else if (mark) {
+    tl.to(mark, { opacity: 0, duration: HANDOFF_SECONDS / 2, ease: "power2.out" }, at);
   }
 
-  tl.to(root, { opacity: 0, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, 0);
+  // the ink, not the root's opacity: the mark must stay solid while it travels
+  tl.to(root, { backgroundColor: INK_CLEAR, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, at);
   if (parallax && (!Array.isArray(parallax) || parallax.length)) {
-    tl.to(parallax, { opacity: 1, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, 0);
+    tl.to(parallax, { opacity: 1, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, at);
   }
   return tl;
 }
