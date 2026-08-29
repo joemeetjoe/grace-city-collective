@@ -13,11 +13,25 @@ export const G_MARK_LETTER =
  * by `i` from the logo's edges (negative grows it), in the logo's units.
  */
 export function gMarkBox(i: number, r: number): string {
-  const x0 = i;
-  const y0 = i;
-  const x1 = G_MARK_W - i;
-  const y1 = G_MARK_H - i;
-  return `M${x0 + r} ${y0}H${x1}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
+  return markBox(i, i, G_MARK_W - 2 * i, G_MARK_H - 2 * i, r);
+}
+
+/**
+ * A box `w` by `h` in the G mark's shape — the top-left and bottom-right
+ * corners rounded by `r`, the other two pointed — with its top-left corner
+ * at (x, y). The mark's own box is one; so are the calendar's days
+ * (GatheringCalendar) and the table and its seats (HouseTable).
+ */
+export function markBox(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): string {
+  const x1 = x + w;
+  const y1 = y + h;
+  return `M${x + r} ${y}H${x1}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
 }
 
 /** the rule: its distance from the box, its weight, and its corner radius (concentric with the box's) */

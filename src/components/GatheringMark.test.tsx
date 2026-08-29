@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import GatheringMark, { TRACE_STAGGER_MS } from "./GatheringMark";
+import GatheringMark, { HOUSE_CALL_STAGGER_MS, TRACE_STAGGER_MS } from "./GatheringMark";
 import { lozengePath } from "./lozenge";
 
 describe("lozengePath", () => {
@@ -93,5 +93,50 @@ describe("GatheringMark", () => {
       "0",
       "1",
     ]);
+  });
+});
+
+describe("GatheringMark — the way in's emblems", () => {
+  it("one alone is a single lozenge that fills when lit", () => {
+    const { container } = render(<GatheringMark mark="one" lit />);
+    const ps = paths(container);
+    expect(ps.length).toBe(1);
+    expect(ps[0].getAttribute("fill-opacity")).toBe("1");
+  });
+
+  it("one met: the second draws in beside the first, and the first fills", () => {
+    const { container } = render(<GatheringMark mark="two" lit />);
+    const ps = paths(container);
+    expect(ps.length).toBe(2);
+    expect(ps[0].getAttribute("fill-opacity")).toBe("1");
+    expect(ps[1].style.transform).toMatch(/^translate\(-/);
+  });
+
+  it("a family at a table: four draw in to the table, and the table fills", () => {
+    const { container } = render(<GatheringMark mark="table" lit />);
+    const ps = paths(container);
+    expect(ps.length).toBe(5);
+    expect(ps.slice(0, 4).every((p) => p.style.transform.startsWith("translate("))).toBe(true);
+    expect(ps[4].getAttribute("fill-opacity")).toBe("1");
+  });
+
+  it("on the tour the five homes are called on in turn; the table is not", () => {
+    const { container } = render(<GatheringMark mark="homes" lit tour />);
+    const called = [...container.querySelectorAll<SVGPathElement>("path[data-called]")];
+    expect(called.length).toBe(5);
+    expect(called.map((p) => parseFloat(p.style.animationDelay))).toEqual(
+      [0, 1, 2, 3, 4].map((i) => i * HOUSE_CALL_STAGGER_MS),
+    );
+    expect(called.every((p) => p.classList.contains("house-call"))).toBe(true);
+    // unlit, or off the tour, no home is called
+    expect(render(<GatheringMark mark="homes" tour />).container.querySelectorAll("[data-called]").length).toBe(0);
+    expect(render(<GatheringMark mark="homes" lit />).container.querySelectorAll("[data-called]").length).toBe(0);
+  });
+
+  it("waits `delay` before the first lozenge traces, once shown", () => {
+    const { container } = render(<GatheringMark mark="feast" delay={400} />);
+    expect(paths(container).map((p) => parseFloat(p.style.transitionDelay))).toEqual([400, 520, 640]);
+    const waiting = render(<GatheringMark mark="feast" delay={400} shown={false} />);
+    expect(parseFloat(paths(waiting.container)[0].style.transitionDelay)).toBe(0);
   });
 });

@@ -86,3 +86,20 @@ describe("validateSite", () => {
     expect(validateSite([])).toEqual({ ok: false, errors: ["expected object"] });
   });
 });
+
+describe("validateSite — the way in", () => {
+  it("accepts content published before the way in existed, and the site falls back to its own", async () => {
+    const { wayIn } = await import("./site");
+    const old = clone();
+    delete old.wayIn;
+    const result = validateSite(old);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(wayIn(result.value)).toEqual(site.wayIn);
+  });
+
+  it("checks a published way in step by step", () => {
+    const bad = clone();
+    (bad.wayIn as Record<string, unknown>[])[1] = { title: "Dinner." };
+    expect(validateSite(bad)).toEqual({ ok: false, errors: ["wayIn[1].body: missing, expected string"] });
+  });
+});

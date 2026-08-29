@@ -44,6 +44,8 @@ export type Gathering = {
   when: string;
   body: string;
 };
+/** one step of the way in (WayIn.tsx): how a visitor becomes one of the family */
+export type Waymark = { title: string; body: string };
 export type Devotion = { title: string; refs: string; body: string };
 export type Belief = { title: string; body: string; refs: string };
 export type BeliefPosture = { line: string; quote: string; ref: string };
@@ -62,6 +64,8 @@ export type SiteContent = {
   nav: NavItem[];
   scene: SceneSection[];
   gatherings: Gathering[];
+  /** absent in content published before the way in existed: the site falls back to its own */
+  wayIn?: Waymark[];
   longform: LongformSection[];
   devotionsIntro: string;
   devotions: Devotion[];
@@ -73,6 +77,11 @@ export type SiteContent = {
   socials: Link[];
   footer: { follow: string; copyright: string };
 };
+
+/** the way in, from the content or, where none was published, the built-in words */
+export function wayIn(content: SiteContent): Waymark[] {
+  return content.wayIn ?? site.wayIn!;
+}
 
 /** every id a nav item may point at: scene stops first, long-form after */
 export function sectionIds(content: SiteContent): SectionId[] {
@@ -146,9 +155,11 @@ export const site: SiteContent = {
     {
       id: "visit",
       label: "Visit",
-      kicker: "Visit",
+      // the stop's own words are its kicker and the way in (below): the
+      // headline and body under the kicker are the current step's
+      kicker: "Come and see.",
       heading: "Come and see.",
-      body: ["Sundays at 10:30 a.m. There is no right way to arrive, and no wrong time to come back."],
+      body: [],
       cta: { label: "Email us", href: "mailto:info@gracecitycollective.com" },
     },
   ],
@@ -165,6 +176,31 @@ export const site: SiteContent = {
       title: "All-Church Gathering",
       when: "First Sunday of the month · the five rooms become one",
       body: "The whole family in one place for a love feast: prayer, Scripture, singing, communion and teaching — casual, informal, participatory, and more like a family gathering than a service.",
+    },
+  ],
+
+  // the way in: five steps from a first hello to a house church of your own;
+  // WayIn draws one emblem per step by position, so keep them five
+  wayIn: [
+    {
+      title: "Say hello.",
+      body: "Write to us and tell us a little about yourself — who you are, where you live, what brought you here. That's all it takes to start.",
+    },
+    {
+      title: "A pastor writes back.",
+      body: "One of our house church pastors will reach out — a real person, not an office — to say hello, and to answer whatever you're wondering.",
+    },
+    {
+      title: "Dinner.",
+      body: "They'll set up a meal with you and yours, at their table or somewhere you like, so you know a few faces before you ever walk into a room.",
+    },
+    {
+      title: "First Sunday, all together.",
+      body: "Come to the all-church gathering, when the five rooms become one, and meet the whole family at once.",
+    },
+    {
+      title: "Make the rounds.",
+      body: "Then spend a Sunday in each of the house churches, until one of them feels like home. Stay there.",
     },
   ],
 
