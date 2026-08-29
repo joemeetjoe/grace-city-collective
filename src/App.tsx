@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import DotRail from "@/components/DotRail";
+import GMark from "@/components/GMark";
 import { STACK } from "@/components/layerSplit";
 import Lockup from "@/components/Lockup";
 import MobileNav from "@/components/MobileNav";
@@ -116,10 +117,23 @@ export default function App() {
             sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
           }`}
         >
-          {/* below the tablet breakpoint: the seal mark and a Menu that opens the sheet */}
-          <MobileNav className="lg:hidden" activeId={activeId} onNavigate={jumpTo} />
-          <NavLinks items={site.nav} activeId={activeId} onNavigate={jumpTo} className="hidden lg:flex" />
-          <div className="hidden items-center gap-3 lg:flex">
+          {/* below xl: the seal mark and a Menu that opens the sheet. Nine links,
+              the mark and both buttons need ~1240px for one row, so the full
+              desktop nav waits for the xl breakpoint */}
+          <MobileNav className="xl:hidden" activeId={activeId} onNavigate={jumpTo} />
+          {/* from xl up: the G mark, then the section links */}
+          <div className="hidden items-center gap-[clamp(14px,1.8vw,26px)] xl:flex">
+            <a
+              href="#hero"
+              data-nav-mark=""
+              onClick={(e) => jump(e, "hero")}
+              className="inline-flex rounded-sm text-cream transition-opacity hover:opacity-80"
+            >
+              <GMark size={40} ruled />
+            </a>
+            <NavLinks items={site.nav} activeId={activeId} onNavigate={jumpTo} />
+          </div>
+          <div className="hidden items-center gap-3 xl:flex">
             <a
               href="#give"
               onClick={(e) => jump(e, "give")}
