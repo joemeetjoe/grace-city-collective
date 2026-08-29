@@ -15,6 +15,7 @@ import CornerOrnaments, {
 import DotRail from "@/components/DotRail";
 import GatheringCalendar from "@/components/GatheringCalendar";
 import GatheringMark from "@/components/GatheringMark";
+import HouseTable from "@/components/HouseTable";
 import { BUTTON_CORNERS, GLASS, GLASS_CORNERS } from "@/components/glass";
 import GMark from "@/components/GMark";
 import { BUTTON_LIFT, FOCUS_RING, LINK_SWEEP } from "@/components/interact";
@@ -129,9 +130,14 @@ const TUCK: Partial<Record<string, string>> = {
  */
 function Bracketed({
   className = "",
+  onMouseEnter,
+  onMouseLeave,
   children,
 }: {
   className?: string;
+  /** for a panel lit as a whole while the reader is over it */
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   children: React.ReactNode;
 }) {
   // the brackets slide home once most of the panel is on screen, and reset
@@ -142,6 +148,8 @@ function Bracketed({
     <div
       ref={ref}
       data-copy-panel=""
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={`${between} ${GLASS} p-[clamp(18px,2.6vw,32px)] ${GLASS_CORNERS} ${className}`}
     >
       <CornerOrnaments inset={PANEL_BRACKET_OUT} shown={shown} />
@@ -797,12 +805,39 @@ function GatheringsCalendar({ lit }: { lit: Mark | null }) {
   );
 }
 
+/**
+ * The house churches' ornament, the calendar's mirror: a house church at
+ * table in the G mark's box (HouseTable), on the right of the panel past a
+ * divider, its seats taken with the panel's brackets and drawn in while
+ * the reader is over the panel. Desktop only, like the calendar: a phone
+ * has no pointer to light it, and no room beside the words.
+ */
+function HouseChurchesTable({ lit }: { lit: boolean }) {
+  const shown = useContext(PanelShownContext);
+  return (
+    <div
+      data-house-churches-table=""
+      // the table is absolutely placed inside, so it fills the column's
+      // height (set by the words beside it) without ever adding to it
+      className="relative hidden shrink-0 border-l border-cream/25 pl-[clamp(20px,2vw,32px)] lg:block lg:w-[clamp(150px,12vw,200px)]"
+    >
+      <HouseTable
+        lit={lit}
+        shown={shown}
+        className="absolute inset-y-1 right-0 h-[calc(100%_-_8px)] w-[calc(100%_-_clamp(20px,2vw,32px))]"
+      />
+    </div>
+  );
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
   const pending = useContext(IntroPendingContext);
   // the gathering under the pointer, lighting the tiles beside the headline
   const [lit, setLit] = useState<Mark | null>(null);
+  // whether the reader is over the house churches' panel, seating its table
+  const [over, setOver] = useState(false);
   // no z-index: a section must not form a stacking context, or its headline
   // could never sit under the front canvas while its copy sits over it
   const base = `relative flex min-h-[100svh] ${gutter}`;
@@ -955,6 +990,30 @@ function Scene({ section: s }: { section: SceneSection }) {
   // the who-we-are column gives up its right third to the two near apostles
   // (TUCK), so its words set a size smaller to keep the panel one screen tall
   const about = s.id === "about";
+  // house churches seats its table in a column on the right of the words,
+  // the calendar's mirror, so its panel runs wider than a column alone
+  const houses = s.id === "house-churches";
+  const words = (
+    <>
+      <Kicker>{s.kicker}</Kicker>
+      <PanelReveal className="flex flex-col gap-5 md:gap-[26px]">
+        <h2
+          className={`${about ? "text-[clamp(30px,2.8vw,48px)] [@media(max-height:820px)]:lg:text-[36px]" : "text-[clamp(34px,4.1vw,58px)]"} leading-[1.06] text-balance ${serif}`}
+        >
+          {s.heading}
+        </h2>
+        {s.body.map((p) => (
+          <p
+            key={p}
+            className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"}`}
+          >
+            {p}
+          </p>
+        ))}
+      </PanelReveal>
+    </>
+  );
+  const column = "flex flex-col gap-5 md:gap-[26px]";
   return (
     <section
       id={s.id}
@@ -962,24 +1021,26 @@ function Scene({ section: s }: { section: SceneSection }) {
       className={`${base} ${clear} items-center ${side}`}
     >
       <Bracketed
-        className={`flex max-w-[600px] flex-col gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
+        className={
+          houses
+            ? `flex w-full max-w-[600px] flex-col lg:max-w-[840px] lg:flex-row ${TUCK[s.id] ?? ""}`
+            : `${column} max-w-[600px] ${TUCK[s.id] ?? ""}`
+        }
+        onMouseEnter={houses ? () => setOver(true) : undefined}
+        onMouseLeave={houses ? () => setOver(false) : undefined}
       >
-        <Kicker>{s.kicker}</Kicker>
-        <PanelReveal className="flex flex-col gap-5 md:gap-[26px]">
-          <h2
-            className={`${about ? "text-[clamp(30px,2.8vw,48px)] [@media(max-height:820px)]:lg:text-[36px]" : "text-[clamp(34px,4.1vw,58px)]"} leading-[1.06] text-balance ${serif}`}
-          >
-            {s.heading}
-          </h2>
-          {s.body.map((p) => (
-            <p
-              key={p}
-              className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"}`}
+        {houses ? (
+          <>
+            <div
+              className={`${column} min-w-0 flex-1 lg:pr-[clamp(24px,2.4vw,40px)]`}
             >
-              {p}
-            </p>
-          ))}
-        </PanelReveal>
+              {words}
+            </div>
+            <HouseChurchesTable lit={over} />
+          </>
+        ) : (
+          words
+        )}
       </Bracketed>
     </section>
   );
