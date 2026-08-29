@@ -5,7 +5,7 @@ import GatheringMark, {
   TRACE_MS,
   TRACE_STAGGER_MS,
 } from "@/components/GatheringMark";
-import { FOCUS_RING } from "@/components/interact";
+import { BUTTON_LIFT, FOCUS_RING } from "@/components/interact";
 import { lozengePath } from "@/components/lozenge";
 import type { Waymark } from "@/content/site";
 import { cn } from "@/lib/utils";
@@ -38,44 +38,47 @@ export const RULE_STAGGER_MS = 160;
 
 /** the traveller: a solid lozenge in the seal's red, in px, and the arrows' drawing box */
 const TRAVELLER_W = 10;
-const ARROW_W = 22;
-const ARROW_H = 12;
+const ARROW_W = 44;
+const ARROW_H = 24;
 
 /** the rule's halves and the traveller move on the site's ease, only where motion is welcome */
 const MOVE =
   "motion-safe:transition-[transform,opacity] motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
 
 /**
- * A diamond arrow: a hollow lozenge with a hairline chevron pointing the
- * way, in currentColor. It fills under the pointer like a lit emblem.
+ * A diamond arrow: a lozenge filled in the seal's red with a cream chevron
+ * pointing the way — a button in the site's own shape. Under the pointer
+ * it lifts and glows like the seal buttons; at the end of the way it
+ * empties to a hairline and waits.
  */
-function DiamondArrow({ back = false }: { back?: boolean }) {
+function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disabled?: boolean }) {
   const cx = ARROW_W / 2;
   const cy = ARROW_H / 2;
-  const tip = back ? cx - 3 : cx + 3;
-  const tail = back ? cx + 1 : cx - 1;
+  const tip = back ? cx - 5 : cx + 5;
+  const tail = back ? cx + 2 : cx - 2;
   return (
     <svg
       aria-hidden
-      width={ARROW_W}
-      height={ARROW_H}
       viewBox={`0 0 ${ARROW_W} ${ARROW_H}`}
-      className="block overflow-visible"
+      // drawn at 36×20 on a phone, full size from md
+      className="block h-5 w-9 overflow-visible md:h-6 md:w-11"
     >
       <path
         d={lozengePath(cx, cy, ARROW_W, ARROW_H)}
         fill="currentColor"
+        fillOpacity={disabled ? 0 : 1}
         stroke="currentColor"
         strokeWidth={1}
-        fillOpacity={0}
-        className="transition-[fill-opacity] duration-500 group-hover:[fill-opacity:1]"
+        className="transition-[fill-opacity] duration-500"
       />
       <path
-        d={`M${tail} ${cy - 2.5}L${tip} ${cy}L${tail} ${cy + 2.5}`}
+        d={`M${tail} ${cy - 4}L${tip} ${cy}L${tail} ${cy + 4}`}
         fill="none"
-        stroke="currentColor"
-        strokeWidth={1}
-        className="transition-[stroke] duration-500 group-hover:stroke-ink"
+        stroke={disabled ? "currentColor" : "var(--color-cream)"}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="transition-[stroke] duration-500"
       />
     </svg>
   );
@@ -120,7 +123,9 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         onClick={() => onStep(Math.max(0, Math.min(last, step + (back ? -1 : 1))))}
         data-way-arrow={back ? "back" : "next"}
         className={cn(
-          "group mt-[10px] shrink-0 cursor-pointer self-start rounded-sm p-1 text-cream/60 md:mt-[12px] transition-[opacity,color] duration-500 hover:text-seal disabled:pointer-events-none disabled:opacity-25",
+          // the lozenge sits level with the rule, its word under it level with the numerals
+          "mt-[6px] flex shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:gap-[5px] transition-[opacity,color] duration-500 [--lift-glow:var(--color-seal)] hover:text-seal-deep disabled:pointer-events-none disabled:text-cream/35",
+          BUTTON_LIFT,
           FOCUS_RING,
         )}
         style={{
@@ -128,7 +133,8 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
           transitionDelay: shown ? `${back ? 0 : railDone}ms` : "0ms",
         }}
       >
-        <DiamondArrow back={back} />
+        <DiamondArrow back={back} disabled={disabled} />
+        <span className="text-[10px] uppercase tracking-[0.2em] md:text-[11px]">{back ? "Back" : "Next"}</span>
       </button>
     );
   };
