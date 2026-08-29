@@ -844,9 +844,11 @@ function GiveSowing({ lit }: { lit: boolean }) {
   return (
     <div
       data-give-sowing=""
-      // the band runs from the glass's edge to the words: the panel's padding
-      // plus its give tuck (TUCK); the field is inset a little from both
-      className="absolute top-1/2 left-[clamp(18px,2.6vw,32px)] hidden w-[calc(clamp(120px,9.4vw,160px)_-_clamp(18px,2.6vw,32px))] -translate-y-1/2 px-2 lg:block"
+      // it starts at the glass's padding and runs the width of the house
+      // table's column (HouseChurchesTable), wider than the give tuck alone:
+      // the words set narrower than the room the tuck leaves them, so the
+      // field can borrow the slack and keep tiles the calendar's size
+      className="absolute top-1/2 left-[clamp(18px,2.6vw,32px)] hidden w-[clamp(140px,11.5vw,200px)] -translate-y-1/2 lg:block"
     >
       <SowingMark lit={lit} shown={shown} className="w-full" />
     </div>
