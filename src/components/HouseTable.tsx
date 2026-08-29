@@ -99,8 +99,8 @@ function pose(seat: Seat, shown: boolean, lit: boolean): string {
  * after the next round the table from the head when the panel around them
  * is shown, each sliding up from a little way back; while the reader is
  * over the house churches the seats draw in to the table and fill cream,
- * and the table fills the seal's red. The drawing fits whatever box it is
- * given, from the top.
+ * and the table fills the seal's red. The drawing sits centred in
+ * whatever box it is given.
  */
 export default function HouseTable({
   lit = false,
@@ -119,7 +119,7 @@ export default function HouseTable({
       data-house-table=""
       data-lit={lit ? "" : undefined}
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-      preserveAspectRatio="xMidYMin meet"
+      preserveAspectRatio="xMidYMid meet"
       className={cn("block text-cream", className)}
     >
       <g transform={`translate(${VIEW_W / 2} ${VIEW_H / 2})`}>

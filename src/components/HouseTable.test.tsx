@@ -68,11 +68,11 @@ describe("HouseTable", () => {
     expect(opacity("head")).toBeGreaterThan(opacity("left-2"));
   });
 
-  it("fits its box from the top, keeping the table's proportions", () => {
+  it("sits centred in its box, keeping the table's proportions", () => {
     const { container } = render(<HouseTable />);
     expect(
       container.querySelector("svg")!.getAttribute("preserveAspectRatio"),
-    ).toBe("xMidYMin meet");
+    ).toBe("xMidYMid meet");
   });
 
   it("lit, the seats draw in to the table and fill cream, and the table fills the seal's red", () => {
