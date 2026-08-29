@@ -1,3 +1,4 @@
+import { BUTTON_CORNERS } from "@/components/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 
@@ -9,7 +10,7 @@ export const MENU_LABEL = "Menu";
 export const CLOSE_LABEL = "Close menu";
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
-const pill = "rounded-full px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors";
+const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
 
 export type MobileNavProps = {
   /** the section under the viewport's midpoint; its link in the sheet is marked current */
@@ -24,7 +25,11 @@ export type MobileNavProps = {
  * right, and a full-screen sheet on ink with every nav link plus Give and
  * Join Sunday. Escape, the Close button, and any link close it.
  */
-export default function MobileNav({ activeId = null, onNavigate, className }: MobileNavProps) {
+export default function MobileNav({
+  activeId = null,
+  onNavigate,
+  className,
+}: MobileNavProps) {
   const [open, setOpen] = useState(false);
 
   const go = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -34,14 +39,24 @@ export default function MobileNav({ activeId = null, onNavigate, className }: Mo
   };
 
   return (
-    <div data-mobile-nav="" className={cn("flex w-full items-center justify-between", className)}>
-      <a href="#hero" onClick={(e) => go(e, "hero")} className="inline-flex rounded-full">
+    <div
+      data-mobile-nav=""
+      className={cn("flex w-full items-center justify-between", className)}
+    >
+      <a
+        href="#hero"
+        onClick={(e) => go(e, "hero")}
+        className="inline-flex rounded-full"
+      >
         <Seal size={28} variant="static" title={site.name} />
       </a>
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Trigger asChild>
-          <button type="button" className={`${pill} -mr-[22px] cursor-pointer text-cream/85 hover:text-cream`}>
+          <button
+            type="button"
+            className={`${pill} -mr-[22px] cursor-pointer text-cream/85 hover:text-cream`}
+          >
             {MENU_LABEL}
           </button>
         </Dialog.Trigger>
@@ -55,7 +70,11 @@ export default function MobileNav({ activeId = null, onNavigate, className }: Mo
 
             {/* the same row as the resting nav, so the mark does not jump when the sheet opens */}
             <div className="flex items-center justify-between px-[calc(clamp(12px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(12px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
-              <a href="#hero" onClick={(e) => go(e, "hero")} className="inline-flex rounded-full">
+              <a
+                href="#hero"
+                onClick={(e) => go(e, "hero")}
+                className="inline-flex rounded-full"
+              >
                 <Seal size={28} variant="static" title={site.name} />
               </a>
               <Dialog.Close asChild>
@@ -69,7 +88,10 @@ export default function MobileNav({ activeId = null, onNavigate, className }: Mo
               </Dialog.Close>
             </div>
 
-            <nav aria-label="Site" className="flex flex-1 flex-col justify-center gap-[clamp(6px,1.4svh,14px)] px-[clamp(28px,7vw,60px)] py-8">
+            <nav
+              aria-label="Site"
+              className="flex flex-1 flex-col justify-center gap-[clamp(6px,1.4svh,14px)] px-[clamp(28px,7vw,60px)] py-8"
+            >
               {site.nav.map((n) => (
                 <a
                   key={n.id}

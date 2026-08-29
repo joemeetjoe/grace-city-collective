@@ -8,6 +8,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { it } from "vitest";
 
+import GMark from "@/components/GMark";
+import { G_MARK_LETTER } from "@/components/gMarkGeometry";
 import Seal from "@/components/Seal";
 import { cssVar, tokens, type Token } from "@/theme/tokens";
 
@@ -41,23 +43,29 @@ it.skipIf(!process.env.SEAL_SHEET)("writes the seal design sheet", () => {
 });
 
 /**
- * Static assets: public/favicon.svg (hex-resolved, standalone) and an HTML
+ * Static assets: public/favicon.svg (the G mark as the nav wears it: cream,
+ * ruled in the seal's red; the ink that shows through the G on the site is
+ * painted in, so the mark still reads on a light tab strip) and an HTML
  * page the same headless browser turns into public/apple-touch-icon.png.
  *   SEAL_ASSETS=1 pnpm vitest run tools/seal/sheet.test.tsx
  */
 it.skipIf(!process.env.SEAL_ASSETS)("writes the favicon and touch-icon sources", () => {
-  const resolve = (markup: string) =>
-    markup.replace(/var\((--color-[a-z-]+), (#[0-9a-f]{6})\)/gi, (_, __, hex: string) => hex);
-  const favicon = resolve(renderToStaticMarkup(<Seal variant="live" size={64} title="Grace City Collective" />))
+  const favicon = renderToStaticMarkup(<GMark size={64} ruled title="Grace City Collective" />)
     .replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ')
-    .replace(/ style="[^"]*"/, "");
+    .replace(/ style="[^"]*"/, "")
+    .replace('stroke="var(--color-seal)"', `stroke="${tokens.seal}"`)
+    .replace('fill="currentColor"', `fill="${tokens.cream}"`)
+    .replace("<path fill=", `<path fill="${tokens.ink}" d="${G_MARK_LETTER}"></path><path fill=`);
   writeFileSync("public/favicon.svg", `${favicon}\n`);
-  const touch = resolve(renderToStaticMarkup(<Seal variant="live" size={152} title="Grace City Collective" />));
+  const touch = renderToStaticMarkup(<GMark size={112} ruled title="Grace City Collective" />).replace(
+    'stroke="var(--color-seal)"',
+    `stroke="${tokens.seal}"`,
+  );
   const dir = process.env.SEAL_SHEET_DIR ?? "docs/design/seal";
   mkdirSync(dir, { recursive: true });
   writeFileSync(
     `${dir}/apple-touch-icon.html`,
-    `<!doctype html><html><body style="margin:0;width:180px;height:180px;background:${tokens.ink};display:flex;align-items:center;justify-content:center">${touch}</body></html>`,
+    `<!doctype html><html><body style="margin:0;width:180px;height:180px;background:${tokens.ink};color:${tokens.cream};display:flex;align-items:center;justify-content:center">${touch}</body></html>`,
   );
   for (const [name, variant, size] of [
     ["hero-180", "live", 180],
