@@ -5,6 +5,7 @@ import CornerOrnaments, {
   FRAME_INSET,
 } from "@/components/CornerOrnaments";
 import DotRail from "@/components/DotRail";
+import GatheringMark from "@/components/GatheringMark";
 import { BUTTON_CORNERS, GLASS, GLASS_CORNERS } from "@/components/glass";
 import GMark from "@/components/GMark";
 import { STACK } from "@/components/layerSplit";
@@ -12,10 +13,12 @@ import Lockup from "@/components/Lockup";
 import MobileNav from "@/components/MobileNav";
 import NavLinks from "@/components/NavLinks";
 import OrnateRule from "@/components/OrnateRule";
+import ScriptureRefs from "@/components/ScriptureRefs";
 import PentecostParallax from "@/components/PentecostParallax";
 import StaticPoster from "@/components/StaticPoster";
 import { vignetteCss } from "@/components/vignette";
 import {
+  GATHERING_MARKS,
   type SceneSection,
   sectionIds,
   type SiteContent,
@@ -35,9 +38,10 @@ import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const gutter = "px-[clamp(20px,4.4vw,60px)]";
 const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
-// section copy stacks above the front canvas (layerSplit.ts); only the hero
-// headline and the kicker rules sit under it, where the nearest layers cross
-const above = `relative ${STACK.copy}`;
+// everything a scene section says sits between the canvases (layerSplit.ts),
+// so the nearest figures cross it: a panel rises from behind them and rests
+// with an edge tucked behind one, its words placed clear
+const between = `relative ${STACK.between}`;
 
 /** the ornamented rule that opens each long-form section, centred, in the seal's red */
 const SEPARATOR =
@@ -50,10 +54,48 @@ const PANEL_BRACKET_OUT = "-10px";
 const PANEL_ENTER_THRESHOLD = 0.45;
 
 /**
+ * Where each stop's panel tucks behind the nearest figures (the front cuts
+ * of layerSplit.ts): extra padding on that side, so the glass runs on under
+ * the figure while the words stop short of it. Who crosses what, at rest:
+ * who we are — the panel steps in from the gutter and the two near apostles
+ * on the left stand over its right third; house churches — the right-hand apostle's head over the
+ * bottom edge; gatherings — the two left apostles' heads over the lower-left
+ * corner, the right-hand one over the lower-right; give — a hood over the
+ * left edge, so the panel steps right and pads both sides to keep its words
+ * centred. Where a figure lands depends on both viewport axes — the
+ * waypoints (PentecostParallax) fill the frame's height, and the lateral
+ * budget clamps the frame's centre by its aspect — so the who-we-are and
+ * gatherings tucks are linear fits in vw and vh to the figures' screen
+ * positions measured at six sizes from 1280×720 to 2560×1440 (residuals
+ * under 20px); who-we-are steps in from the gutter from 1440 up, and its
+ * tuck is set per width range — the ranges are mutually exclusive because
+ * Tailwind orders an arbitrary min-[] variant before lg, so a plain
+ * min-[1440px]:pr would lose to lg:pr. A tucked panel is taller than it was, so those two sit up
+ * from the top of the frame rather than centred, clear of the lockup; on a
+ * short viewport (≤ 820px) the who-we-are and give type steps down a size
+ * as well. Give's paragraphs also set narrower on smaller desktops, so the
+ * words fit between the hood on the left and the apostle on the right.
+ * On a phone every panel spans the frame and the left apostles stay back
+ * (layerSplit.ts), so nothing reaches a panel at rest there; the panels
+ * only rise from behind the figures on the way in.
+ */
+const TUCK: Partial<Record<string, string>> = {
+  about:
+    "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:pl-[clamp(18px,2.6vw,32px)] lg:max-[1439px]:pr-[clamp(32px,calc(588px_-_22.7vw_+_4.8vh),320px)] min-[1440px]:ml-[clamp(24px,1.9vw,48px)] min-[1440px]:max-[1799px]:pr-[clamp(32px,calc(585px_-_20.8vw_+_4.8vh),340px)] min-[1800px]:pr-[clamp(32px,calc(505px_-_20.8vw_+_4.8vh),340px)]",
+  gatherings:
+    "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:pl-[clamp(120px,calc(58.8vw_-_63.6vh_-_60px),420px)] lg:pb-[clamp(40px,calc(30vh_-_200px),120px)] 2xl:max-w-[1200px]",
+  give: "lg:translate-x-[clamp(120px,9.4vw,160px)] lg:px-[clamp(120px,9.4vw,160px)]",
+};
+
+/**
  * A scene stop's copy block: a panel of frosted glass, so the words read
  * over the brightest parts of the plate while the engraving still shows
- * through, with the frame's brackets just outside its edges. The whole panel sits
- * above the front canvas, so no figure crosses the words or the panel's edge.
+ * through, with the frame's brackets just outside its edges. The whole panel
+ * — glass, brackets and words — sits under the front canvas, so the nearest
+ * figures cross it: it scrolls in from behind them, and at rest an edge of
+ * the glass tucks behind one while the words sit clear (the glass blurs only
+ * the back canvas, so a figure over it stays sharp). Nothing inside may
+ * carry a step of STACK: the panel is a stacking context of its own.
  */
 function Bracketed({
   className = "",
@@ -70,7 +112,7 @@ function Bracketed({
     <div
       ref={ref}
       data-copy-panel=""
-      className={`relative ${STACK.copy} ${GLASS} p-[clamp(18px,2.6vw,32px)] ${GLASS_CORNERS} ${className}`}
+      className={`${between} ${GLASS} p-[clamp(18px,2.6vw,32px)] ${GLASS_CORNERS} ${className}`}
     >
       <CornerOrnaments inset={PANEL_BRACKET_OUT} shown={shown} />
       {children}
@@ -367,7 +409,7 @@ export default function App() {
                       className="flex flex-col gap-3 border-t border-cream/25 pt-5"
                     >
                       <p className="text-xs uppercase tracking-[0.16em] text-seal">
-                        {String(i + 1).padStart(2, "0")} · {d.refs}
+                        {String(i + 1).padStart(2, "0")} · <ScriptureRefs refs={d.refs} />
                       </p>
                       <h3 className={`text-[28px] leading-[1.12] ${serif}`}>
                         {d.title}
@@ -423,7 +465,7 @@ export default function App() {
                         {b.body}
                       </dd>
                       <dd className="text-xs uppercase tracking-[0.16em] text-seal">
-                        {b.refs}
+                        <ScriptureRefs refs={b.refs} />
                       </dd>
                     </div>
                   ))}
@@ -567,9 +609,8 @@ export default function App() {
 }
 
 /**
- * A section's kicker with the hairline rule under it. The rule is one of the
- * three things the front canvas may cross (with the hero headline and the
- * wordmark); the kicker itself stays above it with the rest of the copy.
+ * A section's kicker with the hairline rule under it, both between the
+ * canvases like the rest of a section's words.
  */
 function Kicker({
   children,
@@ -584,11 +625,11 @@ function Kicker({
     <div
       className={`flex flex-col gap-3 ${centred ? "items-center" : ""} ${className}`}
     >
-      <p className={`${above} text-balance ${kickerCls}`}>{children}</p>
+      <p className={`${between} text-balance ${kickerCls}`}>{children}</p>
       <hr
         aria-hidden
         data-kicker-rule=""
-        className={`relative ${STACK.between} h-px w-12 border-0 bg-cream/30`}
+        className={`${between} h-px w-12 border-0 bg-cream/30`}
       />
     </div>
   );
@@ -613,7 +654,7 @@ function Scene({ section: s }: { section: SceneSection }) {
         <Kicker className="mb-[22px]">{s.kicker}</Kicker>
         {/* the one headline the nearest figures may clip at its edges */}
         <h1
-          className={`relative ${STACK.between} max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
+          className={`${between} max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
         >
           {s.heading}
         </h1>
@@ -628,34 +669,43 @@ function Scene({ section: s }: { section: SceneSection }) {
         className={`${base} ${clear} items-center`}
       >
         {/* three cards stack on a phone, so they tighten up to fit one viewport */}
-        <Bracketed className="flex w-full max-w-[1080px] flex-col gap-7 md:gap-11">
+        <Bracketed
+          className={`flex w-full max-w-[1080px] flex-col gap-6 md:gap-11 [@media(max-height:820px)]:lg:gap-7 ${TUCK[s.id]}`}
+        >
           <div className="flex flex-col gap-3 md:gap-4">
             <Kicker>{s.kicker}</Kicker>
             <h2
-              className={`${above} text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance ${serif}`}
+              className={`text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance [@media(max-height:820px)]:lg:text-[36px] ${serif}`}
             >
               {s.heading}
             </h2>
           </div>
-          <div
-            className={`${above} grid gap-6 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] md:gap-10`}
-          >
-            {site.gatherings.map((g) => (
+          {/* two gatherings side by side, each closed by its lozenge mark,
+              centred under the words and pushed to the card's foot so the two
+              marks sit level across the columns; a gathering published before
+              the marks existed takes one by position. The whole block steps
+              down a size on a short desktop viewport (see TUCK) */}
+          <div className="grid gap-5 md:grid-cols-2 md:gap-x-12 md:gap-y-8">
+            {site.gatherings.map((g, i) => (
               <div
                 key={g.title}
-                className="flex flex-col gap-2 border-t border-cream/25 pt-4 md:gap-3 md:pt-[22px]"
+                className="flex flex-col gap-2 border-t border-cream/25 pt-4 md:gap-4 md:pt-7 [@media(max-height:820px)]:lg:gap-3 [@media(max-height:820px)]:lg:pt-5"
               >
                 <h3
-                  className={`text-[24px] leading-[1.12] md:text-[31px] ${serif}`}
+                  className={`text-[24px] leading-[1.12] md:text-[34px] [@media(max-height:820px)]:lg:text-[27px] ${serif}`}
                 >
                   {g.title}
                 </h3>
-                <p className="text-xs uppercase tracking-[0.16em] text-seal">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-seal md:text-xs">
                   {g.when}
                 </p>
-                <p className="text-sm leading-relaxed text-cream/70 md:text-base">
+                <p className="text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed [@media(max-height:820px)]:lg:text-base">
                   {g.body}
                 </p>
+                <GatheringMark
+                  mark={g.mark ?? GATHERING_MARKS[i % GATHERING_MARKS.length]}
+                  className="mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 [@media(max-height:820px)]:lg:h-9 [@media(max-height:820px)]:lg:w-9"
+                />
               </div>
             ))}
           </div>
@@ -676,20 +726,20 @@ function Scene({ section: s }: { section: SceneSection }) {
         data-screen-label={s.label}
         className={`${base} flex-col items-center text-center ${place}`}
       >
-        <Bracketed className="flex flex-col items-center gap-5 md:gap-[26px]">
+        <Bracketed
+          className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
+        >
           <Kicker centred>{s.kicker}</Kicker>
-          <div
-            className={`${above} flex flex-col items-center gap-5 md:gap-[26px]`}
-          >
+          <div className="flex flex-col items-center gap-5 md:gap-[26px]">
             <h2
-              className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${serif}`}
+              className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${s.id === "give" ? "[@media(max-height:820px)]:lg:text-[56px]" : ""} ${serif}`}
             >
               {s.heading}
             </h2>
             {s.body.map((p) => (
               <p
                 key={p}
-                className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg"
+                className={`${s.id === "give" ? "lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base" : ""} max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg`}
               >
                 {p}
               </p>
@@ -697,7 +747,7 @@ function Scene({ section: s }: { section: SceneSection }) {
             {s.cta && (
               <a
                 href={s.cta.href}
-                className="rounded-full bg-seal px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em] text-cream transition-colors hover:bg-seal-deep"
+                className={`${BUTTON_CORNERS} bg-seal px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em] text-cream transition-colors hover:bg-seal-deep`}
               >
                 {s.cta.label}
               </a>
@@ -715,29 +765,35 @@ function Scene({ section: s }: { section: SceneSection }) {
   }
   // about and house churches: a single column, left or right of the crowd
   // house churches sits to the right of the crowd, but well in from the
-  // frame's edge, nearer the middle than the about stop's left-hand column
+  // frame's edge, nearer the middle than the about stop's left-hand column;
+  // no near figure reaches it at rest — it only rises from behind them
   const side =
     s.id === "house-churches"
       ? "justify-end lg:pr-[clamp(48px,11vw,200px)]"
       : "";
+  // the who-we-are column gives up its right third to the two near apostles
+  // (TUCK), so its words set a size smaller to keep the panel one screen tall
+  const about = s.id === "about";
   return (
     <section
       id={s.id}
       data-screen-label={s.label}
       className={`${base} ${clear} items-center ${side}`}
     >
-      <Bracketed className="flex max-w-[600px] flex-col gap-5 md:gap-[26px]">
+      <Bracketed
+        className={`flex max-w-[600px] flex-col gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
+      >
         <Kicker>{s.kicker}</Kicker>
-        <div className={`${above} flex flex-col gap-5 md:gap-[26px]`}>
+        <div className="flex flex-col gap-5 md:gap-[26px]">
           <h2
-            className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] text-balance ${serif}`}
+            className={`${about ? "text-[clamp(30px,2.8vw,48px)] [@media(max-height:820px)]:lg:text-[36px]" : "text-[clamp(34px,4.1vw,58px)]"} leading-[1.06] text-balance ${serif}`}
           >
             {s.heading}
           </h2>
           {s.body.map((p) => (
             <p
               key={p}
-              className="text-base leading-relaxed text-pretty text-cream/80 md:text-lg"
+              className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"}`}
             >
               {p}
             </p>

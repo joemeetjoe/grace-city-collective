@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { lozengePath } from "@/components/lozenge";
 import { cn } from "@/lib/utils";
 
 export type RuleEnds = "both" | "start" | "end";
@@ -20,8 +21,8 @@ const GAP = 3;
 
 function Lozenge({ w, h, vertical }: { w: number; h: number; vertical: boolean }) {
   // a hollow diamond, hairline; drawn on half-pixels so the stroke stays crisp
-  const d = `M${w / 2} 0.5L${w - 0.5} ${h / 2}L${w / 2} ${h - 0.5}L0.5 ${h / 2}Z`;
-  const dv = `M${h / 2} 0.5L${h - 0.5} ${w / 2}L${h / 2} ${w - 0.5}L0.5 ${w / 2}Z`;
+  const d = lozengePath(w / 2, h / 2, w, h);
+  const dv = lozengePath(h / 2, w / 2, h, w);
   return (
     <svg
       aria-hidden

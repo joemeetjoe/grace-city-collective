@@ -9,7 +9,7 @@
  * Swap for zod once it is a direct dependency; the result shape stays.
  */
 
-import type { LongformId, SceneId, SectionId, SiteContent } from "./site";
+import { GATHERING_MARKS, type LongformId, type SceneId, type SectionId, type SiteContent } from "./site";
 
 export type ValidationResult = { ok: true; value: SiteContent } | { ok: false; errors: string[] };
 
@@ -88,7 +88,7 @@ const siteShape = obj({
       cta: optional(link),
     }),
   ),
-  gatherings: arr(obj({ title: str, when: str, body: str })),
+  gatherings: arr(obj({ mark: optional(oneOf(GATHERING_MARKS)), title: str, when: str, body: str })),
   longform: arr(obj({ id: oneOf(LONGFORM_IDS), kicker: str, heading: str, intro: optional(str) })),
   devotionsIntro: str,
   devotions: arr(obj({ title: str, refs: str, body: str })),

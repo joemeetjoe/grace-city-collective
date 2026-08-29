@@ -193,7 +193,8 @@ describe("App static fallback", () => {
 
 describe("App content", () => {
   const facts = [
-    "Sunday Worship Gathering",
+    "House Churches",
+    "love feast",
     "10:30 a.m.",
     "first Sunday of each month",
     "12–20",
@@ -367,7 +368,7 @@ describe("App canvas split", () => {
     );
   });
 
-  it("only the hero headline and the kicker rules sit between the canvases; the lockup rides above with the chrome", () => {
+  it("the hero headline and the kicker rules sit between the canvases; the lockup rides above with the chrome", () => {
     const { container } = render(<App />);
     expect(
       container.querySelector("[data-hero-lockup]")!.closest(`.${STACK.copy}`),
@@ -380,17 +381,19 @@ describe("App canvas split", () => {
     for (const rule of rules) expect(has(rule, STACK.between)).toBe(true);
   });
 
-  it("body copy, cards and buttons in the scene sections stack above the front canvas", () => {
+  it("every word a scene section says sits between the canvases: in its panel, or (the hero) on its own", () => {
     const { container } = render(<App />);
     const copy = container.querySelectorAll(
-      "section[data-screen-label] :is(p, h2, h3, a)",
+      "section[data-screen-label] :is(p, h1, h2, h3, a)",
     );
     expect(copy.length).toBeGreaterThan(10);
     for (const el of copy) {
       const section = el.closest("section")!;
-      const above = el.closest(`.${STACK.copy}`);
-      expect(above, el.textContent ?? "").not.toBeNull();
-      expect(section.contains(above)).toBe(true);
+      const between = el.closest(`.${STACK.between}`);
+      expect(between, el.textContent ?? "").not.toBeNull();
+      expect(section.contains(between)).toBe(true);
+      // nothing in a section climbs back above the front canvas
+      expect(el.closest(`.${STACK.copy}`), el.textContent ?? "").toBeNull();
     }
   });
 
@@ -439,7 +442,7 @@ describe("App canvas split", () => {
       expect(section.querySelector('[data-ornate-rule="both"]')).not.toBeNull();
   });
 
-  it("every scene stop but the hero brackets its copy the same way, above the front canvas", () => {
+  it("every scene stop but the hero brackets its copy the same way, under the front canvas", () => {
     const { container } = render(<App />);
     const stops = [...container.querySelectorAll("section[data-screen-label]")];
     expect(stops.length).toBe(6);
@@ -450,10 +453,11 @@ describe("App canvas split", () => {
         continue;
       }
       expect(brackets.length, stop.id).toBe(1);
-      // the words sit inside a frosted-glass panel that rides above the front canvas
+      // the words sit inside a frosted-glass panel that the nearest figures cross
       const panel = brackets[0].parentElement!;
       expect(panel.getAttribute("data-copy-panel"), stop.id).not.toBeNull();
-      expect(panel.classList.contains(STACK.copy), stop.id).toBe(true);
+      expect(panel.classList.contains(STACK.between), stop.id).toBe(true);
+      expect(panel.querySelector(`.${STACK.copy}`), stop.id).toBeNull();
       expect(panel.className, stop.id).toMatch(/bg-ink\/\d+/);
       expect(panel.className, stop.id).toMatch(/backdrop-blur/);
       expect(panel.querySelector("p, h2"), stop.id).not.toBeNull();

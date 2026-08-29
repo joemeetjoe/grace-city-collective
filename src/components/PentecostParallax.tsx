@@ -6,6 +6,7 @@ import {
   EMBERS_SIDE,
   assignLayer,
   canvasFor,
+  stopAt,
   renderPasses,
   type CanvasSide,
   type RenderPass,
@@ -63,6 +64,8 @@ type Layer = {
   isFlame: number;
   relief: number;
   i: number;
+  /** which canvas it draws to at the current stop (layerSplit.ts) */
+  side: CanvasSide;
   fit?: number;
   /** a flame's centre as plate fractions, and its ordinal among the flames */
   at?: [number, number];
@@ -353,6 +356,8 @@ export default function PentecostParallax({
     const cutMaps: THREE.Texture[] = [];
     let layers: Layer[] = [];
     let backdropLayer: Layer | null = null;
+    // the stop whose front row the cuts currently wear; -1 until the first frame
+    let frontStop = -1;
     let doveLayer: Layer | undefined;
     let rayLayer: RayLayer | null = null;
     let emberLayer: EmberLayer | null = null;
@@ -460,7 +465,7 @@ export default function PentecostParallax({
       bgMesh.position.z = BACKDROP_Z;
       bgMesh.renderOrder = 0;
       scene.add(assignLayer(bgMesh, "back"));
-      backdropLayer = { name: "backdrop", z: BACKDROP_Z, mesh: bgMesh, mat: bgMat, isFlame: 0, relief: 0, i: -1, fit: FIT_BG };
+      backdropLayer = { name: "backdrop", z: BACKDROP_Z, mesh: bgMesh, mat: bgMat, isFlame: 0, relief: 0, i: -1, side: "back", fit: FIT_BG };
 
       // a flame at parent.z + FLAME_LIFT sorts right after its parent, so it
       // draws over the head it rests on and nothing else
@@ -483,7 +488,7 @@ export default function PentecostParallax({
             depth.magFilter = THREE.LinearFilter;
             cutMaps.push(depth);
           }
-          const side = sideOf(canvasFor(cut));
+          const side = sideOf(canvasFor(cut, 0, tierRef.current.name));
           const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel, side);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
@@ -493,7 +498,7 @@ export default function PentecostParallax({
           mesh.renderOrder = i + 1;
           scene.add(assignLayer(mesh, side));
           const flame = cut.isFlame ? flameOrdinal++ : undefined;
-          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, at: cut.at, flame };
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame };
         });
       doveLayer = layers.find((l) => l.name === "dove");
       // a debug build exposes the layers so a shot script can solo them
@@ -553,6 +558,19 @@ export default function PentecostParallax({
         const p = sections.length > 1 ? sp / (sections.length - 1) : 0;
         const ease = p * p * (3 - 2 * p);
         const ascent = ascentProgress(sp, reducedMotion);
+        // the front row turns with the frame (layerSplit.ts): a cut that changes
+        // side swaps canvas and takes or drops the front vignette
+        const stop = stopAt(sp);
+        if (stop !== frontStop) {
+          frontStop = stop;
+          for (const l of layers) {
+            const side = sideOf(canvasFor(l, stop, tierRef.current.name));
+            if (side === l.side) continue;
+            l.side = side;
+            assignLayer(l.mesh, side);
+            l.mat.uniforms.uVignette.value = side === "front" ? 1 : 0;
+          }
+        }
 
         const idle = o.idleDrift ? 1 : 0;
         const dx = Math.sin(t * 0.17) * 0.18 * idle;
