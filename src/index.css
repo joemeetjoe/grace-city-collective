@@ -186,6 +186,24 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     [data-reveal="false"] > .rule-draw::before {
       transform: scaleX(0);
     }
+    /* SowingMark: a grain travels down from the tile it waits in
+       (--from-x/--from-y, its parent's centre) to its own, and leaves once
+       its row has handed on. Only under motion: at rest the grains stay put */
+    @keyframes sow-travel {
+      from {
+        opacity: 1;
+        transform: translate(var(--from-x), var(--from-y));
+      }
+      to {
+        opacity: 1;
+        transform: translate(0, 0);
+      }
+    }
+    @keyframes sow-leave {
+      to {
+        opacity: 0;
+      }
+    }
   }
 }
 

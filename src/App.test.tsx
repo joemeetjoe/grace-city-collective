@@ -287,6 +287,39 @@ describe("App gatherings calendar", () => {
   });
 });
 
+describe("App house churches table", () => {
+  it("the table sits in the house churches panel and lights while the pointer is over the panel", () => {
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    const column = panel.querySelector("[data-house-churches-table]")!;
+    const table = column.querySelector("[data-house-table]")!;
+    expect(table.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(table.getAttribute("data-lit")).toBe("");
+    fireEvent.mouseLeave(panel);
+    expect(table.getAttribute("data-lit")).toBeNull();
+    // the words come first, the table after them, past the divider
+    const kicker = panel.querySelector("p")!;
+    expect(
+      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});
+
+describe("App give sowing", () => {
+  it("the sown field sits in the give panel alone and fills while the pointer is over the panel", () => {
+    const { container } = render(<App />);
+    const panel = container.querySelector("#give [data-copy-panel]")!;
+    const field = panel.querySelector("[data-sowing-mark]")!;
+    expect(field.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(field.getAttribute("data-lit")).toBe("");
+    fireEvent.mouseLeave(panel);
+    expect(field.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelectorAll("[data-sowing-mark]")).toHaveLength(1);
+  });
+});
+
 describe("App section markers", () => {
   it("the nav link and the rail dot agree on the current section", () => {
     const { container } = render(<App />);
