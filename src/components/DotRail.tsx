@@ -1,3 +1,4 @@
+import { GLASS } from "@/components/glass";
 import { cn } from "@/lib/utils";
 import type { SectionMarker } from "@/scroll/markers";
 
@@ -19,7 +20,12 @@ export type DotRailProps = {
  * pin it to the page). Hidden below the tablet breakpoint, where it would
  * compete with thumbs.
  */
-export default function DotRail({ markers, activeId, onNavigate, className }: DotRailProps) {
+export default function DotRail({
+  markers,
+  activeId,
+  onNavigate,
+  className,
+}: DotRailProps) {
   return (
     <nav
       aria-label="Sections"
@@ -29,6 +35,17 @@ export default function DotRail({ markers, activeId, onNavigate, className }: Do
         className,
       )}
     >
+      {/* the nav's glass, behind the column of dots only: the labels beside
+          them are laid out but hidden, so the strip hugs the dots. The mark's
+          corners, at the strip's own scale */}
+      <span
+        aria-hidden
+        data-dot-glass=""
+        className={cn(
+          "absolute -inset-y-2.5 -right-[7px] -z-10 w-7 rounded-tl-[12px] rounded-br-[12px]",
+          GLASS,
+        )}
+      />
       {markers.map((m) => {
         const active = m.id === activeId;
         return (

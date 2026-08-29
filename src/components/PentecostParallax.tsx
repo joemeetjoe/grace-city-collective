@@ -108,6 +108,8 @@ export type PentecostParallaxProps = {
   embers?: number;
   /** every texture (and cuts.json) has arrived; fires once */
   onReady?: () => void;
+  /** a texture arrived: how many so far, of how many requested */
+  onProgress?: (loaded: number, total: number) => void;
   /**
    * a second canvas, stacked above the page's type, for the nearest layers
    * (layerSplit.ts); without it everything draws to the one canvas
@@ -255,6 +257,7 @@ export default function PentecostParallax({
   reliefGain: reliefMax = 0.8,
   embers,
   onReady,
+  onProgress,
   frontCanvas,
   className,
 }: PentecostParallaxProps) {
@@ -262,9 +265,11 @@ export default function PentecostParallax({
   const frontRef = useRef(frontCanvas);
   const tierRef = useRef(tier);
   const onReadyRef = useRef(onReady);
+  const onProgressRef = useRef(onProgress);
   useEffect(() => {
     onReadyRef.current = onReady;
-  }, [onReady]);
+    onProgressRef.current = onProgress;
+  }, [onReady, onProgress]);
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({
     layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
@@ -724,6 +729,9 @@ export default function PentecostParallax({
     const reportReady = readyOnce(() => onReadyRef.current?.());
     manager.onLoad = () => {
       if (!disposed) reportReady();
+    };
+    manager.onProgress = (_url, loaded, total) => {
+      if (!disposed) onProgressRef.current?.(loaded, total);
     };
 
     return () => {

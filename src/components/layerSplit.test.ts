@@ -107,11 +107,10 @@ describe("renderPasses", () => {
 describe("STACK", () => {
   const z = (cls: string) => Number(/z-\[?(\d+)\]?/.exec(cls)![1]);
 
-  it("orders the page: back canvas, headline and rules, handoff, wordmark, front canvas, copy, nav", () => {
+  it("orders the page: back canvas, headline and rules, handoff, front canvas, copy, nav", () => {
     expect(z(STACK.back)).toBeLessThan(z(STACK.between));
     expect(z(STACK.between)).toBeLessThan(STACK.handoff);
-    expect(STACK.handoff).toBeLessThan(z(STACK.wordmark));
-    expect(z(STACK.wordmark)).toBeLessThan(z(STACK.front));
+    expect(STACK.handoff).toBeLessThan(z(STACK.front));
     expect(z(STACK.front)).toBeLessThan(z(STACK.copy));
     expect(z(STACK.copy)).toBeLessThan(z(STACK.nav));
   });

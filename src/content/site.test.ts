@@ -10,6 +10,12 @@ describe("site content", () => {
     }
   });
 
+  it("the nav lists its sections in page order, like the dot rail", () => {
+    const ids = sectionIds(site);
+    const navIds = site.nav.map((n) => n.id);
+    expect(navIds).toEqual(ids.filter((id) => navIds.includes(id)));
+  });
+
   it("the scene is the six stops, in order", () => {
     expect(site.scene.map((s) => s.label)).toEqual([
       "Hero",

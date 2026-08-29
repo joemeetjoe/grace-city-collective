@@ -20,16 +20,6 @@ export function snapTo(scrollY: number, { tops, end }: SnapLayout): number {
   return best;
 }
 
-/**
- * The same, in a ScrollTrigger's progress space (0..1 over `start`..`layout.end`),
- * which is what its `snap.snapTo` callback trades in.
- */
-export function snapProgress(progress: number, start: number, layout: SnapLayout): number {
-  const span = layout.end - start;
-  if (span <= 0) return progress;
-  return (snapTo(start + progress * span, layout) - start) / span;
-}
-
 /** an element's document-relative top from layout alone: transforms (the smoother's) do not count */
 export function documentTop(el: HTMLElement): number {
   let top = 0;

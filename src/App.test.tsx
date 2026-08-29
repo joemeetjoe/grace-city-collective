@@ -17,12 +17,17 @@ vi.mock("@/scene/fallback", async (orig) => ({
 
 // the smoother runs for real; the hook's arguments are recorded so a test can
 // see which layers it was asked to hold
-const smoother = vi.hoisted(() => ({ calls: [] as Array<{ held: Array<{ current: HTMLElement | null }> }> }));
+const smoother = vi.hoisted(() => ({
+  calls: [] as Array<{ held: Array<{ current: HTMLElement | null }> }>,
+}));
 vi.mock("@/scroll/useSmoothScroll", async (orig) => {
   const mod = await orig<typeof import("@/scroll/useSmoothScroll")>();
   return {
     ...mod,
-    useSmoothScroll: (refs: Parameters<typeof mod.useSmoothScroll>[0], reduced: boolean) => {
+    useSmoothScroll: (
+      refs: Parameters<typeof mod.useSmoothScroll>[0],
+      reduced: boolean,
+    ) => {
       smoother.calls.push({ held: refs.held });
       return mod.useSmoothScroll(refs, reduced);
     },
@@ -44,7 +49,10 @@ function stubFontSize(px: number) {
   vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
     const style = real(el, pseudo);
     if ((el as HTMLElement).dataset?.lockup === "wordmark") {
-      Object.defineProperty(style, "fontSize", { value: `${px}px`, configurable: true });
+      Object.defineProperty(style, "fontSize", {
+        value: `${px}px`,
+        configurable: true,
+      });
     }
     return style;
   });
@@ -104,22 +112,31 @@ describe("App hero seal", () => {
   it("is the stamp-replay button; the splash's seal is not", () => {
     const { container } = render(<App />);
     const hero = container.querySelector("[data-hero-lockup]")!;
-    const button = hero.querySelector('button[aria-label="Replay the seal stamp"]')!;
+    const button = hero.querySelector(
+      'button[aria-label="Replay the seal stamp"]',
+    )!;
     expect(button).not.toBeNull();
     const seal = button.querySelector('[data-lockup="seal"]')!;
     // live variant, resting with its overlay off
     expect(seal.querySelectorAll("filter").length).toBeGreaterThan(0);
-    expect((seal.querySelector('[data-seal="live"]') as SVGGElement).style.display).toBe("none");
+    expect(
+      (seal.querySelector('[data-seal="live"]') as SVGGElement).style.display,
+    ).toBe("none");
     expect(container.querySelector("[data-intro-splash] button")).toBeNull();
   });
 });
 
 describe("App nav", () => {
-  it("the desktop nav carries no seal — the mark lives in the lockup and the mobile nav", () => {
+  it("the desktop nav carries the G mark, linked to the top; the seal stays in the mobile nav", () => {
     const { container } = render(<App />);
-    const marks = Array.from(container.querySelectorAll('nav svg[role="img"]'));
-    expect(marks.length).toBeGreaterThan(0);
-    for (const mark of marks) expect(mark.closest("[data-mobile-nav]")).not.toBeNull();
+    const mark = container.querySelector("nav [data-g-mark]")!;
+    expect(mark).not.toBeNull();
+    expect(mark.closest("[data-mobile-nav]")).toBeNull();
+    expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
+    const seals = Array.from(container.querySelectorAll("nav [data-seal]"));
+    expect(seals.length).toBeGreaterThan(0);
+    for (const seal of seals)
+      expect(seal.closest("[data-mobile-nav]")).not.toBeNull();
   });
 
   it("the mobile nav sits in the same sticky nav as the desktop links", () => {
@@ -133,7 +150,9 @@ describe("App nav", () => {
 describe("App static fallback", () => {
   it("with WebGL and full motion the scene renders, not the poster", () => {
     const { container } = render(<App />);
-    expect(container.querySelector("[data-parallax] [data-parallax-stub]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-parallax] [data-parallax-stub]"),
+    ).not.toBeNull();
     expect(container.querySelector("[data-poster]")).toBeNull();
   });
 
@@ -149,16 +168,23 @@ describe("App static fallback", () => {
     preferReducedMotion();
     const { container } = render(<App />);
     expect(container.querySelector("[data-parallax-stub]")).toBeNull();
-    expect(container.querySelector("[data-parallax] [data-poster]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-parallax] [data-poster]"),
+    ).not.toBeNull();
     const parallax = container.querySelector("[data-parallax]") as HTMLElement;
     expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
   });
 
   it("under Save-Data the poster stands in", () => {
-    Object.defineProperty(navigator, "connection", { value: { saveData: true }, configurable: true });
+    Object.defineProperty(navigator, "connection", {
+      value: { saveData: true },
+      configurable: true,
+    });
     try {
       const { container } = render(<App />);
-      expect(container.querySelector("[data-parallax] [data-poster]")).not.toBeNull();
+      expect(
+        container.querySelector("[data-parallax] [data-poster]"),
+      ).not.toBeNull();
     } finally {
       delete (navigator as { connection?: unknown }).connection;
     }
@@ -208,7 +234,13 @@ describe("App content", () => {
 
   it("renders no placeholder copy and no personal gmail", () => {
     const { container } = render(<App />);
-    for (const gone of ["Est. 2019", "123 Placeholder Ave", "Prayer at Dawn", "Midweek Table", "gmail.com"]) {
+    for (const gone of [
+      "Est. 2019",
+      "123 Placeholder Ave",
+      "Prayer at Dawn",
+      "Midweek Table",
+      "gmail.com",
+    ]) {
       expect(container.textContent).not.toContain(gone);
     }
   });
@@ -239,7 +271,9 @@ describe("App section markers", () => {
     const { container } = render(<App />);
     const rail = container.querySelector("[data-dot-rail]")!;
     expect(rail.querySelectorAll("a").length).toBe(sectionIds(site).length);
-    const current = Array.from(container.querySelectorAll("[aria-current='location']"));
+    const current = Array.from(
+      container.querySelectorAll("[aria-current='location']"),
+    );
     const ids = new Set(current.map((a) => a.getAttribute("href")));
     // one section: every current marker (nav link, rail dot) points at it
     expect(current.length).toBeGreaterThan(0);
@@ -251,7 +285,9 @@ describe("App section markers", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     const { container } = render(<App />);
     const rail = container.querySelector("[data-dot-rail]")!;
-    expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(false);
+    expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(
+      false,
+    );
     installScrollDriver(driver);
     fireEvent.click(rail.querySelector("a[href='#faq']")!);
     expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
@@ -261,10 +297,17 @@ describe("App section markers", () => {
 describe("App page structure", () => {
   it("the scene is exactly six labelled viewports, in order", () => {
     const { container } = render(<App />);
-    const labels = Array.from(container.querySelectorAll("section[data-screen-label]")).map(
-      (s) => (s as HTMLElement).dataset.screenLabel,
-    );
-    expect(labels).toEqual(["Hero", "Who we are", "House churches", "Gatherings", "Give", "Visit"]);
+    const labels = Array.from(
+      container.querySelectorAll("section[data-screen-label]"),
+    ).map((s) => (s as HTMLElement).dataset.screenLabel);
+    expect(labels).toEqual([
+      "Hero",
+      "Who we are",
+      "House churches",
+      "Gatherings",
+      "Give",
+      "Visit",
+    ]);
   });
 
   it("the long-form sections carry no screen label and sit after the scene", () => {
@@ -277,9 +320,14 @@ describe("App page structure", () => {
     }
     // the sticky scene wrapper ends before the long-form begins
     const scene = container.querySelector("[data-scene]")!;
-    expect(scene.contains(container.querySelector("[data-parallax]"))).toBe(true);
+    expect(scene.contains(container.querySelector("[data-parallax]"))).toBe(
+      true,
+    );
     expect(scene.contains(longform)).toBe(false);
-    expect(scene.compareDocumentPosition(longform) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      scene.compareDocumentPosition(longform) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("the fixed layers sit outside the smoother's content; the scene and long-form inside it", () => {
@@ -287,18 +335,25 @@ describe("App page structure", () => {
     const content = container.querySelector("#smooth-content")!;
     const wrapper = container.querySelector("#smooth-wrapper")!;
     expect(wrapper.contains(content)).toBe(true);
-    expect(content.contains(container.querySelector("[data-scene]"))).toBe(true);
-    expect(content.contains(container.querySelector("[data-longform]"))).toBe(true);
+    expect(content.contains(container.querySelector("[data-scene]"))).toBe(
+      true,
+    );
+    expect(content.contains(container.querySelector("[data-longform]"))).toBe(
+      true,
+    );
     // position: fixed does not survive a transformed ancestor
     expect(wrapper.contains(container.querySelector("nav"))).toBe(false);
-    expect(wrapper.contains(container.querySelector("[data-intro-splash]"))).toBe(false);
+    expect(
+      wrapper.contains(container.querySelector("[data-intro-splash]")),
+    ).toBe(false);
   });
 });
 
 describe("App canvas split", () => {
-  const has = (el: Element | null, cls: string) => !!el && el.classList.contains(cls);
+  const has = (el: Element | null, cls: string) =>
+    !!el && el.classList.contains(cls);
 
-  it("a front canvas sits in the scene above the wordmark and the hero headline, taking no pointer events", () => {
+  it("a front canvas sits in the scene above the hero headline, taking no pointer events", () => {
     const { container } = render(<App />);
     const front = container.querySelector("[data-parallax-front]")!;
     expect(front).not.toBeNull();
@@ -307,21 +362,29 @@ describe("App canvas split", () => {
     expect(has(front, STACK.front)).toBe(true);
     expect(has(front, "pointer-events-none")).toBe(true);
     // the back canvas paints under everything
-    expect(has(container.querySelector("[data-parallax]"), STACK.back)).toBe(true);
+    expect(has(container.querySelector("[data-parallax]"), STACK.back)).toBe(
+      true,
+    );
   });
 
-  it("only the wordmark, the hero headline and the kicker rules sit between the canvases", () => {
+  it("only the hero headline and the kicker rules sit between the canvases; the lockup rides above with the chrome", () => {
     const { container } = render(<App />);
-    expect(container.querySelector("[data-hero-lockup]")!.closest(`.${STACK.wordmark}`)).not.toBeNull();
+    expect(
+      container.querySelector("[data-hero-lockup]")!.closest(`.${STACK.copy}`),
+    ).not.toBeNull();
     expect(has(container.querySelector("#hero h1"), STACK.between)).toBe(true);
-    const rules = container.querySelectorAll("section[data-screen-label] [data-kicker-rule]");
+    const rules = container.querySelectorAll(
+      "section[data-screen-label] [data-kicker-rule]",
+    );
     expect(rules.length).toBe(6);
     for (const rule of rules) expect(has(rule, STACK.between)).toBe(true);
   });
 
   it("body copy, cards and buttons in the scene sections stack above the front canvas", () => {
     const { container } = render(<App />);
-    const copy = container.querySelectorAll("section[data-screen-label] :is(p, h2, h3, a)");
+    const copy = container.querySelectorAll(
+      "section[data-screen-label] :is(p, h2, h3, a)",
+    );
     expect(copy.length).toBeGreaterThan(10);
     for (const el of copy) {
       const section = el.closest("section")!;
@@ -337,26 +400,90 @@ describe("App canvas split", () => {
     const sections = scene.querySelectorAll("section[data-screen-label]");
     const wrapper = sections[0].parentElement!;
     for (const el of [scene, wrapper, ...sections]) {
-      expect([...el.classList].some((c) => /^z-/.test(c)), el.className).toBe(false);
+      expect(
+        [...el.classList].some((c) => /^z-/.test(c)),
+        el.className,
+      ).toBe(false);
     }
   });
 
   it("each sticky layer of the scene carries exactly one step of the stack (the smoother transforms them)", () => {
     const { container } = render(<App />);
     const scene = container.querySelector("[data-scene]")!;
-    const layers = [...scene.children].filter((el) => el.classList.contains("sticky"));
-    expect(layers.length).toBe(4);
-    const steps = layers.map((el) => [...el.classList].filter((c) => /^z-/.test(c)));
-    expect(steps).toEqual([[STACK.back], [STACK.wordmark], [STACK.front], [STACK.copy]]);
-    expect(layers[1].querySelector("[data-hero-lockup]")).not.toBeNull();
-    expect(layers[3].querySelector("[data-scene-frame]")).not.toBeNull();
+    const layers = [...scene.children].filter((el) =>
+      el.classList.contains("sticky"),
+    );
+    expect(layers.length).toBe(3);
+    const steps = layers.map((el) =>
+      [...el.classList].filter((c) => /^z-/.test(c)),
+    );
+    expect(steps).toEqual([[STACK.back], [STACK.front], [STACK.copy]]);
+    expect(layers[2].querySelector("[data-hero-lockup]")).not.toBeNull();
+    expect(layers[2].querySelector("[data-scene-frame]")).not.toBeNull();
+  });
+
+  it("the frame's square corners carry red brackets; each long-form section opens with a rule", () => {
+    const { container } = render(<App />);
+    const corners = container.querySelector(
+      "[data-scene-frame] ~ [data-corner-ornaments]",
+    )!;
+    expect(corners).not.toBeNull();
+    expect(corners.querySelectorAll("[data-ornate-rule]").length).toBe(4);
+    expect(corners.className).toMatch(/text-seal/);
+    // a phone's lockup sits in that corner, so the frame's brackets wait for md
+    expect(corners.className).toMatch(/\bhidden\b/);
+    expect(corners.className).toMatch(/md:block/);
+    const sections = container.querySelectorAll("[data-longform] section");
+    expect(sections.length).toBe(4);
+    for (const section of sections)
+      expect(section.querySelector('[data-ornate-rule="both"]')).not.toBeNull();
+  });
+
+  it("every scene stop but the hero brackets its copy the same way, above the front canvas", () => {
+    const { container } = render(<App />);
+    const stops = [...container.querySelectorAll("section[data-screen-label]")];
+    expect(stops.length).toBe(6);
+    for (const stop of stops) {
+      const brackets = stop.querySelectorAll("[data-corner-ornaments]");
+      if (stop.id === "hero") {
+        expect(brackets.length).toBe(0);
+        continue;
+      }
+      expect(brackets.length, stop.id).toBe(1);
+      // the words sit inside a frosted-glass panel that rides above the front canvas
+      const panel = brackets[0].parentElement!;
+      expect(panel.getAttribute("data-copy-panel"), stop.id).not.toBeNull();
+      expect(panel.classList.contains(STACK.copy), stop.id).toBe(true);
+      expect(panel.className, stop.id).toMatch(/bg-ink\/\d+/);
+      expect(panel.className, stop.id).toMatch(/backdrop-blur/);
+      expect(panel.querySelector("p, h2"), stop.id).not.toBeNull();
+    }
+  });
+
+  it("the section links wear the copy panels' frosted glass in the nav; the bar itself does not", () => {
+    const { container } = render(<App />);
+    const nav = container.querySelector("nav")!;
+    expect(nav.className).not.toMatch(/backdrop-blur-md/);
+    const links = container.querySelector("nav [data-nav-links]")!;
+    expect(links.className).toMatch(/backdrop-blur/);
+    expect(links.className).toMatch(/bg-ink\/\d+/);
+    // the dot rail's column of dots wears it too
+    expect(
+      container.querySelector("[data-dot-rail] [data-dot-glass]")!.className,
+    ).toMatch(/backdrop-blur/);
   });
 
   it("the nav, the dot rail and the frame border stay above the front canvas", () => {
     const { container } = render(<App />);
-    expect(container.querySelector("nav")!.closest(`.${STACK.nav}`)).not.toBeNull();
-    expect(has(container.querySelector("[data-dot-rail]"), STACK.nav)).toBe(true);
-    expect(container.querySelector("[data-scene-frame]")!.closest(`.${STACK.copy}`)).not.toBeNull();
+    expect(
+      container.querySelector("nav")!.closest(`.${STACK.nav}`),
+    ).not.toBeNull();
+    expect(has(container.querySelector("[data-dot-rail]"), STACK.nav)).toBe(
+      true,
+    );
+    expect(
+      container.querySelector("[data-scene-frame]")!.closest(`.${STACK.copy}`),
+    ).not.toBeNull();
   });
 
   it("the smoother holds every sticky layer, the front canvas and the frame included", () => {
@@ -366,11 +493,15 @@ describe("App canvas split", () => {
     for (const sel of ["[data-parallax]", "[data-parallax-front]"]) {
       expect(held, sel).toContain(container.querySelector(sel));
     }
-    expect(held).toContain(container.querySelector("[data-hero-lockup]")!.parentElement);
-    expect(held).toContain(container.querySelector("[data-scene-frame]")!.parentElement);
+    expect(held).toContain(
+      container.querySelector("[data-hero-lockup]")!.parentElement,
+    );
+    expect(held).toContain(
+      container.querySelector("[data-scene-frame]")!.parentElement,
+    );
   });
 
-  it("the splash's handoff sits over the headline and under the wordmark", () => {
+  it("the splash's handoff sits over the headline and under the front canvas", () => {
     expect(HANDOFF_Z_INDEX).toBe(STACK.handoff);
   });
 

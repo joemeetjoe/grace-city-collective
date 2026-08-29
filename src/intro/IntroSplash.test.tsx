@@ -1,29 +1,18 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import Lockup from "@/components/Lockup";
-import IntroSplash from "./IntroSplash";
+import GMark from "@/components/GMark";
+import IntroSplash, { NAV_MARK, SPLASH_MARK_SIZE } from "./IntroSplash";
 import { buildHandoff } from "./handoff";
-import { buildIntroTimeline } from "./timeline";
-
-function stubFontSize(px: number) {
-  const real = window.getComputedStyle.bind(window);
-  vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
-    const style = real(el, pseudo);
-    if ((el as HTMLElement).dataset?.lockup === "wordmark") {
-      Object.defineProperty(style, "fontSize", { value: `${px}px`, configurable: true });
-    }
-    return style;
-  });
-}
+import { TRACE_HOLD, createTrace, ruleReach } from "./trace";
 
 /** builders that hand their timelines back to the test so it can scrub them */
 function capture() {
-  const built: gsap.core.Timeline[] = [];
-  const build: typeof buildIntroTimeline = (targets, beats, vars) => {
-    const tl = buildIntroTimeline(targets, beats, vars);
-    built.push(tl);
-    return tl;
+  const built: ReturnType<typeof createTrace>[] = [];
+  const build: typeof createTrace = (rule, vars) => {
+    const trace = createTrace(rule, vars);
+    built.push(trace);
+    return trace;
   };
   const handoffs: gsap.core.Timeline[] = [];
   const handoff: typeof buildHandoff = (ctx) => {
@@ -31,78 +20,79 @@ function capture() {
     handoffs.push(tl);
     return tl;
   };
-  return { build, tl: () => built[0], handoff, handoffs };
+  return { build, tl: () => built[0].timeline, trace: () => built[0], handoff, handoffs };
 }
 
-/** the hero lockup and the parallax scene the splash hands off to */
+/** the nav mark and the parallax scene the splash hands off to */
 function Stage() {
   return (
     <>
       <div data-parallax="" />
       <div data-parallax-front="" />
-      <div data-hero-lockup="">
-        <Lockup />
-      </div>
+      <nav>
+        <a href="#hero" data-nav-mark="">
+          <GMark size={40} ruled />
+        </a>
+      </nav>
     </>
   );
 }
 
+const splashRule = () => document.querySelector<SVGPathElement>("[data-intro-splash] [data-g-mark-rule]")!;
+
 afterEach(() => vi.restoreAllMocks());
 
 describe("IntroSplash", () => {
-  it("covers the viewport on ink and shows the centred lockup as a title card", () => {
-    stubFontSize(120);
+  it("covers the viewport on ink with the ruled G mark filling it", () => {
     const { container } = render(<IntroSplash ready={false} onDone={() => {}} />);
-    const splash = container.querySelector("[data-intro-splash]") as HTMLElement;
-    expect(splash).not.toBeNull();
-    expect(splash.className).toMatch(/fixed/);
-    expect(splash.className).toMatch(/bg-ink/);
-    expect(screen.getByText("Grace City")).toBeTruthy();
-    expect(screen.getByRole("img", { name: "Collective", hidden: true })).toBeTruthy();
+    const root = container.querySelector("[data-intro-splash]") as HTMLElement;
+    expect(root.className).toMatch(/fixed/);
+    expect(root.className).toMatch(/inset-0/);
+    expect(root.className).toMatch(/bg-ink/);
+    const mark = root.querySelector("[data-g-mark]") as SVGSVGElement;
+    expect(mark).not.toBeNull();
+    // as much of the viewport as it can: bound by height or by width, whichever is tighter
+    expect(SPLASH_MARK_SIZE).toMatch(/^min\(\d+svh, calc\(\d+vw \/ [\d.]+\)\)$/);
+    expect(mark.getAttribute("aria-hidden")).toBe("true");
+    expect(root.querySelector("[data-g-mark-rule]")).not.toBeNull();
   });
 
-  it("hands the script and seal to the timeline on the very first build", () => {
-    stubFontSize(0); // an unmeasured layout — the splash must not depend on measurement
-    const seen: Array<{ script: boolean; seal: boolean }> = [];
-    const build: typeof buildIntroTimeline = (targets, beats, vars) => {
-      seen.push({ script: !!targets.script, seal: !!targets.seal });
-      return buildIntroTimeline(targets, beats, vars);
-    };
-    render(<IntroSplash ready onDone={() => {}} build={build} />);
-    expect(seen[0]).toEqual({ script: true, seal: true });
-  });
-
-  it("exposes the labelled slots for the handwriting and seal beats", () => {
-    stubFontSize(120);
+  it("starts with the rule undrawn and lets the floor draw it out to the hold", () => {
     const { build, tl } = capture();
     render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
-    expect(Object.keys(tl().labels)).toEqual(expect.arrayContaining(["wordmark", "collective", "seal"]));
+    expect(ruleReach(splashRule())).toBe(0);
+    act(() => {
+      tl().progress(1);
+    });
+    expect(ruleReach(splashRule())).toBeCloseTo(TRACE_HOLD, 6);
   });
 
-  it("does not hand off when the intro finishes before the textures are in", () => {
-    stubFontSize(120);
+  it("the textures pull the rule ahead of the floor", () => {
+    const { build } = capture();
+    const { rerender } = render(<IntroSplash ready={false} progress={0} onDone={() => {}} build={build} />);
+    rerender(<IntroSplash ready={false} progress={0.5} onDone={() => {}} build={build} />);
+    expect(ruleReach(splashRule())).toBeCloseTo(0.5 * TRACE_HOLD, 6);
+  });
+
+  it("does not hand off when the floor finishes before the textures are in", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const onDone = vi.fn();
-    render(<IntroSplash ready={false} onDone={onDone} build={build} handoff={handoff} />);
+    render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
     act(() => {
       tl().progress(1);
     });
     expect(handoffs).toHaveLength(0);
-    expect(onDone).not.toHaveBeenCalled();
   });
 
-  it("does not hand off when the textures arrive before the intro has finished", () => {
-    stubFontSize(120);
+  it("does not hand off when the textures arrive before the floor has run", () => {
     const { build, handoff, handoffs } = capture();
-    const onDone = vi.fn();
-    const { rerender } = render(<IntroSplash ready={false} onDone={onDone} build={build} handoff={handoff} />);
-    rerender(<IntroSplash ready onDone={onDone} build={build} handoff={handoff} />);
+    const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
+    rerender(<IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(0);
-    expect(onDone).not.toHaveBeenCalled();
+    // the rule waits on the hold, a corner short
+    expect(ruleReach(splashRule())).toBeCloseTo(TRACE_HOLD, 6);
   });
 
-  it("hands the lockup off to the hero once the intro has run and the textures are in", () => {
-    stubFontSize(120);
+  it("closes the rule and hands off once the floor has run and the textures are in", () => {
     const { build, tl, handoff, handoffs } = capture();
     const onDone = vi.fn();
     const { rerender } = render(
@@ -125,23 +115,21 @@ describe("IntroSplash", () => {
     act(() => {
       handoffs[0].progress(1);
     });
+    expect(ruleReach(splashRule())).toBeCloseTo(1, 6);
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it("leaves the hero lockup in its resting state once the handoff has finished and the splash is gone", () => {
-    stubFontSize(120);
-    // distinct geometry for the two lockups, so Flip has a real transform to animate (and to leak)
+  it("sends the mark to the nav's mark when it is laid out, and leaves the nav's copy at rest afterwards", () => {
     vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
       const inSplash = !!this.closest("[data-intro-splash]");
-      const r = inSplash ? { x: 400, y: 300, width: 600, height: 160 } : { x: 20, y: 700, width: 300, height: 80 };
+      const r = inSplash ? { x: 300, y: 100, width: 600, height: 640 } : { x: 40, y: 30, width: 38, height: 40 };
       return { ...r, top: r.y, left: r.x, right: r.x + r.width, bottom: r.y + r.height, toJSON: () => r } as DOMRect;
     });
     const { build, tl, handoff, handoffs } = capture();
-    let done = false;
     const { rerender, unmount } = render(
       <>
         <Stage />
-        <IntroSplash ready={false} onDone={() => (done = true)} build={build} handoff={handoff} />
+        <IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />
       </>,
     );
     act(() => {
@@ -150,29 +138,41 @@ describe("IntroSplash", () => {
     rerender(
       <>
         <Stage />
-        <IntroSplash ready onDone={() => (done = true)} build={build} handoff={handoff} />
+        <IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />
       </>,
     );
+    const nav = document.querySelector(NAV_MARK) as SVGSVGElement;
+    const traveller = document.querySelector("[data-intro-splash] [data-g-mark]") as SVGSVGElement;
+    // the nav's copy hides while the traveller is on its way
+    expect(nav.style.opacity).toBe("0");
+    act(() => {
+      handoffs[0].progress(0.5);
+    });
+    expect(traveller.style.transform).not.toBe("");
     act(() => {
       handoffs[0].progress(1);
     });
-    expect(done).toBe(true);
-    unmount(); // App removes the splash once it's done
-    const hero = document.querySelector("[data-hero-lockup]");
-    // Stage was unmounted too; re-render just the hero to inspect what the handoff left on it
-    expect(hero).toBeNull();
-    for (const part of handoffs[0].getChildren(true, true, false)) {
-      for (const target of part.targets() as unknown[]) {
-        if (!(target instanceof Element) || target.closest("[data-intro-splash]")) continue;
-        const style = (target as HTMLElement).style;
-        expect(style.transform, `${target.getAttribute("data-flip-id")} transform`).toBe("");
-        expect(style.position, `${target.getAttribute("data-flip-id")} position`).toBe("");
-      }
-    }
+    expect(nav.style.opacity).toBe("");
+    unmount();
+    expect(nav.style.opacity).toBe("");
+    expect(nav.style.transform).toBe("");
+  });
+
+  it("fades the mark in place when the nav has no mark to land on", () => {
+    const { build, tl, handoff, handoffs } = capture();
+    const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
+    act(() => {
+      tl().progress(1);
+    });
+    rerender(<IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />);
+    act(() => {
+      handoffs[0].progress(1);
+    });
+    const mark = document.querySelector("[data-intro-splash] [data-g-mark]") as SVGSVGElement;
+    expect(mark.style.opacity).toBe("0");
   });
 
   it("hands off only once even as the gate inputs keep changing", () => {
-    stubFontSize(120);
     const { build, tl, handoff, handoffs } = capture();
     const onDone = vi.fn();
     const { rerender } = render(<IntroSplash ready onDone={onDone} build={build} handoff={handoff} />);
@@ -183,14 +183,13 @@ describe("IntroSplash", () => {
     expect(handoffs).toHaveLength(1);
   });
 
-  it("a skipped splash with textures in hands off without waiting out the intro", () => {
-    stubFontSize(120);
+  it("a skipped splash with textures in hands off without waiting out the floor", () => {
     const { build, tl, handoff, handoffs } = capture();
     const onDone = vi.fn();
     const { rerender } = render(<IntroSplash ready={false} onDone={onDone} build={build} handoff={handoff} />);
     rerender(<IntroSplash ready skipped onDone={onDone} build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(1);
-    // the intro is jumped to its resting state so the lockup is whole when it travels
+    // the floor is jumped to its end so the rule closes from the hold
     expect(tl().progress()).toBe(1);
     act(() => {
       handoffs[0].progress(1);
@@ -199,7 +198,6 @@ describe("IntroSplash", () => {
   });
 
   it("a skip before the textures are in still waits on ink", () => {
-    stubFontSize(120);
     const { build, handoff, handoffs } = capture();
     const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
     rerender(<IntroSplash ready={false} skipped onDone={() => {}} build={build} handoff={handoff} />);
@@ -207,7 +205,6 @@ describe("IntroSplash", () => {
   });
 
   it("holds the parallax on ink while mounted and fades it up through the handoff", () => {
-    stubFontSize(120);
     const { build, tl, handoff, handoffs } = capture();
     const { rerender, unmount } = render(
       <>
@@ -251,8 +248,7 @@ describe("IntroSplash", () => {
       return { ...view, tl, handoff, handoffs, onDone, build };
     }
 
-    it("a click during the splash jumps to the end and, with textures in, hands off", () => {
-      stubFontSize(120);
+    it("a click during the splash jumps the floor to its end and, with textures in, hands off", () => {
       const { tl, handoffs, onDone } = mountSkippable();
       expect(tl().progress()).toBeLessThan(1);
       act(() => {
@@ -267,7 +263,6 @@ describe("IntroSplash", () => {
     });
 
     it("a keypress does the same", () => {
-      stubFontSize(120);
       const { tl, handoffs, onDone } = mountSkippable();
       act(() => {
         fireEvent.keyDown(window, { key: "Enter" });
@@ -281,7 +276,6 @@ describe("IntroSplash", () => {
     });
 
     it("a wheel scroll does the same", () => {
-      stubFontSize(120);
       const { tl, handoffs, onDone } = mountSkippable();
       act(() => {
         fireEvent.wheel(window, { deltaY: 40 });
@@ -295,7 +289,6 @@ describe("IntroSplash", () => {
     });
 
     it("a touch scroll does the same", () => {
-      stubFontSize(120);
       const { tl, handoffs } = mountSkippable();
       act(() => {
         fireEvent.touchMove(window);
@@ -305,7 +298,6 @@ describe("IntroSplash", () => {
     });
 
     it("a skip before the textures are in does not hand off until ready flips", () => {
-      stubFontSize(120);
       const { tl, handoffs, onDone, rerender, build, handoff } = mountSkippable(false);
       act(() => {
         fireEvent.pointerDown(window);
@@ -326,7 +318,6 @@ describe("IntroSplash", () => {
     });
 
     it("gesture listeners are gone after unmount", () => {
-      stubFontSize(120);
       const { handoffs, onDone, unmount } = mountSkippable(false);
       unmount();
       expect(() => {
@@ -339,7 +330,6 @@ describe("IntroSplash", () => {
     });
 
     it("writes the session flag when the gate opens", () => {
-      stubFontSize(120);
       window.sessionStorage.removeItem("gcc:intro-played");
       const { handoffs } = mountSkippable();
       expect(window.sessionStorage.getItem("gcc:intro-played")).toBeNull();

@@ -1,52 +1,55 @@
 import { useEffect, useRef, useState } from "react";
 
-import Lockup from "@/components/Lockup";
+import GMark from "@/components/GMark";
+import { gMarkAspect } from "@/components/gMarkGeometry";
 import { gsap } from "@/lib/gsap";
-import { introBeats } from "@/intro/beats";
 import { introGateOpen } from "@/intro/gate";
 import { buildHandoff } from "@/intro/handoff";
 import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
 import { parallaxLayers } from "@/intro/restingFade";
-import { introTargets } from "@/intro/targets";
-import { buildIntroTimeline, type IntroBeat } from "@/intro/timeline";
+import { createTrace, type Trace } from "@/intro/trace";
 
-/**
- * Title-card size. The one-line lockup is ≈6.9em wide, so the floor is set by
- * a 390px phone: 46px leaves a margin either side, with the script line
- * standing ≈25px there (46 × SCRIPT_EM).
- */
-export const SPLASH_LOCKUP_SIZE = "clamp(46px,11.5vw,160px)";
+/** the mark's share of the shorter viewport side */
+export const SPLASH_MARK_FRACTION = 0.72;
+
+/** as tall as the viewport allows, or as wide, whichever binds first */
+export const SPLASH_MARK_SIZE = `min(${SPLASH_MARK_FRACTION * 100}svh, calc(${SPLASH_MARK_FRACTION * 100}vw / ${gMarkAspect(true)}))`;
+
+/** the nav's G mark, the traveller's destination */
+export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
 
 export type IntroSplashProps = {
-  /** beats beyond the wordmark wipe, each landing in its own label */
-  beats?: IntroBeat[];
   /** every parallax texture has arrived */
   ready: boolean;
+  /** the textures' share so far, 0–1; drives the rule ahead of the time floor */
+  progress?: number;
   /** the visitor gestured past the intro; the gate no longer waits for the full run */
   skipped?: boolean;
   /** the handoff has landed; unmount the splash */
   onDone: () => void;
-  /** timeline factory — injectable so tests can scrub the sequence */
-  build?: typeof buildIntroTimeline;
-  /** handoff factory — injectable so tests can scrub the Flip */
+  /** trace factory — injectable so tests can scrub the floor */
+  build?: typeof createTrace;
+  /** handoff factory — injectable so tests can scrub the travel */
   handoff?: typeof buildHandoff;
 };
 
 /**
- * Full-screen intro on ink that doubles as the loading screen: the lockup plays
- * its beats, then waits until the parallax is ready, and hands the lockup off
- * to the hero with a layout animation while the scene fades up underneath.
+ * Full-screen intro on ink that doubles as the loading screen: the G mark
+ * fills the viewport and its red rule draws itself around the box as the
+ * textures arrive. Once they are in (and the rule has had its minimum run,
+ * or the visitor skipped), the rule closes and the mark travels into the nav
+ * while the scene fades up underneath.
  */
 export default function IntroSplash({
-  beats = introBeats,
   ready,
+  progress = 0,
   skipped = false,
   onDone,
-  build = buildIntroTimeline,
+  build = createTrace,
   handoff = buildHandoff,
 }: IntroSplashProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const introRef = useRef<gsap.core.Timeline | null>(null);
+  const traceRef = useRef<Trace | null>(null);
   const handoffRef = useRef<gsap.core.Timeline | null>(null);
   const [minimumElapsed, setMinimumElapsed] = useState(false);
   const [gestured, setGestured] = useState(false);
@@ -63,16 +66,15 @@ export default function IntroSplash({
     const parallax = parallaxLayers();
     if (parallax.length) gsap.set(parallax, { opacity: 0 });
 
-    const tl = build(introTargets(root), beats);
-    tl.eventCallback("onComplete", () => setMinimumElapsed(true));
-    tl.play();
-    introRef.current = tl;
+    const trace = build(root.querySelector<SVGPathElement>("[data-g-mark-rule]"));
+    trace.timeline.eventCallback("onComplete", () => setMinimumElapsed(true));
+    trace.timeline.play();
+    traceRef.current = trace;
     return () => {
-      tl.kill();
-      introRef.current = null;
-      // never revert: that would re-apply Flip's from-state to the hero lockup.
-      // A finished handoff has already left the hero at rest; an interrupted
-      // one is jumped to its end so the hero lands where it belongs.
+      trace.timeline.kill();
+      traceRef.current = null;
+      // an interrupted handoff is jumped to its end so the nav's mark is
+      // shown and the parallax is up, where the page expects them
       const handoff = handoffRef.current;
       if (handoff) {
         if (handoff.progress() < 1) handoff.progress(1);
@@ -81,14 +83,18 @@ export default function IntroSplash({
       handoffRef.current = null;
       if (parallax.length) gsap.set(parallax, { clearProps: "opacity" });
     };
-    // beats/build are configuration fixed for the life of the splash
+    // build is configuration fixed for the life of the splash
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // any gesture is the skip: the first one lands the intro on its resting state
+  useEffect(() => {
+    traceRef.current?.setLoaded(ready ? 1 : progress);
+  }, [progress, ready]);
+
+  // any gesture is the skip: the first one lands the trace on its hold
   useEffect(() => {
     const stop = listenForSkip(window, () => {
-      introRef.current?.progress(1);
+      traceRef.current?.timeline.progress(1);
       setGestured(true);
     });
     stopListeningRef.current = stop;
@@ -102,11 +108,13 @@ export default function IntroSplash({
     // the intro counts as played (or skipped) for the rest of the session
     markIntroPlayed();
     stopListeningRef.current();
-    // a skip lands the intro on its resting state so the lockup travels whole
-    introRef.current?.progress(1);
+    // a skip lands the trace on its hold so the rule closes from there
+    traceRef.current?.timeline.progress(1);
     handoffRef.current = handoff({
       root,
-      hero: document.querySelector<HTMLElement>("[data-hero-lockup]"),
+      mark: root.querySelector<SVGSVGElement>("[data-g-mark]"),
+      rule: root.querySelector<SVGPathElement>("[data-g-mark-rule]"),
+      nav: document.querySelector<SVGSVGElement>(NAV_MARK),
       parallax: parallaxLayers(),
       onComplete: () => onDoneRef.current(),
     });
@@ -121,7 +129,7 @@ export default function IntroSplash({
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink"
       aria-hidden
     >
-      <Lockup size={SPLASH_LOCKUP_SIZE} sealVariant="live" script />
+      <GMark size={SPLASH_MARK_SIZE} ruled decorative className="text-cream" />
     </div>
   );
 }

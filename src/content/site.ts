@@ -74,15 +74,17 @@ const LIVE = "https://www.gracecitycollective.com";
 export const site: SiteContent = {
   name: "Grace City Collective",
 
+  // page order: the scene stops, then the long-form — the dot rail follows the same order
   nav: [
     { label: "About", id: "about" },
+    { label: "House churches", id: "house-churches" },
     { label: "Gatherings", id: "gatherings" },
-    { label: "Beliefs", id: "beliefs" },
-    { label: "Devotions", id: "devotions" },
-    { label: "FAQ", id: "faq" },
-    { label: "Messages", id: "messages" },
     { label: "Give", id: "give" },
     { label: "Visit", id: "visit" },
+    { label: "Devotions", id: "devotions" },
+    { label: "Beliefs", id: "beliefs" },
+    { label: "FAQ", id: "faq" },
+    { label: "Messages", id: "messages" },
   ],
 
   scene: [
