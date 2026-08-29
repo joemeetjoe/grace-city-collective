@@ -229,9 +229,6 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
           data-way-words=""
           className="way-in-rise mt-3 flex flex-col items-center gap-2 text-center md:mt-4 [@media(max-height:820px)]:lg:gap-1.5"
         >
-          <p className="text-[11px] uppercase tracking-[0.16em] text-seal md:text-xs">
-            Step {NUMERALS[step] ?? step + 1} of {NUMERALS[last] ?? count}
-          </p>
           <h3 className="text-[24px] leading-[1.12] md:text-[30px] [@media(max-height:820px)]:lg:text-[26px] [font-family:'Cormorant_Garamond',Georgia,serif]">
             {current.title}
           </h3>
