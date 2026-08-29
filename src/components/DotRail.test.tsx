@@ -13,8 +13,12 @@ describe("DotRail", () => {
     render(<DotRail markers={markers} activeId={null} />);
     const rail = screen.getByRole("navigation", { name: "Sections" });
     const links = Array.from(rail.querySelectorAll("a"));
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(markers.map((m) => `#${m.id}`));
-    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual(markers.map((m) => m.label));
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(
+      markers.map((m) => `#${m.id}`),
+    );
+    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual(
+      markers.map((m) => m.label),
+    );
     // the label is also written out, to be revealed beside the dot
     for (const m of markers) expect(rail.textContent).toContain(m.label);
   });
@@ -24,7 +28,9 @@ describe("DotRail", () => {
     const active = container.querySelector("a[href='#give']")!;
     expect(active.getAttribute("aria-current")).toBe("location");
     expect(active.querySelector("[data-dot]")!.className).toContain("bg-seal");
-    const rest = Array.from(container.querySelectorAll("a:not([href='#give'])"));
+    const rest = Array.from(
+      container.querySelectorAll("a:not([href='#give'])"),
+    );
     expect(rest.length).toBe(markers.length - 1);
     for (const a of rest) {
       expect(a.getAttribute("aria-current")).toBeNull();
@@ -50,8 +56,12 @@ describe("DotRail", () => {
 
   it("a click hands the id to onNavigate instead of following the hash", () => {
     const onNavigate = vi.fn();
-    const { container } = render(<DotRail markers={markers} activeId={null} onNavigate={onNavigate} />);
-    const followed = fireEvent.click(container.querySelector("a[href='#devotions']")!);
+    const { container } = render(
+      <DotRail markers={markers} activeId={null} onNavigate={onNavigate} />,
+    );
+    const followed = fireEvent.click(
+      container.querySelector("a[href='#devotions']")!,
+    );
     expect(onNavigate).toHaveBeenCalledWith("devotions");
     expect(followed).toBe(false);
   });
@@ -62,5 +72,16 @@ describe("DotRail", () => {
     expect(label.className).toContain("motion-safe:transition");
     expect(label.className).toMatch(/group-hover:opacity-100/);
     expect(label.className).toMatch(/group-focus-visible:opacity-100/);
+  });
+});
+
+describe("DotRail glass", () => {
+  it("lays a strip of frosted glass behind the dots, under them and behind the hidden labels' space", () => {
+    const { container } = render(<DotRail markers={markers} activeId={null} />);
+    const strip = container.querySelector("[data-dot-rail] [data-dot-glass]")!;
+    expect(strip).not.toBeNull();
+    expect(strip.className).toMatch(/backdrop-blur/);
+    expect(strip.className).toMatch(/-z-10/);
+    expect(strip.getAttribute("aria-hidden")).toBe("true");
   });
 });

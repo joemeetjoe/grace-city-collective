@@ -8,14 +8,15 @@ import type { Cut } from "./parallaxRelief";
  * the crowd, the apostles' flames, the mid apostles, the arch, the dove and
  * the rays; the front canvas (transparent, pointer-events none, above the
  * DOM) carries the floor, the two nearest apostles on the left and the
- * embers — so a crown or an ember can cross the wordmark and the hero
- * headline.
+ * embers — so a crown or an ember can cross the hero headline. The lockup
+ * sits in the bottom-left corner, right over those two apostles, so it
+ * stays above the front canvas with the rest of the chrome: under it, the
+ * robes would hide it whole.
  *
  * What stays back, and why. fig10 (the praying apostle, z 2.3) is as near as
- * fig5, but its robe spans plate u 0.35–0.58 and the wordmark begins at
- * u ≈ 0.51 at every aspect: in front it hides the whole "G" at 16:10 and
- * 4:3, and half of it at 16:9 with the pointer right — and the lateral
- * budget (LATERAL_MAX) cannot move it clear. The flames stay back too, even
+ * fig5, but its robe spans plate u 0.35–0.58, right across the middle of
+ * the headline's lines at every aspect — and the lateral budget
+ * (LATERAL_MAX) cannot move it clear. The flames stay back too, even
  * the ones over front figures: a flame hovers clear above its head (its cut
  * never overlaps the figure's), so nothing changes at rest, and at the hero
  * framing a front flame would sit right across a word of the headline —
@@ -68,16 +69,15 @@ export function assignLayer<T extends THREE.Object3D>(object: T, side: CanvasSid
 /**
  * The page's stacking order around the two canvases, as Tailwind classes
  * (the handoff's is a bare number: gsap sets it inline). Only the hero
- * headline, the kicker rules and the wordmark sit under the front canvas;
- * body copy, the frame border, cards, buttons and the nav stay above it.
- * The splash's handoff sits over the headline (which fades up with the
- * scene) and under the wordmark (which the Flip carries across it).
+ * headline and the kicker rules sit under the front canvas; body copy, the
+ * lockup, the frame border, cards, buttons and the nav stay above it. The
+ * splash's handoff sits over the headline (which fades up with the scene)
+ * and under the nav, whose mark the travelling one lands on.
  */
 export const STACK = {
   back: "z-0",
   between: "z-10",
   handoff: 15,
-  wordmark: "z-20",
   front: "z-[25]",
   copy: "z-30",
   nav: "z-40",

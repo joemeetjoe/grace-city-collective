@@ -15,11 +15,17 @@ export type NavLinksProps = {
  * the seal colour and a hairline underline, and says so to assistive tech
  * with aria-current.
  */
-export default function NavLinks({ items, activeId, onNavigate, className }: NavLinksProps) {
+export default function NavLinks({
+  items,
+  activeId,
+  onNavigate,
+  className,
+}: NavLinksProps) {
   return (
     <div
+      data-nav-links=""
       className={cn(
-        "flex flex-wrap items-center gap-[clamp(14px,2.4vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70",
+        "flex flex-wrap items-center gap-[clamp(12px,1.7vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70",
         className,
       )}
     >
