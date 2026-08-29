@@ -16,8 +16,8 @@ function traveller(container: HTMLElement): HTMLElement {
   return container.querySelector<HTMLElement>("[data-way-traveller]")!;
 }
 
-function tabs(container: HTMLElement): HTMLButtonElement[] {
-  return [...container.querySelectorAll<HTMLButtonElement>("[data-way-step]")];
+function tabs(container: HTMLElement): HTMLElement[] {
+  return [...container.querySelectorAll<HTMLElement>("[data-way-step]")];
 }
 
 describe("WayIn", () => {
@@ -43,21 +43,24 @@ describe("WayIn", () => {
     expect(first.querySelectorAll("path[data-called]").length).toBe(0);
   });
 
-  it("a step under the pointer or a tap moves the traveller, and its words follow", () => {
+  it("a step under the pointer, or tapped, stays put: only the arrows move the traveller", () => {
     const { container } = render(<WayIn steps={STEPS} />);
     fireEvent.mouseEnter(tabs(container)[2]);
-    expect(container.querySelector("[data-way-in]")!.getAttribute("data-step")).toBe("2");
+    fireEvent.click(tabs(container)[3]);
+    expect(container.querySelector("[data-way-in]")!.getAttribute("data-step")).toBe("0");
+    expect(container.querySelectorAll("[data-way-step] button").length).toBe(0);
+  });
+
+  it("the steps walked stay bright, the current is lit, the rest wait", () => {
+    const { container } = render(<WayIn steps={STEPS} initial={2} />);
     expect(traveller(container).style.transform).toBe("translateX(200%)");
     expect(container.querySelector("[data-way-words] h3")!.textContent).toBe("Dinner.");
-    // the steps walked stay bright, the current is lit, the rest wait
     const ts = tabs(container);
     expect(ts[0].hasAttribute("data-walked")).toBe(true);
     expect(ts[1].hasAttribute("data-walked")).toBe(true);
     expect(ts[2].hasAttribute("data-on")).toBe(true);
+    expect(ts[2].getAttribute("aria-current")).toBe("step");
     expect(ts[3].hasAttribute("data-walked")).toBe(false);
-    expect(ts[2].getAttribute("aria-selected")).toBe("true");
-    fireEvent.click(ts[4]);
-    expect(container.querySelector("[data-way-words] h3")!.textContent).toBe("Make the rounds.");
   });
 
   it("the diamond arrows step back and forward, and rest at the ends", () => {
@@ -75,14 +78,6 @@ describe("WayIn", () => {
     for (let i = 0; i < 6; i++) fireEvent.click(next);
     expect(container.querySelector("[data-way-in]")!.getAttribute("data-step")).toBe("4");
     expect(next.disabled).toBe(true);
-  });
-
-  it("the arrow keys walk the steps from the keyboard", () => {
-    const { container } = render(<WayIn steps={STEPS} />);
-    fireEvent.keyDown(tabs(container)[0], { key: "ArrowRight" });
-    expect(container.querySelector("[data-way-in]")!.getAttribute("data-step")).toBe("1");
-    fireEvent.keyDown(tabs(container)[1], { key: "ArrowLeft" });
-    expect(container.querySelector("[data-way-in]")!.getAttribute("data-step")).toBe("0");
   });
 
   it("waits undrawn until shown, then the rule draws on from the left and each emblem traces after it", () => {

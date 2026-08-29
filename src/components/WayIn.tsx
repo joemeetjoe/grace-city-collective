@@ -88,8 +88,8 @@ function DiamondArrow({ back = false }: { back?: boolean }) {
  * steps ahead wait fainter. The step's words sit under the rule and rise
  * in when the traveller lands. When `shown` turns true the rule draws from
  * the first step to the last, the emblems trace in one after the next, and
- * the traveller appears on the first. A step is a tab: the pointer, a tap
- * or the arrows move the traveller, and the words follow.
+ * the traveller appears on the first. Only the arrows move the traveller
+ * — a step under the pointer stays put — and the words follow it.
  */
 export default function WayIn({ steps, shown = true, initial = 0, className }: WayInProps) {
   const [step, setStep] = useState(initial);
@@ -136,32 +136,21 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
     <div data-way-in="" data-step={step} className={cn("flex w-full flex-col items-center", className)}>
       <div className="flex w-full items-center gap-1 md:gap-2">
         {arrow(true)}
-        <div role="tablist" aria-label="The way in" className="relative flex min-w-0 flex-1 items-start">
+        <ol aria-label="The way in" className="relative flex min-w-0 flex-1 items-start">
           {steps.map((s, i) => {
             const on = i === step;
             const walked = i < step;
             return (
-              <button
+              <li
                 key={s.title}
-                type="button"
-                role="tab"
-                id={`way-in-tab-${i}`}
-                aria-selected={on}
-                aria-controls="way-in-step"
-                tabIndex={on ? 0 : -1}
+                id={`way-in-step-${i}`}
+                aria-current={on ? "step" : undefined}
                 data-way-step={i}
                 data-on={on ? "" : undefined}
                 data-walked={walked ? "" : undefined}
-                onClick={() => setStep(i)}
-                onMouseEnter={() => setStep(i)}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowRight") setStep(Math.min(last, i + 1));
-                  if (e.key === "ArrowLeft") setStep(Math.max(0, i - 1));
-                }}
                 className={cn(
-                  "relative flex min-w-0 flex-1 cursor-pointer flex-col items-center gap-1 rounded-sm pb-1 transition-colors duration-500",
+                  "relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-1 transition-colors duration-500",
                   on ? "text-seal" : walked ? "text-cream/80" : "text-cream/45",
-                  FOCUS_RING,
                 )}
               >
                 {/* the rule, in two halves about the emblem, so it runs on past a step
@@ -197,7 +186,7 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
                 >
                   {NUMERALS[i] ?? i + 1}
                 </span>
-              </button>
+              </li>
             );
           })}
           {/* the traveller: a solid lozenge on the rule that walks to the lit step */}
@@ -216,15 +205,12 @@ export default function WayIn({ steps, shown = true, initial = 0, className }: W
               <path d={lozengePath(TRAVELLER_W / 2, TRAVELLER_W / 4, TRAVELLER_W, TRAVELLER_W / 2)} fill="currentColor" stroke="currentColor" strokeWidth={1} />
             </svg>
           </span>
-        </div>
+        </ol>
         {arrow(false)}
       </div>
       {current && (
         <div
           key={step}
-          id="way-in-step"
-          role="tabpanel"
-          aria-labelledby={`way-in-tab-${step}`}
           aria-live="polite"
           data-way-words=""
           className="way-in-rise mt-3 flex flex-col items-center gap-2 text-center md:mt-4 [@media(max-height:820px)]:lg:gap-1.5"
