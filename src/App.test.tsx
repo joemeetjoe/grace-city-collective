@@ -306,6 +306,20 @@ describe("App house churches table", () => {
   });
 });
 
+describe("App give sowing", () => {
+  it("the sown field sits in the give panel alone and fills while the pointer is over the panel", () => {
+    const { container } = render(<App />);
+    const panel = container.querySelector("#give [data-copy-panel]")!;
+    const field = panel.querySelector("[data-sowing-mark]")!;
+    expect(field.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(field.getAttribute("data-lit")).toBe("");
+    fireEvent.mouseLeave(panel);
+    expect(field.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelectorAll("[data-sowing-mark]")).toHaveLength(1);
+  });
+});
+
 describe("App section markers", () => {
   it("the nav link and the rail dot agree on the current section", () => {
     const { container } = render(<App />);

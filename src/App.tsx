@@ -16,6 +16,7 @@ import DotRail from "@/components/DotRail";
 import GatheringCalendar from "@/components/GatheringCalendar";
 import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
+import SowingMark from "@/components/SowingMark";
 import { BUTTON_CORNERS, GLASS, GLASS_CORNERS } from "@/components/glass";
 import GMark from "@/components/GMark";
 import { BUTTON_LIFT, FOCUS_RING, LINK_SWEEP } from "@/components/interact";
@@ -93,7 +94,7 @@ const GHOST_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} border bord
  * corner, the right-hand one over the lower-right (the space that clears
  * them is the calendar's column, its divider running under the heads); give — a hood over the
  * left edge, so the panel steps right and pads both sides to keep its words
- * centred. Where a figure lands depends on both viewport axes — the
+ * centred (the left band holds the sown field, GiveSowing). Where a figure lands depends on both viewport axes — the
  * waypoints (PentecostParallax) fill the frame's height, and the lateral
  * budget clamps the frame's centre by its aspect — so the who-we-are and
  * gatherings tucks are linear fits in vw and vh to the figures' screen
@@ -830,6 +831,28 @@ function HouseChurchesTable({ lit }: { lit: boolean }) {
   );
 }
 
+/**
+ * The giving's ornament: a field sown and reaped in the G mark's box
+ * (SowingMark), standing in the band the give panel pads on its left to keep
+ * its words centred under the hood (TUCK). It cascades in with the panel's
+ * brackets and the harvest fills while the reader is over the panel. Desktop
+ * only: the band exists only where the panel pads, and a phone has no
+ * pointer to light it.
+ */
+function GiveSowing({ lit }: { lit: boolean }) {
+  const shown = useContext(PanelShownContext);
+  return (
+    <div
+      data-give-sowing=""
+      // the band runs from the glass's edge to the words: the panel's padding
+      // plus its give tuck (TUCK); the field is inset a little from both
+      className="absolute top-1/2 left-[clamp(18px,2.6vw,32px)] hidden w-[calc(clamp(120px,9.4vw,160px)_-_clamp(18px,2.6vw,32px))] -translate-y-1/2 px-2 lg:block"
+    >
+      <SowingMark lit={lit} shown={shown} className="w-full" />
+    </div>
+  );
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
@@ -838,6 +861,8 @@ function Scene({ section: s }: { section: SceneSection }) {
   const [lit, setLit] = useState<Mark | null>(null);
   // whether the reader is over the house churches' panel, seating its table
   const [over, setOver] = useState(false);
+  // whether the pointer is over the giving, filling the field beside its words
+  const [giving, setGiving] = useState(false);
   // no z-index: a section must not form a stacking context, or its headline
   // could never sit under the front canvas while its copy sits over it
   const base = `relative flex min-h-[100svh] ${gutter}`;
@@ -944,7 +969,10 @@ function Scene({ section: s }: { section: SceneSection }) {
       >
         <Bracketed
           className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
+          onMouseEnter={s.id === "give" ? () => setGiving(true) : undefined}
+          onMouseLeave={s.id === "give" ? () => setGiving(false) : undefined}
         >
+          {s.id === "give" && <GiveSowing lit={giving} />}
           <Kicker centred>{s.kicker}</Kicker>
           <PanelReveal className="flex flex-col items-center gap-5 md:gap-[26px]">
             <h2
