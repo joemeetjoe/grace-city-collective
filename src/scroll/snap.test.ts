@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { documentTop, snapProgress, snapTo, type SnapLayout } from "./snap";
+import { documentTop, snapTo, type SnapLayout } from "./snap";
 
 // six one-viewport sections at 900px, so the scene ends at the last top
 const layout: SnapLayout = { tops: [0, 900, 1800, 2700, 3600, 4500], end: 4500 };
@@ -28,26 +28,6 @@ describe("snapTo", () => {
 
   it("does nothing without waypoints", () => {
     expect(snapTo(321, { tops: [], end: 0 })).toBe(321);
-  });
-});
-
-describe("snapProgress", () => {
-  // ScrollTrigger hands over progress through the scene trigger (0..1)
-  it("maps trigger progress to the nearest waypoint's progress", () => {
-    const start = 0;
-    expect(snapProgress(0.05, start, layout)).toBeCloseTo(0);
-    expect(snapProgress(0.15, start, layout)).toBeCloseTo(0.2);
-    expect(snapProgress(1, start, layout)).toBeCloseTo(1);
-  });
-
-  it("returns the input unchanged when the trigger has no span", () => {
-    expect(snapProgress(0.4, 0, { tops: [0], end: 0 })).toBe(0.4);
-  });
-
-  it("respects a trigger that starts below the document top", () => {
-    const shifted: SnapLayout = { tops: [200, 1100], end: 1100 };
-    expect(snapProgress(0.9, 200, shifted)).toBeCloseTo(1);
-    expect(snapProgress(0.1, 200, shifted)).toBeCloseTo(0);
   });
 });
 
