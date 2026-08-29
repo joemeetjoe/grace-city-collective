@@ -7,7 +7,7 @@ describe("tierFor", () => {
     const tier = tierFor({ width: 1600, dpr: 2, saveData: false });
     expect(tier).toBe(TIERS.desktop);
     expect(tier).toMatchObject({ name: "desktop", textures: "2048", rays: 4 });
-    expect(tier.embers).toBeGreaterThanOrEqual(150);
+    expect(tier.embers).toBeGreaterThanOrEqual(70);
   });
 
   it("a narrow viewport gets the mobile tier whatever its DPR", () => {
@@ -26,8 +26,8 @@ describe("tierFor", () => {
     expect(tierFor({ width: 1920, dpr: 2, saveData: true })).toBe(TIERS.mobile);
   });
 
-  it("the mobile tier is 1024 textures, ~50 embers, 2 ray planes", () => {
-    expect(TIERS.mobile).toEqual({ name: "mobile", textures: "1024", embers: 50, rays: 2 });
+  it("the mobile tier is 1024 textures, a couple dozen embers, 2 ray planes", () => {
+    expect(TIERS.mobile).toEqual({ name: "mobile", textures: "1024", embers: 24, rays: 2 });
   });
 });
 

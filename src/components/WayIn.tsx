@@ -5,7 +5,7 @@ import GatheringMark, {
   TRACE_MS,
   TRACE_STAGGER_MS,
 } from "@/components/GatheringMark";
-import { BUTTON_LIFT, FOCUS_RING } from "@/components/interact";
+import { FOCUS_RING } from "@/components/interact";
 import { lozengePath } from "@/components/lozenge";
 import type { Waymark } from "@/content/site";
 import { cn } from "@/lib/utils";
@@ -49,8 +49,7 @@ const MOVE =
  * A diamond arrow: a lozenge filled in the seal's red with a cream chevron
  * pointing the way — a button in the site's own shape, with "and then" or
  * "before that" under it, the way the story is told. Under the pointer it
- * lifts and glows like the seal buttons; at the end of the way it empties
- * to a hairline and waits.
+ * lifts a hair; at the end of the way it empties to a hairline and waits.
  */
 function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disabled?: boolean }) {
   const cx = ARROW_W / 2;
@@ -126,8 +125,8 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         className={cn(
           // the lozenge sits level with the rule, its word under it level with the numerals
           // both the same width, whatever their words, so the rule between them stays centred
-          "mt-[6px] flex w-[72px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:w-[96px] md:gap-[5px] transition-[opacity,color] duration-500 [--lift-glow:var(--color-seal)] hover:text-seal-deep disabled:pointer-events-none disabled:text-cream/35",
-          BUTTON_LIFT,
+          // wide enough that "before that" stays on one line; it lifts a hair under the pointer, no glow
+          "mt-[6px] flex w-[92px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:w-[108px] md:gap-[5px] transition-[opacity,color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
           FOCUS_RING,
         )}
         style={{
@@ -136,7 +135,7 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         }}
       >
         <DiamondArrow back={back} disabled={disabled} />
-        <span className="text-[10px] uppercase tracking-[0.2em] md:text-[11px]">
+        <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.15em] md:text-[11px] md:tracking-[0.2em]">
           {back ? "Before that" : "And then"}
         </span>
       </button>
