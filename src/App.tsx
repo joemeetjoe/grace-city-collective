@@ -987,7 +987,8 @@ function Scene({ section: s }: { section: SceneSection }) {
         {/* the panel keeps clear of the lockup at the frame's foot, so it sets
             a size down from the give stop's and tighter still on a short viewport */}
         <Bracketed className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
-          <Kicker centred>{s.kicker}</Kicker>
+          {/* the kicker stands at the panel's left, its rule drawn from there; the rest is centred */}
+          <Kicker className="self-start text-left">{s.kicker}</Kicker>
           <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
             <div
               key={way}
