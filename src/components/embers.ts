@@ -12,6 +12,16 @@ import { VIGNETTE_GLSL } from "./vignette";
  * pinned by plain tests. (The module keeps its ember name from the sparks
  * it first drew.)
  *
+ * What a mote looks like. Real dust is not one sprite: most of it is
+ * pinpricks, a little is larger, and what is near the lens is a dim,
+ * out-of-focus blob. So each mote draws a size from a distribution that
+ * skews small (depth only nudges it), a softness that blends a hard-edged
+ * fleck into a gaussian bokeh, an alpha that dims as it softens (the bright
+ * ones are the small sharp glints), and one in four is a fibre — the same
+ * sprite stretched along a random angle. A sharp fleck's rim ripples a little
+ * so it is not a perfect disc; a soft one stays round. The look is packed per
+ * mote as the aLook attribute; FRAG reads it.
+ *
  * Where they live. Embers hold their authored depth (z 3.8–5) and take none
  * of the layer spread: they are not cut from the plate, so there is no
  * registration to preserve, and the spread would push them behind the
@@ -40,8 +50,14 @@ export const EMBER_FIELD = { halfW: 8, halfH: (8 * 2519) / 2048 } as const;
 /** vertical settle, world units per second — either way, and hardly at all */
 export const EMBER_SPEED = { min: -0.012, max: 0.012 } as const;
 
-/** world diameter of a sprite; the near end of the depth band gets the large end */
-export const EMBER_SIZE = { min: 0.02, max: 0.085 } as const;
+/** world diameter of a sprite: pinpricks at the small end, the rare near blob at the large */
+export const EMBER_SIZE = { min: 0.012, max: 0.11 } as const;
+
+/**
+ * how the size draw is shaped: `skew` raises the uniform draw (higher skews
+ * smaller), and `depth` is the share of the ramp the mote's nearness adds
+ */
+export const EMBER_SIZE_SHAPE = { skew: 3, depth: 0.2 } as const;
 
 /** lateral sway amplitude in world units */
 export const EMBER_WOBBLE = { min: 0.008, max: 0.03 } as const;
@@ -52,16 +68,19 @@ export const WOBBLE_RATE = 0.22;
 /** dust catching the light: the cream, a little grey */
 export const EMBER_TINT: [number, number, number] = [0.9, 0.86, 0.78];
 
-/** a mote's alpha, steady — dust does not flicker */
-export const EMBER_ALPHA = 0.55;
+/** a mote's alpha, steady — dust does not flicker; a sharp glint gets `sharp`, a bokeh blob `soft` */
+export const EMBER_ALPHA = { sharp: 0.5, soft: 0.2 } as const;
+
+/** share of motes drawn as fibres, and how far a fibre stretches (1 is a disc) */
+export const EMBER_FIBRE = { share: 0.25, stretch: { min: 1.8, max: 3.5 } } as const;
 
 /** the wrap window overshoots the frustum by this factor so re-entries happen off screen */
 export const EMBER_MARGIN = 1.15;
 
 export const EMBER_COUNT = {
-  min: 150,
-  max: 300,
-  mobile: 50,
+  min: 70,
+  max: 140,
+  mobile: 24,
   /** the viewport (in device pixels) that gets `min` embers */
   refArea: 1280 * 720,
 } as const;
@@ -78,7 +97,7 @@ export type EmberCountInputs = {
 
 /**
  * How many embers a viewport gets: none under reduced motion, a fixed handful
- * on the mobile tier, otherwise 150–300 growing with the device-pixel area
+ * on the mobile tier, otherwise 70–140 growing with the device-pixel area
  * (DPR clamped at 2, as the renderer clamps it).
  */
 export function emberCount({ width, height, dpr, reducedMotion, tier = "desktop" }: EmberCountInputs): number {
@@ -101,6 +120,14 @@ export type EmberSeeds = {
   size: Float32Array;
   /** lateral wobble amplitude */
   wobble: Float32Array;
+  /** 0 a hard-edged fleck, 1 an out-of-focus blob */
+  softness: Float32Array;
+  /** the mote's own alpha */
+  alpha: Float32Array;
+  /** 1 a disc; more, a fibre that long along its axis */
+  stretch: Float32Array;
+  /** the fibre's axis, radians */
+  angle: Float32Array;
 };
 
 /** mulberry32: a tiny deterministic PRNG so a seed always scatters the same field */
@@ -117,11 +144,14 @@ function prng(seed: number): () => number {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
 /**
  * Deterministic rest positions across the plate's extent with z in the depth
- * band; per ember a drift speed, a phase, a wobble amplitude and a size that
- * grows with nearness (a little jitter, but never enough to let a far ember
- * outsize a near one).
+ * band; per ember a drift speed, a phase, a wobble amplitude, and a look:
+ * a size drawn small-skewed (nearness adds a little), a softness that grows
+ * with the size and a little chance, an alpha that dims as it softens, and
+ * for a quarter of them a fibre's stretch and angle.
  */
 export function seedEmbers(count: number, seed = 1): EmberSeeds {
   const rand = prng(seed);
@@ -130,6 +160,10 @@ export function seedEmbers(count: number, seed = 1): EmberSeeds {
   const phase = new Float32Array(count);
   const size = new Float32Array(count);
   const wobble = new Float32Array(count);
+  const softness = new Float32Array(count);
+  const alpha = new Float32Array(count);
+  const stretch = new Float32Array(count);
+  const angle = new Float32Array(count);
   for (let i = 0; i < count; i++) {
     const depth01 = rand();
     origin[i * 3] = lerp(-EMBER_FIELD.halfW, EMBER_FIELD.halfW, rand());
@@ -138,10 +172,18 @@ export function seedEmbers(count: number, seed = 1): EmberSeeds {
     speed[i] = lerp(EMBER_SPEED.min, EMBER_SPEED.max, rand());
     phase[i] = rand() * Math.PI * 2;
     wobble[i] = lerp(EMBER_WOBBLE.min, EMBER_WOBBLE.max, rand());
-    // a tenth of the ramp is jitter, so the band's ends never trade places
-    size[i] = lerp(EMBER_SIZE.min, EMBER_SIZE.max, depth01 * 0.9 + rand() * 0.1);
+    // most motes are pinpricks: the draw is raised to skew it small, and nearness adds a little
+    const { skew, depth } = EMBER_SIZE_SHAPE;
+    const size01 = Math.pow(rand(), skew) * (1 - depth) + depth01 * depth;
+    size[i] = lerp(EMBER_SIZE.min, EMBER_SIZE.max, size01);
+    // the large ones are the out-of-focus ones, mostly; chance blurs the rule
+    softness[i] = clamp01(0.1 + size01 * 0.7 + (rand() - 0.5) * 0.5);
+    alpha[i] = lerp(EMBER_ALPHA.sharp, EMBER_ALPHA.soft, softness[i]) * lerp(0.7, 1, rand());
+    const fibre = rand() < EMBER_FIBRE.share;
+    stretch[i] = fibre ? lerp(EMBER_FIBRE.stretch.min, EMBER_FIBRE.stretch.max, rand()) : 1;
+    angle[i] = rand() * Math.PI;
   }
-  return { count, origin, speed, phase, size, wobble };
+  return { count, origin, speed, phase, size, wobble, softness, alpha, stretch, angle };
 }
 
 export type EmberWindow = { cx: number; cy: number; halfW: number; halfH: number };
@@ -220,19 +262,24 @@ uniform float uTime, uTan, uAspect, uMargin, uPxPerUnit, uMaxPx, uRefZ;
 uniform vec3 uCam;
 // speed, phase, size, wobble
 attribute vec4 aSeed;
-varying float vAlpha;
+// softness, alpha, stretch, angle
+attribute vec4 aLook;
+varying float vAlpha, vPhase;
+varying vec4 vLook;
 float wrapInto(float v, float c, float h) { return c + mod(v - c + h, 2.0 * h) - h; }
 void main() {
+  vLook = aLook;
+  vPhase = aSeed.y;
   float halfH = (uRefZ - position.z) * uTan * uMargin;
   float halfW = halfH * uAspect;
   float x = wrapInto(position.x + aSeed.w * sin(uTime * ${WOBBLE_RATE.toFixed(3)} + aSeed.y), uCam.x, halfW);
   float y = wrapInto(position.y + aSeed.x * uTime, uCam.y, halfH);
   vec4 mv = modelViewMatrix * vec4(x, y, position.z, 1.0);
   float dist = max(0.05, -mv.z);
-  // a mote's world diameter projected to device pixels: near ones are larger and softer
-  gl_PointSize = clamp(aSeed.z * uPxPerUnit / dist, 1.0, uMaxPx);
+  // a mote's world diameter projected to device pixels; a bokeh blob's falloff needs the room, so it draws larger
+  gl_PointSize = clamp(aSeed.z * (1.0 + 0.6 * aLook.x) * uPxPerUnit / dist, 1.0, uMaxPx);
   // a mote about to pass the camera would fill the frame — let it go instead
-  vAlpha = ${EMBER_ALPHA.toFixed(2)} * smoothstep(0.3, 1.4, dist);
+  vAlpha = aLook.y * smoothstep(0.3, 1.4, dist);
   gl_Position = projectionMatrix * mv;
 }`;
 
@@ -240,13 +287,26 @@ const FRAG = `
 uniform vec3 uTint;
 uniform float uOpacity, uVignette;
 uniform vec2 uResolution;
-varying float vAlpha;
+varying float vAlpha, vPhase;
+varying vec4 vLook;
 ${VIGNETTE_GLSL}
 void main() {
-  float r = length(gl_PointCoord - 0.5) * 2.0;
+  vec2 p = gl_PointCoord - 0.5;
+  // a fibre: the sprite turned to its angle and narrowed across it
+  float c = cos(vLook.w), s = sin(vLook.w);
+  p = vec2(c * p.x - s * p.y, s * p.x + c * p.y);
+  p.y *= vLook.z;
+  float r = length(p) * 2.0;
+  // a sharp fleck is not a perfect disc: a small ripple on its rim, fading out as it softens
+  float ang = atan(p.y, p.x);
+  float rim = 1.0 - (1.0 - vLook.x) * 0.16 * (0.6 * sin(ang * 3.0 + vPhase) + 0.4 * sin(ang * 5.0 - vPhase * 1.7));
+  r /= rim;
   if (r > 1.0) discard;
-  float a = smoothstep(1.0, 0.0, r);
-  a *= a;
+  // a hard edge for a fleck, a gaussian falloff for an out-of-focus blob; softness blends them
+  float soft = smoothstep(1.0, 0.0, r);
+  soft *= soft;
+  float sharp = smoothstep(1.0, 0.55, r);
+  float a = mix(sharp, soft, vLook.x);
   vec3 col = uTint;
   // the front canvas has no DOM vignette over it: dim the ember by the same falloff here
   float v = 1.0 - vignetteAlpha(gl_FragCoord.xy, uResolution) * uVignette;
@@ -311,6 +371,14 @@ export function createEmbers({
     packed[i * 4 + 3] = seeds.wobble[i];
   }
   geometry.setAttribute("aSeed", new THREE.BufferAttribute(packed, 4));
+  const look = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    look[i * 4] = seeds.softness[i];
+    look[i * 4 + 1] = seeds.alpha[i];
+    look[i * 4 + 2] = seeds.stretch[i];
+    look[i * 4 + 3] = seeds.angle[i];
+  }
+  geometry.setAttribute("aLook", new THREE.BufferAttribute(look, 4));
 
   const material = new THREE.ShaderMaterial({
     uniforms: {

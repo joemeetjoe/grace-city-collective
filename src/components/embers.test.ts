@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  EMBER_ALPHA,
   EMBER_COUNT,
+  EMBER_FIBRE,
   EMBER_FIELD,
   EMBER_SIZE,
   EMBER_SPEED,
@@ -77,21 +79,56 @@ describe("seedEmbers", () => {
     expect(Array.from(seeds.speed).some((v) => v > 0)).toBe(true);
   });
 
-  it("sizes by depth: the nearest embers are all larger than the farthest", () => {
+  it("sizes skew small: most motes are pinpricks, a few reach the large end", () => {
+    const span = EMBER_SIZE.max - EMBER_SIZE.min;
+    const sizes = Array.from(seeds.size);
+    for (const s of sizes) {
+      expect(s).toBeGreaterThanOrEqual(EMBER_SIZE.min);
+      expect(s).toBeLessThanOrEqual(EMBER_SIZE.max);
+    }
+    const small = sizes.filter((s) => s < EMBER_SIZE.min + span / 3).length;
+    expect(small / sizes.length).toBeGreaterThan(0.6);
+    expect(Math.max(...sizes)).toBeGreaterThan(EMBER_SIZE.min + span * 0.7);
+  });
+
+  it("nearness nudges the size: the near motes run larger on average, but a far one can outsize a near one", () => {
     const near: number[] = [];
     const far: number[] = [];
     for (let i = 0; i < seeds.count; i++) {
       const z = seeds.origin[i * 3 + 2];
-      if (z > EMBER_Z.max - 0.2) near.push(seeds.size[i]);
-      if (z < EMBER_Z.min + 0.2) far.push(seeds.size[i]);
+      if (z > EMBER_Z.max - 0.3) near.push(seeds.size[i]);
+      if (z < EMBER_Z.min + 0.3) far.push(seeds.size[i]);
     }
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
     expect(near.length).toBeGreaterThan(0);
     expect(far.length).toBeGreaterThan(0);
-    expect(Math.min(...near)).toBeGreaterThan(Math.max(...far));
-    for (const s of seeds.size) {
-      expect(s).toBeGreaterThanOrEqual(EMBER_SIZE.min);
-      expect(s).toBeLessThanOrEqual(EMBER_SIZE.max);
+    expect(mean(near)).toBeGreaterThan(mean(far));
+    expect(Math.max(...far)).toBeGreaterThan(Math.min(...near));
+  });
+
+  it("varies the look: softness across its range, alpha dimming as it softens, a quarter as fibres", () => {
+    let fibres = 0;
+    for (let i = 0; i < seeds.count; i++) {
+      expect(seeds.softness[i]).toBeGreaterThanOrEqual(0);
+      expect(seeds.softness[i]).toBeLessThanOrEqual(1);
+      expect(seeds.alpha[i]).toBeGreaterThan(0);
+      expect(seeds.alpha[i]).toBeLessThanOrEqual(EMBER_ALPHA.sharp);
+      expect(seeds.angle[i]).toBeGreaterThanOrEqual(0);
+      expect(seeds.angle[i]).toBeLessThanOrEqual(Math.PI);
+      if (seeds.stretch[i] > 1) {
+        fibres++;
+        expect(seeds.stretch[i]).toBeGreaterThanOrEqual(EMBER_FIBRE.stretch.min);
+        expect(seeds.stretch[i]).toBeLessThanOrEqual(EMBER_FIBRE.stretch.max);
+      } else {
+        expect(seeds.stretch[i]).toBe(1);
+      }
     }
+    const softest = Array.from(seeds.softness).indexOf(Math.max(...seeds.softness));
+    const sharpest = Array.from(seeds.softness).indexOf(Math.min(...seeds.softness));
+    expect(seeds.softness[softest] - seeds.softness[sharpest]).toBeGreaterThan(0.5);
+    expect(seeds.alpha[sharpest]).toBeGreaterThan(seeds.alpha[softest]);
+    expect(fibres / seeds.count).toBeGreaterThan(EMBER_FIBRE.share - 0.1);
+    expect(fibres / seeds.count).toBeLessThan(EMBER_FIBRE.share + 0.1);
   });
 
   it("gives an empty layer for a count of zero", () => {

@@ -19,8 +19,8 @@ export type Tier = {
 };
 
 export const TIERS: Record<TierName, Tier> = {
-  mobile: { name: "mobile", textures: "1024", embers: 50, rays: 2 },
-  desktop: { name: "desktop", textures: "2048", embers: 200, rays: 4 },
+  mobile: { name: "mobile", textures: "1024", embers: 24, rays: 2 },
+  desktop: { name: "desktop", textures: "2048", embers: 100, rays: 4 },
 };
 
 /** viewports narrower than this (CSS px) take the mobile tier — the tablet breakpoint, Tailwind's `lg` */

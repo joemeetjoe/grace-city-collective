@@ -12,6 +12,7 @@
  *        [--css "section{visibility:hidden}"]   (injected after load)
  *        [--mobile] [--dpr 3] [--reduced-motion] [--ids devotions,faq] [--menu]
  *
+ * --dpr sets the pixel ratio (desktop needs 2 for the desktop tier; headless is 1).
  * --mobile emulates a phone/tablet: the viewport is --size at --dpr with the
  * mobile flag set (Chrome then reports the layout viewport, not a desktop
  * window) and touch emulation on. --reduced-motion sets the media feature so
@@ -114,7 +115,7 @@ try {
     });
     await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   } else {
-    await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+    await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: dpr, mobile: false });
   }
   if (reducedMotion) {
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
