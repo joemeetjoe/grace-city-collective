@@ -2,8 +2,11 @@ import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import GMark from "@/components/GMark";
-import IntroSplash, { NAV_MARK, SPLASH_MARK_SIZE } from "./IntroSplash";
+import { gsap } from "@/lib/gsap";
+import IntroSplash, { NAV_MARK } from "./IntroSplash";
 import { buildHandoff } from "./handoff";
+import { SPLASH_MARK_SIZE } from "./splashMark";
+import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "./staticSplash";
 import { TRACE_HOLD, createTrace, ruleReach } from "./trace";
 
 /** builders that hand their timelines back to the test so it can scrub them */
@@ -67,11 +70,59 @@ describe("IntroSplash", () => {
     expect(ruleReach(splashRule())).toBeCloseTo(TRACE_HOLD, 6);
   });
 
-  it("the textures pull the rule ahead of the floor", () => {
-    const { build } = capture();
+  it("the textures pull the rule ahead of the floor, gliding out to their share", () => {
+    const { build, trace } = capture();
     const { rerender } = render(<IntroSplash ready={false} progress={0} onDone={() => {}} build={build} />);
     rerender(<IntroSplash ready={false} progress={0.5} onDone={() => {}} build={build} />);
+    // nothing has moved yet: the splash has not been painted
+    expect(ruleReach(splashRule())).toBe(0);
+    act(() => {
+      trace().start();
+    });
+    expect(ruleReach(splashRule())).toBe(0);
+    act(() => {
+      trace().glide()!.progress(1);
+    });
     expect(ruleReach(splashRule())).toBeCloseTo(0.5 * TRACE_HOLD, 6);
+  });
+
+  it("starts the trace on the frame after its first paint, and not before", async () => {
+    const { build, tl } = capture();
+    render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
+    expect(tl().paused()).toBe(true);
+    await act(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
+    expect(tl().paused()).toBe(false);
+  });
+
+  it("a splash unmounted before its first frame never starts", async () => {
+    const { build, tl } = capture();
+    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
+    unmount();
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    expect(tl().paused()).toBe(true);
+  });
+
+  it("holds gsap's clock through stalls while up, and lets it go on unmount", () => {
+    const spy = vi.spyOn(gsap.ticker, "lagSmoothing");
+    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} />);
+    expect(spy).toHaveBeenLastCalledWith(100, 16);
+    unmount();
+    expect(spy).toHaveBeenLastCalledWith(500, 33);
+  });
+
+  it("takes the place of the static splash from index.html the moment it is committed", () => {
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    expect(document.querySelector(`[${STATIC_SPLASH_ATTR}]`)).not.toBeNull();
+    render(<IntroSplash ready={false} onDone={() => {}} />);
+    expect(document.querySelector(`[${STATIC_SPLASH_ATTR}]`)).toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).not.toBeNull();
   });
 
   it("does not hand off when the floor finishes before the textures are in", () => {
@@ -84,10 +135,14 @@ describe("IntroSplash", () => {
   });
 
   it("does not hand off when the textures arrive before the floor has run", () => {
-    const { build, handoff, handoffs } = capture();
+    const { build, trace, handoff, handoffs } = capture();
     const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
     rerender(<IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(0);
+    act(() => {
+      trace().start();
+      trace().glide()!.progress(1);
+    });
     // the rule waits on the hold, a corner short
     expect(ruleReach(splashRule())).toBeCloseTo(TRACE_HOLD, 6);
   });

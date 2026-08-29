@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import GMark from "@/components/GMark";
-import { gMarkAspect } from "@/components/gMarkGeometry";
 import { gsap } from "@/lib/gsap";
 import { introGateOpen } from "@/intro/gate";
 import { buildHandoff } from "@/intro/handoff";
 import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
 import { parallaxLayers } from "@/intro/restingFade";
-import { createTrace, type Trace } from "@/intro/trace";
-
-/** the mark's share of the shorter viewport side */
-export const SPLASH_MARK_FRACTION = 0.72;
-
-/** as tall as the viewport allows, or as wide, whichever binds first */
-export const SPLASH_MARK_SIZE = `min(${SPLASH_MARK_FRACTION * 100}svh, calc(${SPLASH_MARK_FRACTION * 100}vw / ${gMarkAspect(true)}))`;
+import { SPLASH_MARK_SIZE } from "@/intro/splashMark";
+import { removeStaticSplash } from "@/intro/staticSplashDom";
+import { createTrace, holdClockThroughStalls, type Trace } from "@/intro/trace";
 
 /** the nav's G mark, the traveller's destination */
 export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
@@ -39,6 +34,10 @@ export type IntroSplashProps = {
  * textures arrive. Once they are in (and the rule has had its minimum run,
  * or the visitor skipped), the rule closes and the mark travels into the nav
  * while the scene fades up underneath.
+ *
+ * The same splash stands in index.html as static markup (staticSplash.ts)
+ * from the page's first paint; this one takes its place, same geometry, the
+ * moment it is committed.
  */
 export default function IntroSplash({
   ready,
@@ -59,6 +58,11 @@ export default function IntroSplash({
     onDoneRef.current = onDone;
   }, [onDone]);
 
+  // before paint, so no frame shows neither splash
+  useLayoutEffect(() => {
+    removeStaticSplash();
+  }, []);
+
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -68,10 +72,18 @@ export default function IntroSplash({
 
     const trace = build(root.querySelector<SVGPathElement>("[data-g-mark-rule]"));
     trace.timeline.eventCallback("onComplete", () => setMinimumElapsed(true));
-    trace.timeline.play();
     traceRef.current = trace;
+    const releaseClock = holdClockThroughStalls();
+    // the rule is painted undrawn before it moves: the trace starts on the
+    // frame after the splash's first paint, not on mount, where the scene
+    // coming up underneath would eat its first stretch on the clock
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => trace.start());
+    });
     return () => {
-      trace.timeline.kill();
+      cancelAnimationFrame(frame);
+      releaseClock();
+      trace.kill();
       traceRef.current = null;
       // an interrupted handoff is jumped to its end so the nav's mark is
       // shown and the parallax is up, where the page expects them

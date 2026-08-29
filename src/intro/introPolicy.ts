@@ -1,7 +1,6 @@
-/** sessionStorage flag: the intro has played (or been skipped) this browser session */
-export const INTRO_PLAYED_KEY = "gcc:intro-played";
+import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "./introKeys";
 
-export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+export { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY };
 
 export type IntroPolicyInputs = {
   /** the session flag is set: the intro already played or was skipped */

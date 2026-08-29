@@ -1,6 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { TRACE_HOLD, TRACE_MIN_SECONDS, createTrace, drawRule, ruleReach, traceReach } from "./trace";
+import { gsap } from "@/lib/gsap";
+
+import {
+  TRACE_GLIDE_PACE,
+  TRACE_HOLD,
+  TRACE_MIN_SECONDS,
+  createTrace,
+  drawRule,
+  glideSeconds,
+  holdClockThroughStalls,
+  ruleReach,
+  traceReach,
+} from "./trace";
 
 function rule(): SVGPathElement {
   return document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -19,6 +31,25 @@ describe("traceReach", () => {
 
   it("never goes below nothing", () => {
     expect(traceReach(-1, -1)).toBe(0);
+  });
+});
+
+describe("glideSeconds", () => {
+  it("paces the glide by distance, a fixed multiple quicker than the floor", () => {
+    expect(glideSeconds(0, 1)).toBeCloseTo(TRACE_MIN_SECONDS / TRACE_GLIDE_PACE, 6);
+    expect(glideSeconds(0.5, 1)).toBeCloseTo(TRACE_MIN_SECONDS / TRACE_GLIDE_PACE / 2, 6);
+    expect(glideSeconds(1, 0.5)).toBe(0);
+  });
+});
+
+describe("holdClockThroughStalls", () => {
+  it("tightens gsap's lag smoothing, and its release restores the default", () => {
+    const spy = vi.spyOn(gsap.ticker, "lagSmoothing");
+    const release = holdClockThroughStalls();
+    expect(spy).toHaveBeenLastCalledWith(100, 16);
+    release();
+    expect(spy).toHaveBeenLastCalledWith(500, 33);
+    spy.mockRestore();
   });
 });
 
@@ -56,22 +87,72 @@ describe("createTrace", () => {
     expect(ruleReach(r)).toBeCloseTo(TRACE_HOLD, 6);
   });
 
-  it("the textures pull the rule ahead of the floor, and never let it fall back", () => {
+  it("nothing moves before start: the textures' share is kept, not drawn", () => {
     const r = rule();
     const trace = createTrace(r);
     trace.setLoaded(0.8);
+    expect(ruleReach(r)).toBe(0);
+    expect(trace.glide()).toBeNull();
+    expect(trace.timeline.paused()).toBe(true);
+    trace.start();
+    expect(trace.timeline.paused()).toBe(false);
+    // the share is glided out to from nothing, never jumped to
+    expect(ruleReach(r)).toBe(0);
+    const glide = trace.glide();
+    expect(glide).not.toBeNull();
+    expect(glide!.duration()).toBeCloseTo(glideSeconds(0, 0.8), 6);
+    glide!.progress(0.5);
+    const midway = ruleReach(r);
+    expect(midway).toBeGreaterThan(0);
+    expect(midway).toBeLessThan(0.8 * TRACE_HOLD);
+    glide!.progress(1);
+    expect(ruleReach(r)).toBeCloseTo(0.8 * TRACE_HOLD, 6);
+    expect(trace.glide()).toBeNull();
+    trace.kill();
+  });
+
+  it("the textures pull the rule ahead of the floor, and never let it fall back", () => {
+    const r = rule();
+    const trace = createTrace(r);
+    trace.start();
+    trace.setLoaded(0.8);
+    trace.glide()!.progress(1);
     expect(ruleReach(r)).toBeCloseTo(0.8 * TRACE_HOLD, 6);
     trace.setLoaded(0.4);
+    expect(trace.glide()).toBeNull();
     expect(ruleReach(r)).toBeCloseTo(0.8 * TRACE_HOLD, 6);
     trace.setLoaded(1);
+    trace.glide()!.progress(1);
     expect(ruleReach(r)).toBeCloseTo(TRACE_HOLD, 6);
+    trace.kill();
+  });
+
+  it("a start after a skip leaves the floor at its end", () => {
+    const r = rule();
+    const trace = createTrace(r);
+    trace.timeline.progress(1);
+    trace.start();
+    expect(trace.timeline.progress()).toBe(1);
+    expect(ruleReach(r)).toBeCloseTo(TRACE_HOLD, 6);
+    trace.kill();
+  });
+
+  it("starts once", () => {
+    const trace = createTrace(rule());
+    trace.start();
+    trace.timeline.pause();
+    trace.start();
+    expect(trace.timeline.paused()).toBe(true);
+    trace.kill();
   });
 
   it("copes with no rule at all", () => {
     const trace = createTrace(null);
     expect(() => {
+      trace.start();
       trace.setLoaded(1);
       trace.timeline.progress(1);
+      trace.kill();
     }).not.toThrow();
   });
 });

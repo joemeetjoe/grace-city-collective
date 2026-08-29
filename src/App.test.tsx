@@ -6,6 +6,7 @@ import { STACK } from "@/components/layerSplit";
 import { sectionIds, site } from "@/content/site";
 import { HANDOFF_Z_INDEX } from "@/intro/handoff";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
+import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/intro/staticSplash";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
@@ -93,6 +94,13 @@ describe("App intro policy", () => {
     const { container } = render(<App />);
     expect(container.querySelector("[data-intro-splash]")).toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
+  });
+
+  it("a session that already played the intro drops the static splash from index.html", () => {
+    window.sessionStorage.setItem(INTRO_PLAYED_KEY, "1");
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    render(<App />);
+    expect(document.querySelector(`[${STATIC_SPLASH_ATTR}]`)).toBeNull();
   });
 
   it("reduced motion renders no splash and fades the parallax up from ink", () => {

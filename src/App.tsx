@@ -46,6 +46,7 @@ import { useSite } from "@/content/useSite";
 import { HERO_HEADLINE, riseHeroHeadline } from "@/intro/heroRise";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
+import { removeStaticSplash } from "@/intro/staticSplashDom";
 import { buildNavReveal, collectNavReveal } from "@/intro/navReveal";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
@@ -276,6 +277,13 @@ export default function App() {
       nav.kill();
       hero?.revert();
     };
+  }, [intro]);
+
+  // index.html carries the splash as static markup from first paint; a
+  // session the intro does not play in drops it here (its own inline script
+  // already has, unless the two policies somehow disagreed)
+  useLayoutEffect(() => {
+    if (!intro) removeStaticSplash();
   }, [intro]);
 
   const site = useSite();
