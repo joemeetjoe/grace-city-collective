@@ -33,7 +33,17 @@ export type LongformSection = {
   intro?: string;
 };
 
-export type Gathering = { title: string; when: string; body: string };
+/** the lozenge mark that heads a gathering (GatheringMark.tsx): five homes, or one feast */
+export const GATHERING_MARKS = ["homes", "feast"] as const;
+export type GatheringMark = (typeof GATHERING_MARKS)[number];
+
+export type Gathering = {
+  /** absent in content published before the marks existed: the site falls back by position */
+  mark?: GatheringMark;
+  title: string;
+  when: string;
+  body: string;
+};
 export type Devotion = { title: string; refs: string; body: string };
 export type Belief = { title: string; body: string; refs: string };
 export type BeliefPosture = { line: string; quote: string; ref: string };
@@ -145,19 +155,16 @@ export const site: SiteContent = {
 
   gatherings: [
     {
-      title: "Sunday Worship Gathering",
-      when: "Sundays · 10:30 a.m.",
-      body: "Singing, Scripture, the table, and teaching that takes the week seriously.",
+      mark: "homes",
+      title: "House Churches",
+      when: "Every Sunday · 10:30 a.m. · five homes across West Georgia",
+      body: "12–20 people around a lay elder/pastor: singing, Scripture, prayer, communion, and teaching that takes the week seriously — then lunch, and the slow work of knowing one another. Children stay in the room.",
     },
     {
-      title: "House churches",
-      when: "Every week · five homes across West Georgia",
-      body: "12–20 people, a lay elder/pastor, the week’s teaching, and lunch. Children stay in the room.",
-    },
-    {
+      mark: "feast",
       title: "All-Church Gathering",
-      when: "First Sunday of the month",
-      body: "The whole family in one place: prayer, Scripture, singing, communion and teaching — casual, informal, participatory.",
+      when: "First Sunday of the month · the five rooms become one",
+      body: "The whole family in one place for a love feast: prayer, Scripture, singing, communion and teaching — casual, informal, participatory, and more like a family gathering than a service.",
     },
   ],
 

@@ -1,5 +1,7 @@
 import type * as THREE from "three";
 
+import type { TierName } from "@/scene/tier";
+
 import type { Cut } from "./parallaxRelief";
 
 /**
@@ -7,34 +9,83 @@ import type { Cut } from "./parallaxRelief";
  * with the page's type between them: the back canvas carries the backdrop,
  * the crowd, the apostles' flames, the mid apostles, the arch, the dove and
  * the rays; the front canvas (transparent, pointer-events none, above the
- * DOM) carries the floor, the two nearest apostles on the left and the
- * embers — so a crown or an ember can cross the hero headline. The lockup
- * sits in the bottom-left corner, right over those two apostles, so it
- * stays above the front canvas with the rest of the chrome: under it, the
- * robes would hide it whole.
+ * DOM) carries the floor, the two nearest apostles on the left, the nearest
+ * on the right and the embers — so a crown or an ember can cross the hero
+ * headline, and a stop's copy panel can rise from behind a figure and rest
+ * with a corner tucked behind him. The lockup sits in the bottom-left
+ * corner, right over the two left apostles, so it stays above the front
+ * canvas with the rest of the chrome: under it, the robes would hide it whole.
  *
  * What stays back, and why. fig10 (the praying apostle, z 2.3) is as near as
  * fig5, but its robe spans plate u 0.35–0.58, right across the middle of
  * the headline's lines at every aspect — and the lateral budget
- * (LATERAL_MAX) cannot move it clear. The flames stay back too, even
- * the ones over front figures: a flame hovers clear above its head (its cut
- * never overlaps the figure's), so nothing changes at rest, and at the hero
- * framing a front flame would sit right across a word of the headline —
- * the one thing the split must never do. Every front cut still sorts after
- * every back cut except fig10, whose cut shares no pixels with fig5's or
- * fig13's, so compositing the two canvases in the DOM draws what one did.
+ * (LATERAL_MAX) cannot move it clear. The flames stay back at the hero: a
+ * front flame there would sit right across a word of the headline — the one
+ * thing the split must never do. From who-we-are on, the two left apostles'
+ * flames (flame5, flame6) come forward with them: at that stop they hover
+ * over the panel's glass, clear of its words, and then lift off in front of
+ * it (flamePose's ascent starts there). They go back for the visit stop,
+ * where the flock rings under the dove right over the copy; both turns
+ * happen with the flames clear of every panel. The DOM composites the front canvas
+ * over the back one, so a back cut nearer than a front cut would draw under
+ * it: that is only ever fig10 (z 2.3) against fig1 (z 2.1), and their cuts
+ * share no pixels, so the two canvases draw what one did.
  */
 export type CanvasSide = "back" | "front";
 
-/** the cuts that cross in front of the type */
-export const FRONT_CUTS: ReadonlySet<string> = new Set(["floor", "fig13", "fig5"]);
+/** the floor, the two nearest apostles on the left and the nearest on the right */
+const NEAR = ["floor", "fig13", "fig5", "fig1"];
+/** the same, with the two left apostles' flames */
+const NEAR_LIT = [...NEAR, "flame5", "flame6"];
+
+/**
+ * The cuts that cross in front of the type, one row per scene stop (the
+ * site's scene sections, in order); a stop past the table takes the last
+ * row. A cut that changes side between two rows pops from over a panel to
+ * under it, so neighbouring rows may differ only in cuts that are clear of
+ * both stops' panels at the turn (stopAt).
+ */
+export const FRONT_CUTS_AT: readonly ReadonlySet<string>[] = [
+  new Set(NEAR), // hero — the flames would cross the headline
+  new Set(NEAR_LIT), // who we are — the flames hover over the panel's glass
+  new Set(NEAR_LIT), // house churches — and lift off in front of it
+  new Set(NEAR_LIT), // gatherings
+  new Set(NEAR_LIT), // give — the flames are above the frame by now
+  new Set(NEAR), // visit — the flock rings under the dove, over the copy
+];
+
+export function frontCutsAt(stop: number): ReadonlySet<string> {
+  const i = Math.max(0, Math.min(FRONT_CUTS_AT.length - 1, Math.floor(stop)));
+  return FRONT_CUTS_AT[i];
+}
+
+/**
+ * The stop whose row applies at scroll position `sp` (sections from the top,
+ * fractional). The camera holds a stop's frame through the first half of its
+ * section and travels through the second (PentecostParallax), so the row
+ * turns with the frame, at the half.
+ */
+export function stopAt(sp: number): number {
+  return Math.round(Math.max(0, sp));
+}
+
+/**
+ * On a phone every panel spans the frame, so the nearest hood (fig13, whose
+ * robe fills the lower-left at the who-we-are stop) would sit on the words
+ * rather than beside them, and its flame on the kicker. The hood overlaps
+ * fig5's sleeve, so fig5 cannot stay in front without drawing over it: the
+ * two left apostles and their flames all stay back on the mobile tier, at
+ * every stop, and the phone keeps the floor and the right-hand apostle.
+ */
+const MOBILE_BACK: ReadonlySet<string> = new Set(["fig13", "fig5", "flame5", "flame6"]);
 
 /** the embers are not cuts; they drift in front of everything */
 export const EMBERS_SIDE: CanvasSide = "front";
 
-/** which canvas a cut draws to */
-export function canvasFor(cut: Pick<Cut, "name">): CanvasSide {
-  return FRONT_CUTS.has(cut.name) ? "front" : "back";
+/** which canvas a cut draws to at a stop, on a tier */
+export function canvasFor(cut: Pick<Cut, "name">, stop = 0, tier: TierName = "desktop"): CanvasSide {
+  if (tier === "mobile" && MOBILE_BACK.has(cut.name)) return "back";
+  return frontCutsAt(stop).has(cut.name) ? "front" : "back";
 }
 
 /** a canvas and the renderer that draws to it */
@@ -68,11 +119,12 @@ export function assignLayer<T extends THREE.Object3D>(object: T, side: CanvasSid
 
 /**
  * The page's stacking order around the two canvases, as Tailwind classes
- * (the handoff's is a bare number: gsap sets it inline). Only the hero
- * headline and the kicker rules sit under the front canvas; body copy, the
- * lockup, the frame border, cards, buttons and the nav stay above it. The
- * splash's handoff sits over the headline (which fades up with the scene)
- * and under the nav, whose mark the travelling one lands on.
+ * (the handoff's is a bare number: gsap sets it inline). The hero headline,
+ * the kickers and every copy panel — glass, brackets and words — sit between
+ * the canvases, so the nearest figures cross them; the lockup, the frame
+ * border and the nav stay above. The splash's handoff sits over the headline
+ * (which fades up with the scene) and under the nav, whose mark the
+ * travelling one lands on.
  */
 export const STACK = {
   back: "z-0",
