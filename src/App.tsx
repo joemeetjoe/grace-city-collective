@@ -27,6 +27,7 @@ import ScriptureRefs from "@/components/ScriptureRefs";
 import PentecostParallax from "@/components/PentecostParallax";
 import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
+import WayIn from "@/components/WayIn";
 import { useInViewOnce } from "@/components/useInViewOnce";
 import { vignetteCss } from "@/components/vignette";
 import {
@@ -35,6 +36,7 @@ import {
   type SceneSection,
   sectionIds,
   type SiteContent,
+  wayIn,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { HERO_HEADLINE, riseHeroHeadline } from "@/intro/heroRise";
@@ -797,6 +799,17 @@ function GatheringsCalendar({ lit }: { lit: Mark | null }) {
   );
 }
 
+/**
+ * The visit stop's way in (WayIn): five steps from a first hello to a house
+ * church of one's own, drawn in with the panel's brackets; the reader walks
+ * them by pointer, tap, or the diamond arrows.
+ */
+function TheWayIn() {
+  const site = useSite();
+  const shown = useContext(PanelShownContext);
+  return <WayIn steps={wayIn(site)} shown={shown} className="pt-1" />;
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
@@ -894,18 +907,61 @@ function Scene({ section: s }: { section: SceneSection }) {
       </section>
     );
   }
-  if (s.id === "give" || s.id === "visit") {
+  if (s.id === "visit") {
     const { contact } = site;
-    // the dove hangs in the upper third of the visit frame; the copy sits under it
-    const place =
-      s.id === "visit"
-        ? "justify-end pb-[clamp(150px,20vh,190px)]"
-        : `justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`;
+    // the dove hangs in the upper third of the visit frame; the panel — the
+    // words, the way in, and the call to action — sits under it, and fills
+    // the frame's width up to a reading measure
     return (
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} flex-col items-center text-center ${place}`}
+        className={`${base} ${clear} flex-col items-center justify-end text-center lg:pt-[clamp(104px,13vh,140px)] lg:pb-[clamp(120px,17vh,170px)]`}
+      >
+        {/* the panel keeps clear of the lockup at the frame's foot, so it sets
+            a size down from the give stop's and tighter still on a short viewport */}
+        <Bracketed className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
+          <Kicker centred>{s.kicker}</Kicker>
+          <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
+            <h2
+              className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
+            >
+              {s.heading}
+            </h2>
+            {s.body.map((p) => (
+              <p
+                key={p}
+                className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base"
+              >
+                {p}
+              </p>
+            ))}
+            <TheWayIn />
+            <div className="flex flex-col items-center gap-3.5 pt-1 [@media(max-height:820px)]:lg:gap-2.5 [@media(max-height:820px)]:lg:pt-0">
+              {s.cta && (
+                <a
+                  href={s.cta.href}
+                  className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
+                >
+                  {s.cta.label}
+                </a>
+              )}
+              <p className="text-[10px] uppercase tracking-[0.24em] text-cream/50">
+                {contact.address.street} {contact.address.suite} ·{" "}
+                {contact.address.city}
+              </p>
+            </div>
+          </PanelReveal>
+        </Bracketed>
+      </section>
+    );
+  }
+  if (s.id === "give") {
+    return (
+      <section
+        id={s.id}
+        data-screen-label={s.label}
+        className={`${base} flex-col items-center text-center justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}
       >
         <Bracketed
           className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
@@ -913,14 +969,14 @@ function Scene({ section: s }: { section: SceneSection }) {
           <Kicker centred>{s.kicker}</Kicker>
           <PanelReveal className="flex flex-col items-center gap-5 md:gap-[26px]">
             <h2
-              className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance ${s.id === "give" ? "[@media(max-height:820px)]:lg:text-[56px]" : ""} ${serif}`}
+              className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[56px] ${serif}`}
             >
               {s.heading}
             </h2>
             {s.body.map((p) => (
               <p
                 key={p}
-                className={`${s.id === "give" ? "lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base" : ""} max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg`}
+                className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base"
               >
                 {p}
               </p>
@@ -932,12 +988,6 @@ function Scene({ section: s }: { section: SceneSection }) {
               >
                 {s.cta.label}
               </a>
-            )}
-            {s.id === "visit" && (
-              <p className="mt-3.5 text-[10px] uppercase tracking-[0.24em] text-cream/50">
-                {contact.address.street} {contact.address.suite} ·{" "}
-                {contact.address.city}
-              </p>
             )}
           </PanelReveal>
         </Bracketed>

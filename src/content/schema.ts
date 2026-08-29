@@ -89,6 +89,7 @@ const siteShape = obj({
     }),
   ),
   gatherings: arr(obj({ mark: optional(oneOf(GATHERING_MARKS)), title: str, when: str, body: str })),
+  wayIn: optional(arr(obj({ title: str, body: str }))),
   longform: arr(obj({ id: oneOf(LONGFORM_IDS), kicker: str, heading: str, intro: optional(str) })),
   devotionsIntro: str,
   devotions: arr(obj({ title: str, refs: str, body: str })),
