@@ -306,6 +306,26 @@ describe("App house churches table", () => {
   });
 });
 
+describe("App shared life", () => {
+  it("the program sits in the who-we-are panel and huddles while the pointer is over the panel", () => {
+    const { container } = render(<App />);
+    const panel = container.querySelector("#about [data-copy-panel]")!;
+    const column = panel.querySelector("[data-about-shared-life]")!;
+    const life = column.querySelector("[data-shared-life]")!;
+    expect(life.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(life.getAttribute("data-lit")).toBe("");
+    fireEvent.mouseLeave(panel);
+    expect(life.getAttribute("data-lit")).toBeNull();
+    // the words come first, the program after them, past the divider
+    const kicker = panel.querySelector("p")!;
+    expect(
+      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelectorAll("[data-shared-life]")).toHaveLength(1);
+  });
+});
+
 describe("App give sowing", () => {
   it("the sown field sits in the give panel alone and fills while the pointer is over the panel", () => {
     const { container } = render(<App />);

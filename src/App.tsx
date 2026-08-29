@@ -16,6 +16,7 @@ import DotRail from "@/components/DotRail";
 import GatheringCalendar from "@/components/GatheringCalendar";
 import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
+import SharedLife from "@/components/SharedLife";
 import SowingMark from "@/components/SowingMark";
 import { BUTTON_CORNERS, GLASS, GLASS_CORNERS } from "@/components/glass";
 import GMark from "@/components/GMark";
@@ -105,7 +106,9 @@ const GHOST_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} border bord
  * under 20px); who-we-are steps in from the gutter from 1440 up, and its
  * tuck is set per width range — the ranges are mutually exclusive because
  * Tailwind orders an arbitrary min-[] variant before lg, so a plain
- * min-[1440px]:pr would lose to lg:pr. A tucked panel is taller than it was, so those two sit up
+ * min-[1440px]:[--tuck:…] would lose to lg:[--tuck:…]. Both tucks are a
+ * --tuck variable rather than padding: the column each clears holds the
+ * panel's ornament (GatheringsCalendar, AboutSharedLife). A tucked panel is taller than it was, so those two sit up
  * from the top of the frame rather than centred, clear of the lockup; on a
  * short viewport (≤ 820px) the who-we-are and give type steps down a size
  * as well. Give's paragraphs also set narrower on smaller desktops, so the
@@ -116,7 +119,7 @@ const GHOST_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} border bord
  */
 const TUCK: Partial<Record<string, string>> = {
   about:
-    "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:pl-[clamp(18px,2.6vw,32px)] lg:max-[1439px]:pr-[clamp(32px,calc(588px_-_22.7vw_+_4.8vh),320px)] min-[1440px]:ml-[clamp(24px,1.9vw,48px)] min-[1440px]:max-[1799px]:pr-[clamp(32px,calc(585px_-_20.8vw_+_4.8vh),340px)] min-[1800px]:pr-[clamp(32px,calc(505px_-_20.8vw_+_4.8vh),340px)]",
+    "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:pl-[clamp(18px,2.6vw,32px)] lg:max-[1439px]:[--tuck:clamp(32px,calc(588px_-_22.7vw_+_4.8vh),320px)] min-[1440px]:ml-[clamp(24px,1.9vw,48px)] min-[1440px]:max-[1799px]:[--tuck:clamp(32px,calc(585px_-_20.8vw_+_4.8vh),340px)] min-[1800px]:[--tuck:clamp(32px,calc(505px_-_20.8vw_+_4.8vh),340px)]",
   gatherings:
     "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:[--tuck:clamp(120px,calc(58.8vw_-_63.6vh_-_60px),420px)] lg:pb-[clamp(40px,calc(30vh_-_200px),120px)] 2xl:max-w-[1200px]",
   give: "lg:translate-x-[clamp(120px,9.4vw,160px)] lg:px-[clamp(120px,9.4vw,160px)]",
@@ -883,13 +886,42 @@ function GiveSowing({ lit }: { lit: boolean }) {
   );
 }
 
+/**
+ * The who-we-are's ornament: an order of service that huddles into a life
+ * shared (SharedLife), on the right of the panel past a divider, in the
+ * column its tuck clears for the two near apostles — never narrower than
+ * the house table's column, so on a wide screen where the tuck is slight
+ * the words give up the room instead. Its rows print in with the panel's
+ * brackets and huddle while the reader is over the panel. Desktop only,
+ * like the calendar: a phone has no pointer to light it, and no room
+ * beside the words.
+ */
+function AboutSharedLife({ lit }: { lit: boolean }) {
+  const shown = useContext(PanelShownContext);
+  return (
+    <div
+      data-about-shared-life=""
+      // the drawing is absolutely placed inside, so it fills the column's
+      // height (set by the words beside it) without ever adding to it
+      className="relative hidden shrink-0 border-l border-cream/25 pl-[clamp(20px,2vw,32px)] lg:block lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_clamp(18px,2.6vw,32px)))]"
+    >
+      <SharedLife
+        lit={lit}
+        shown={shown}
+        className="absolute inset-y-1 right-0 h-[calc(100%_-_8px)] w-[calc(100%_-_clamp(20px,2vw,32px))]"
+      />
+    </div>
+  );
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
   const pending = useContext(IntroPendingContext);
   // the gathering under the pointer, lighting the tiles beside the headline
   const [lit, setLit] = useState<Mark | null>(null);
-  // whether the reader is over the house churches' panel, seating its table
+  // whether the reader is over the house churches' panel, seating its table,
+  // or the who-we-are's, huddling its program
   const [over, setOver] = useState(false);
   // whether the pointer is over the giving, filling the field beside its words
   const [giving, setGiving] = useState(false);
@@ -1098,6 +1130,8 @@ function Scene({ section: s }: { section: SceneSection }) {
   // house churches seats its table in a column on the right of the words,
   // the calendar's mirror, so its panel runs wider than a column alone
   const houses = s.id === "house-churches";
+  // both seat an ornament in a column beside the words, lit while the reader is over the panel
+  const beside = about || houses;
   const words = (
     <>
       <Kicker>{s.kicker}</Kicker>
@@ -1127,21 +1161,25 @@ function Scene({ section: s }: { section: SceneSection }) {
     >
       <Bracketed
         className={
-          houses
-            ? `flex w-full max-w-[600px] flex-col lg:max-w-[840px] lg:flex-row ${TUCK[s.id] ?? ""}`
+          beside
+            ? `flex w-full max-w-[600px] flex-col ${houses ? "lg:max-w-[840px]" : ""} lg:flex-row ${TUCK[s.id] ?? ""}`
             : `${column} max-w-[600px] ${TUCK[s.id] ?? ""}`
         }
-        onMouseEnter={houses ? () => setOver(true) : undefined}
-        onMouseLeave={houses ? () => setOver(false) : undefined}
+        onMouseEnter={beside ? () => setOver(true) : undefined}
+        onMouseLeave={beside ? () => setOver(false) : undefined}
       >
-        {houses ? (
+        {beside ? (
           <>
             <div
               className={`${column} min-w-0 flex-1 lg:pr-[clamp(24px,2.4vw,40px)]`}
             >
               {words}
             </div>
-            <HouseChurchesTable lit={over} />
+            {houses ? (
+              <HouseChurchesTable lit={over} />
+            ) : (
+              <AboutSharedLife lit={over} />
+            )}
           </>
         ) : (
           words
