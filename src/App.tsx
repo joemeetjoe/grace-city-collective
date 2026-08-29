@@ -972,7 +972,6 @@ function Scene({ section: s }: { section: SceneSection }) {
     );
   }
   if (s.id === "visit") {
-    const { contact } = site;
     const steps = wayIn(site);
     const at = steps[Math.min(way, steps.length - 1)];
     // the dove hangs in the upper third of the visit frame; the panel sits
@@ -1004,9 +1003,8 @@ function Scene({ section: s }: { section: SceneSection }) {
               <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base">
                 {at?.body}
               </p>
-            </div>
-            <div className="flex flex-col items-center gap-3.5 [@media(max-height:820px)]:lg:gap-2.5">
-              {s.cta && (
+              {/* the call to write sits under the first step's words, and goes with them */}
+              {way === 0 && s.cta && (
                 <a
                   href={s.cta.href}
                   className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
@@ -1014,10 +1012,6 @@ function Scene({ section: s }: { section: SceneSection }) {
                   {s.cta.label}
                 </a>
               )}
-              <p className="text-[10px] uppercase tracking-[0.24em] text-cream/50">
-                {contact.address.street} {contact.address.suite} ·{" "}
-                {contact.address.city}
-              </p>
             </div>
             <TheWayIn step={way} onStep={setWay} />
           </PanelReveal>
