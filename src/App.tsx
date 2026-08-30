@@ -966,7 +966,12 @@ function Scene({ section: s }: { section: SceneSection }) {
   // like pages. Below lg the scene scrolls natively (#52) and a section is as
   // tall as its words; only the hero keeps the whole first frame, so the
   // lockup at its foot stands alone before the next section's words arrive
-  const base = `relative flex ${s.id === "hero" ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
+  // the hero and the visit stop keep a full viewport at every width: the first
+  // frame must not show the next stop, and the scene's sticky canvas leaves with
+  // the last section, so a short last section would take the dove away before
+  // the reader reached it
+  const holds = s.id === "hero" || s.id === "visit";
+  const base = `relative flex ${holds ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
   // below lg the seal row sits over the top of every section and the lockup
   // over its foot; desktop keeps its unpadded frames
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
