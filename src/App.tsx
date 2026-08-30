@@ -401,7 +401,7 @@ export default function App() {
           useSmoothScroll holds the sticky layers with a scrubbed translate.
           A held layer is transformed, so it is a stacking context of its
           own: each carries one step of STACK (layerSplit.ts). */}
-          <div ref={sceneRef} data-scene="" className="relative grid">
+          <div ref={sceneRef} data-scene="" className="relative grid grid-cols-[minmax(0,1fr)]">
             {/* sticky, not fixed: it stays put while the sections scroll over it */}
             <div
               ref={parallaxRef}
@@ -474,8 +474,10 @@ export default function App() {
               />
             </div>
 
-            {/* every scene section is exactly one viewport tall — one camera waypoint each */}
-            <div className="relative col-start-1 row-start-1">
+            {/* every scene section is exactly one viewport tall — one camera waypoint each;
+            min-w-0 with the grid's minmax(0,1fr) column: a section's min-content can
+            never widen the cell, and the sticky layers with it, past the viewport (#51) */}
+            <div className="relative col-start-1 row-start-1 min-w-0">
               <IntroPendingContext.Provider value={intro}>
                 {site.scene.map((s) => (
                   <Scene key={s.id} section={s} />

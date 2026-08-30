@@ -147,6 +147,16 @@ html,
 body {
   background: var(--color-ink);
 }
+/* Nothing scrolls sideways: whatever runs past the viewport's right edge — a
+   panel's brackets waiting out past its corner, a child laid out wider than
+   the viewport — is clipped at the root rather than given a horizontal
+   scrollbar, or a zoomed-out layout viewport on a phone (#51). `clip`, not
+   `hidden`: the root is still no scroll container, so the scene's sticky
+   layers keep sticking to the viewport. tools/shots/mobile-check.mjs asserts
+   the page is never wider than the viewport. */
+#root {
+  overflow-x: clip;
+}
 /* Scrolling is smoothed and snapped by ScrollSmoother + ScrollTrigger
    (src/scroll), not CSS: a CSS snap turns every wheel notch into a full
    viewport jump. While the smoother drives, the native scrollbar goes — the
