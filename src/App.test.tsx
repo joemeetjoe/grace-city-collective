@@ -326,6 +326,23 @@ describe("App gatherings calendar", () => {
     // leaving one after entering the other does not put the lit one out
     fireEvent.mouseLeave(homes);
     expect(grid.getAttribute("data-lit")).toBe("feast");
+    // two drawings, one per layout: the desktop's column first, then the
+    // phone's month across, under the headline and before the gatherings
+    const drawings = panel.querySelectorAll("[data-gathering-calendar]");
+    expect(drawings).toHaveLength(2);
+    expect(drawings[0].getAttribute("data-across")).toBeNull();
+    expect(drawings[1].getAttribute("data-across")).toBe("");
+    const heading = panel.querySelector("h2")!;
+    expect(
+      heading.compareDocumentPosition(drawings[1]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      drawings[1].compareDocumentPosition(homes) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // on desktop the pointer lights the phone's month too, the same way
+    expect(drawings[1].getAttribute("data-lit")).toBe("feast");
   });
 });
 
@@ -408,12 +425,20 @@ describe("App stops below lg (#56)", () => {
     });
     expect(life.getAttribute("data-lit")).toBe("");
     expect(field.getAttribute("data-lit")).toBe("");
-    // the emblems light in turn, the first with the rest of the ornaments
+    // the emblems light in turn, the first with the rest of the ornaments,
+    // and the month across lights for whichever lit last
+    const month = container.querySelector(
+      "#gatherings [data-gathering-calendar][data-across]",
+    )!;
     expect(marks[0].getAttribute("data-lit")).toBe("");
     expect(marks[marks.length - 1].getAttribute("data-lit")).toBeNull();
+    expect(month.getAttribute("data-lit")).toBe(marks[0].getAttribute("data-gathering-mark"));
     await waitFor(
       () => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""),
       { timeout: 3000 },
+    );
+    expect(month.getAttribute("data-lit")).toBe(
+      marks[marks.length - 1].getAttribute("data-gathering-mark"),
     );
     fireEvent.mouseLeave(panel);
     expect(table.getAttribute("data-lit")).toBe("");
