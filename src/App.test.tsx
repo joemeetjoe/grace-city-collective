@@ -7,6 +7,7 @@ import { sectionIds, site } from "@/content/site";
 import { HANDOFF_Z_INDEX } from "@/intro/handoff";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/intro/staticSplash";
+import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
@@ -59,17 +60,21 @@ function stubFontSize(px: number) {
   });
 }
 
-function preferReducedMotion() {
+function matchOnly(matching: string) {
   vi.spyOn(window, "matchMedia").mockImplementation(
     (query: string) =>
       ({
-        matches: query === REDUCED_MOTION_QUERY,
+        matches: query === matching,
         media: query,
         addEventListener: () => {},
         removeEventListener: () => {},
       }) as unknown as MediaQueryList,
   );
 }
+
+const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
+/** a phone or tablet: the viewport is below Tailwind's lg */
+const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
 beforeEach(() => {
   window.sessionStorage.clear();
@@ -113,6 +118,38 @@ describe("App intro policy", () => {
     expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
     // nothing played, so a later full-motion session still gets the intro
     expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+});
+
+describe("App hero lockup placement", () => {
+  it("from lg up it is pinned in the sticky chrome, and the hero carries none", () => {
+    const { container } = render(<App />);
+    const lockups = container.querySelectorAll("[data-hero-lockup]");
+    expect(lockups.length).toBe(1);
+    expect(lockups[0].closest("section")).toBeNull();
+    expect(lockups[0].parentElement!.classList.contains("sticky")).toBe(true);
+    expect(lockups[0].className).toMatch(/\babsolute\b/);
+  });
+
+  it("below lg it sits at the hero's foot, above the front canvas, and the frame border stays in the sticky chrome", () => {
+    belowLg();
+    const { container } = render(<App />);
+    const lockups = container.querySelectorAll("[data-hero-lockup]");
+    expect(lockups.length).toBe(1);
+    const lockup = lockups[0] as HTMLElement;
+    const hero = container.querySelector("#hero")!;
+    expect(hero.contains(lockup)).toBe(true);
+    // the hero's last child, pushed to its foot
+    expect(hero.lastElementChild).toBe(lockup);
+    expect(lockup.className).toMatch(/\bmt-auto\b/);
+    expect(lockup.classList.contains(STACK.copy)).toBe(true);
+    expect(lockup.querySelector("[data-stacked]")).not.toBeNull();
+    // nothing of it is left in the chrome; the frame is
+    const frame = container.querySelector("[data-scene-frame]")!;
+    expect(frame.parentElement!.classList.contains("sticky")).toBe(true);
+    expect(frame.parentElement!.querySelector("[data-hero-lockup]")).toBeNull();
+    // the hero clears the pinned lockup only where there is one
+    expect(hero.className).toMatch(/lg:pb-\[/);
   });
 });
 
