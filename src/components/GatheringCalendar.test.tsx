@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import GatheringCalendar, {
   DAYS,
   ENTER_STAGGER_MS,
+  VIEW_H,
+  VIEW_H_ACROSS,
+  VIEW_W,
+  VIEW_W_ACROSS,
   WEEKS,
 } from "./GatheringCalendar";
 
@@ -14,6 +18,14 @@ function days(container: HTMLElement): HTMLElement[] {
 /** the day at (week, day): the days are laid out a day-row at a time */
 function at(container: HTMLElement, week: number, day: number): HTMLElement {
   return days(container)[day * WEEKS + week];
+}
+
+/** a day's centre, from the translate on its outer group */
+function centreOf(container: HTMLElement, week: number, day: number) {
+  const [, x, y] = at(container, week, day)
+    .parentElement!.getAttribute("transform")!
+    .match(/translate\((\S+) (\S+)\)/)!;
+  return { x: parseFloat(x), y: parseFloat(y) };
 }
 
 describe("GatheringCalendar", () => {
@@ -148,5 +160,106 @@ describe("GatheringCalendar", () => {
     );
     const shown = render(<GatheringCalendar />).container;
     expect(days(shown)[0].style.transform).toBe("translate(0px, 0px) scale(1)");
+  });
+
+  describe("across", () => {
+    it("transposes the month for a phone card: a wide, short drawing, the days across and the weeks down, the Sundays at the left", () => {
+      const { container } = render(<GatheringCalendar across />);
+      const svg = container.querySelector("svg")!;
+      expect(svg.getAttribute("data-across")).toBe("");
+      expect(svg.getAttribute("viewBox")).toBe(
+        `0 0 ${VIEW_W_ACROSS} ${VIEW_H_ACROSS}`,
+      );
+      expect(VIEW_W_ACROSS).toBeGreaterThan(VIEW_H_ACROSS);
+      expect(VIEW_W).toBeLessThan(VIEW_H);
+      expect(days(container)).toHaveLength(WEEKS * DAYS);
+      // the Sunday stands left of the Monday in its week, level with it
+      const sunday = centreOf(container, 0, 0);
+      const monday = centreOf(container, 0, 1);
+      expect(sunday.x).toBeLessThan(monday.x);
+      expect(sunday.y).toBe(monday.y);
+      // the second week sits below the first, in the same column
+      const nextSunday = centreOf(container, 1, 0);
+      expect(nextSunday.y).toBeGreaterThan(sunday.y);
+      expect(nextSunday.x).toBe(sunday.x);
+      // the desktop's month is the other way up
+      const upright = render(<GatheringCalendar />).container;
+      expect(upright.querySelector("svg")!.getAttribute("data-across")).toBeNull();
+      expect(centreOf(upright, 0, 0).y).toBeLessThan(centreOf(upright, 0, 1).y);
+    });
+
+    it("sets the Sundays' column apart by the rule standing on end, its finials tall at either end", () => {
+      const { container } = render(<GatheringCalendar across />);
+      const rule = container.querySelector("[data-sunday-rule]")!;
+      const line = rule.querySelector("line")!;
+      const x = parseFloat(line.getAttribute("x1")!);
+      expect(line.getAttribute("x2")).toBe(line.getAttribute("x1"));
+      const y1 = parseFloat(line.getAttribute("y1")!);
+      const y2 = parseFloat(line.getAttribute("y2")!);
+      expect(y1).toBeLessThan(y2);
+      expect(centreOf(container, 0, 0).x).toBeLessThan(x);
+      expect(centreOf(container, 0, 1).x).toBeGreaterThan(x);
+      // the rule spans the weeks, and a finial closes each end on its line
+      expect(y1).toBeLessThan(centreOf(container, 0, 0).y);
+      expect(y2).toBeGreaterThan(centreOf(container, WEEKS - 1, 0).y);
+      const finials = Array.from(rule.querySelectorAll("path"));
+      expect(finials).toHaveLength(2);
+      const points = finials.map((f) =>
+        Array.from(f.getAttribute("d")!.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)).map(
+          ([, px, py]) => ({ x: parseFloat(px), y: parseFloat(py) }),
+        ),
+      );
+      for (const lozenge of points) {
+        const xs = lozenge.map((p) => p.x);
+        const ys = lozenge.map((p) => p.y);
+        // taller than wide, centred on the rule
+        expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(
+          Math.max(...xs) - Math.min(...xs),
+        );
+        expect((Math.max(...xs) + Math.min(...xs)) / 2).toBeCloseTo(x);
+      }
+      expect(Math.max(...points[0].map((p) => p.y))).toBeLessThanOrEqual(y1);
+      expect(Math.min(...points[1].map((p) => p.y))).toBeGreaterThanOrEqual(y2);
+    });
+
+    it("runs the numerals down the gutter at each week's row, and stands the S over the first and last columns", () => {
+      const { container } = render(<GatheringCalendar across />);
+      const numerals = Array.from(
+        container.querySelectorAll<SVGTextElement>("text:not([data-day-mark])"),
+      );
+      expect(numerals.map((t) => t.textContent)).toEqual(["I", "II", "III", "IV"]);
+      numerals.forEach((n, week) => {
+        expect(parseFloat(n.getAttribute("y")!)).toBe(centreOf(container, week, 0).y);
+        expect(parseFloat(n.getAttribute("x")!)).toBeLessThan(
+          centreOf(container, week, 0).x,
+        );
+      });
+      const sunday = container.querySelector("[data-day-mark=sunday]")!;
+      const saturday = container.querySelector("[data-day-mark=saturday]")!;
+      expect(parseFloat(sunday.getAttribute("x")!)).toBe(centreOf(container, 0, 0).x);
+      expect(parseFloat(saturday.getAttribute("x")!)).toBe(
+        centreOf(container, 0, DAYS - 1).x,
+      );
+      expect(parseFloat(sunday.getAttribute("y")!)).toBeLessThan(
+        centreOf(container, 0, 0).y,
+      );
+      expect(sunday.getAttribute("y")).toBe(saturday.getAttribute("y"));
+    });
+
+    it("keeps the month's lighting and cascade", () => {
+      const { container } = render(
+        <GatheringCalendar across lit="homes" shown={false} />,
+      );
+      const on = days(container).filter((d) => d.hasAttribute("data-on"));
+      expect(on).toEqual([
+        at(container, 1, 0),
+        at(container, 2, 0),
+        at(container, 3, 0),
+      ]);
+      const delay = (week: number, day: number) =>
+        parseFloat(at(container, week, day).style.transitionDelay);
+      expect(delay(0, 0)).toBe(0);
+      expect(delay(1, 1)).toBe(2 * ENTER_STAGGER_MS);
+    });
   });
 });

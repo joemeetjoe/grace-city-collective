@@ -803,9 +803,10 @@ function Kicker({
  * The gatherings' ornament: a month of Sundays in the G mark's box, on the
  * left of the panel in the column its tuck clears for the figures, cascading
  * in with the panel's brackets and lit for the gathering under the pointer
- * (GatheringCalendar). A divider stands between it and the words. Desktop
- * only: the column exists only where the panel tucks; on a phone the
- * gatherings' emblems (GatheringEmblem) light in turn instead.
+ * (GatheringCalendar). A divider stands between it and the words. The
+ * column exists only where the panel tucks; below lg the month lies across
+ * under the headline instead (`across`), lit for whichever gathering's
+ * emblem (GatheringEmblem) lit last as they light in turn (Scene).
  */
 /**
  * A gathering's emblem at the foot of its column (GatheringMark): its
@@ -824,8 +825,26 @@ function GatheringEmblem({ mark, lit }: { mark: Mark; lit: boolean }) {
   );
 }
 
-function GatheringsCalendar({ lit }: { lit: Mark | null }) {
+function GatheringsCalendar({
+  lit,
+  across = false,
+}: {
+  lit: Mark | null;
+  across?: boolean;
+}) {
   const shown = useContext(PanelShownContext);
+  if (across) {
+    return (
+      <div data-gatherings-calendar="" className="my-1 lg:hidden">
+        <GatheringCalendar
+          lit={lit}
+          shown={shown}
+          across
+          className="w-full max-w-[320px]"
+        />
+      </div>
+    );
+  }
   return (
     <div
       data-gatherings-calendar=""
@@ -1076,6 +1095,13 @@ function Scene({ section: s }: { section: SceneSection }) {
     );
   }
   if (s.id === "gatherings") {
+    // each gathering's mark; a gathering published before the marks existed
+    // takes one by position. Below lg the emblems light in turn, and the
+    // month across lights for the one that lit last
+    const marks = site.gatherings.map(
+      (g, i) => g.mark ?? GATHERING_MARKS[i % GATHERING_MARKS.length],
+    );
+    const litInTurn = inTurn > 0 ? (marks[inTurn - 1] ?? null) : null;
     return (
       <section
         id={s.id}
@@ -1097,18 +1123,19 @@ function Scene({ section: s }: { section: SceneSection }) {
                 {s.heading}
               </h2>
             </PanelReveal>
+            {/* below lg the month lies across under the headline, where the
+              desktop's column would have no room */}
+            <GatheringsCalendar across lit={belowLg ? litInTurn : lit} />
             {/* two gatherings side by side, each closed by its lozenge mark,
               centred under the words and pushed to the card's foot so the two
-              marks sit level across the columns; a gathering published before
-              the marks existed takes one by position. The whole block steps
+              marks sit level across the columns. The whole block steps
               down a size on a short desktop viewport (see TUCK) */}
             <PanelReveal
               delay={REVEAL_STAGGER_MS * 2}
               className="grid gap-5 md:grid-cols-2 md:gap-x-12 md:gap-y-8"
             >
               {site.gatherings.map((g, i) => {
-                const mark =
-                  g.mark ?? GATHERING_MARKS[i % GATHERING_MARKS.length];
+                const mark = marks[i];
                 return (
                   <div
                     key={g.title}
