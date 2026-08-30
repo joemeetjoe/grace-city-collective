@@ -4,11 +4,14 @@ The parallax cut set — masks, colour maps, the inpainted backdrop and
 `cuts.json` — built from SAM masks by `build_cuts.py`. Outputs land in
 `dist/`; `pack_textures.py` then encodes them into the two tiers the site
 ships, `public/dore/2048/` and `public/dore/1024/` (WebP, masks packed four
-to a texture — see `docs/design/issue-26/`).
+to a texture — see `docs/design/issue-26/`). The wall behind the apostles is
+synthesized by `ray_wall.py` — the plate's rays continued down through the
+band — rather than cut from the plate (`docs/experiments/ray-wall/`).
 
 ```
-.venv-recut/bin/python tools/recut/build_cuts.py            # full build, ~3 min (LaMa)
+.venv-recut/bin/python tools/recut/build_cuts.py            # full build, ~3 min (LaMa + ray wall)
 .venv-recut/bin/python tools/recut/build_cuts.py --fill tile  # instant; masks and maps only
+.venv-recut/bin/python tools/recut/ray_wall.py              # re-fill the wall band of an existing dist/, seconds
 .venv-recut/bin/python tools/recut/pack_textures.py         # dist/ -> public/dore/{2048,1024}, ~2 min
 .venv-recut/bin/python tools/recut/pack_textures.py --compare  # codec crops -> docs/design/issue-26/
 .venv-recut/bin/python -m pytest tools/recut/test_*.py

@@ -7,6 +7,7 @@ import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "./introKeys";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 import {
   STATIC_SPLASH_ATTR,
+  STATIC_SPLASH_LAYOUT,
   STATIC_SPLASH_STYLE,
   staticSplashMarkup,
   staticSplashScript,
@@ -106,7 +107,10 @@ describe("staticSplashTags", () => {
       ["script", "body-prepend"],
     ]);
     expect(tags[0].children).toBe(STATIC_SPLASH_STYLE);
-    expect(tags[1].attrs).toEqual({ [STATIC_SPLASH_ATTR]: "" });
+    // the tag is the markup, attribute for attribute: the layout rides on it too
+    const fromMarkup = parse(staticSplashMarkup()).firstElementChild as HTMLElement;
+    expect(tags[1].attrs).toEqual(Object.fromEntries([...fromMarkup.attributes].map((a) => [a.name, a.value])));
+    expect(tags[1].attrs).toMatchObject({ [STATIC_SPLASH_ATTR]: "", style: STATIC_SPLASH_LAYOUT });
     expect(tags[1].children).toBe(staticSplashSvg());
     expect(tags[2].children).toBe(staticSplashScript());
   });

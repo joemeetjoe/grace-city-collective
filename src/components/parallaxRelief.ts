@@ -25,8 +25,9 @@ export type Cut = {
   /** a flame's cut it hangs over — a figure, or the crowd */
   parent?: string;
   /**
-   * a flame's centre (its mask centroid) as [u, v] plate fractions from the
-   * top-left — the point that leaves the head for the dove (see flamePose)
+   * the cut's centre (its mask centroid) as [u, v] plate fractions from the
+   * top-left. A flame's is the point that leaves the head for the dove (see
+   * flamePose); a figure's is what huddleShift slides it toward the centre by
    */
   at?: [number, number];
   /** the packed mask texture and channel; absent = its own cut-<name>.png */
@@ -52,6 +53,25 @@ type RawCut = Omit<Cut, "relief"> & { relief?: number };
 
 export function parseCuts(raw: unknown): Cut[] {
   return (raw as RawCut[]).map((c) => ({ ...c, relief: c.relief ?? 0 }));
+}
+
+/**
+ * The huddle: every figure slides toward the plate's centre line by this
+ * fraction of its centroid's offset from it. The cuts are eroded 2 px and
+ * feathered (issue #28) and the camera's lateral travel shears the planes
+ * apart, so where two robes touched on the plate a sliver of wall shows;
+ * a rigid shift per figure closes it (a uniform x-scale would scale the gaps
+ * along with everything else). A flame rides its parent's shift.
+ */
+export const HUDDLE = 0.04;
+
+/**
+ * A cut's huddle shift in plate widths: huddle * (0.5 - u) for a cut with
+ * an anchor, toward the centre on both sides; nothing without one (the
+ * crowd, floor, arch and dove stay where the plate has them).
+ */
+export function huddleShift(at: [number, number] | undefined, huddle = HUDDLE): number {
+  return at ? huddle * (0.5 - at[0]) : 0;
 }
 
 /** how far in front of its parent a flame rests — same parallax plane, drawn just after it */

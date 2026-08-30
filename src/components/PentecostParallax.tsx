@@ -21,7 +21,7 @@ import { ascentProgress, flamePose } from "./flamePose";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
-import { bindFlames, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
+import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { channelVector, maskRef } from "./textureManifest";
 import { VIGNETTE_GLSL } from "./vignette";
@@ -67,9 +67,11 @@ type Layer = {
   /** which canvas it draws to at the current stop (layerSplit.ts) */
   side: CanvasSide;
   fit?: number;
-  /** a flame's centre as plate fractions, and its ordinal among the flames */
+  /** the cut's centre as plate fractions (figures and flames), and a flame's ordinal among the flames */
   at?: [number, number];
   flame?: number;
+  /** a flame's parent cut, whose huddle shift it rides */
+  parent?: string;
 };
 
 type Waypoint = {
@@ -359,6 +361,7 @@ export default function PentecostParallax({
     // the stop whose front row the cuts currently wear; -1 until the first frame
     let frontStop = -1;
     let doveLayer: Layer | undefined;
+    let byName = new Map<string, Layer>();
     let rayLayer: RayLayer | null = null;
     let emberLayer: EmberLayer | null = null;
     let raf = 0;
@@ -498,9 +501,10 @@ export default function PentecostParallax({
           mesh.renderOrder = i + 1;
           scene.add(assignLayer(mesh, side));
           const flame = cut.isFlame ? flameOrdinal++ : undefined;
-          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame };
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame, parent: cut.parent };
         });
       doveLayer = layers.find((l) => l.name === "dove");
+      byName = new Map(layers.map((l) => [l.name, l]));
       // a debug build exposes the layers so a shot script can solo them
       if (import.meta.env.VITE_SCENE_DEBUG) window.__gccScene = { layers, scene, camera };
 
@@ -665,6 +669,11 @@ export default function PentecostParallax({
           l.mat.uniforms.uCamZ.value = ru.uCamZ;
           l.mat.uniforms.uLayerZ.value = ru.uLayerZ;
           l.mat.uniforms.uScale.value = ru.uScale;
+          // the huddle (HUDDLE): a figure slides toward the centre line by a
+          // fraction of its offset from it, in the plate's units at its live
+          // depth — the plate is kn = (baseZ-zn)/baseZ times its z=0 size there
+          const kn = (baseZ - zn) / baseZ;
+          if (l.flame === undefined) l.mesh.position.x = huddleShift(l.at) * IW * kn;
           // a flame leaves its head for the dove (flamePose). Composition: the
           // spread transform above puts its plane at zn, scaled so the cut
           // registers as at the hero; on top of that, in world space, the
@@ -672,15 +681,17 @@ export default function PentecostParallax({
           // origin, the plate being kn = (baseZ-zn)/baseZ times its z=0 size
           // there) is carried to the pose. The scale is left alone on purpose:
           // a tongue shrinks with bare perspective as it sinks toward the dove,
-          // which is what makes it read as receding rather than sliding
+          // which is what makes it read as receding rather than sliding.
+          // At rest the tongue also wears its parent's huddle shift, so it
+          // stays on the head that moved
           if (l.flame !== undefined && l.at) {
-            const kn = (baseZ - zn) / baseZ;
             const zd = (doveLayer?.z ?? -3) * (spread + ease * 0.35);
             const kd = (baseZ - zd) / baseZ;
             const cx = (l.at[0] - 0.5) * IW * kn;
             const cy = (0.5 - l.at[1]) * IH * kn;
+            const parentAt = l.parent !== undefined ? byName.get(l.parent)?.at : undefined;
             const pose = flamePose(l.flame, flock.p, t, {
-              rest: { x: cx, y: cy, z: zn },
+              rest: { x: cx + huddleShift(parentAt) * IW * kn, y: cy, z: zn },
               dove: { x: 0, y: (0.5 - DOVE_V) * IH * kd, z: zd },
             });
             l.mesh.position.set(pose.x - cx, pose.y - cy, pose.z);
