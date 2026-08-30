@@ -966,7 +966,7 @@ function Scene({ section: s }: { section: SceneSection }) {
   // like pages. Below lg the scene scrolls natively (#52) and a section is as
   // tall as its words; only the hero keeps the whole first frame, so the
   // lockup at its foot stands alone before the next section's words arrive
-  const base = `relative flex ${s.id === "hero" ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter}`;
+  const base = `relative flex ${s.id === "hero" ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
   // below lg the seal row sits over the top of every section and the lockup
   // over its foot; desktop keeps its unpadded frames
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
