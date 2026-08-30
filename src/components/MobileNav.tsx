@@ -53,17 +53,6 @@ export default function MobileNav({
       data-mobile-nav=""
       className={cn("flex w-full items-center justify-between", className)}
     >
-      {/* the mark carries data-nav-mark: the intro's traveller lands on it, as
-          on the xl corner's (IntroSplash picks whichever is laid out) */}
-      <a
-        href="#hero"
-        data-nav-mark=""
-        onClick={(e) => go(e, "hero")}
-        className={glassSeat}
-      >
-        <GMark size={MARK_SIZE} ruled title={site.name} />
-      </a>
-
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Trigger asChild>
           <button
@@ -81,16 +70,8 @@ export default function MobileNav({
           >
             <Dialog.Title className="sr-only">{MENU_LABEL}</Dialog.Title>
 
-            {/* the same row as the resting nav, so the mark does not jump when the sheet opens */}
+            {/* the same row as the resting nav — Menu/Close on the left, the G at the right corner as the xl nav has it — so the mark does not jump when the sheet opens */}
             <div className="flex items-center justify-between px-[calc(clamp(12px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(12px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
-              {/* no data-nav-mark here: the sheet is never open while the intro plays */}
-              <a
-                href="#hero"
-                onClick={(e) => go(e, "hero")}
-                className={seat}
-              >
-                <GMark size={MARK_SIZE} ruled title={site.name} />
-              </a>
               <Dialog.Close asChild>
                 <button
                   type="button"
@@ -100,6 +81,14 @@ export default function MobileNav({
                   Close
                 </button>
               </Dialog.Close>
+              {/* no data-nav-mark here: the sheet is never open while the intro plays */}
+              <a
+                href="#hero"
+                onClick={(e) => go(e, "hero")}
+                className={seat}
+              >
+                <GMark size={MARK_SIZE} ruled title={site.name} />
+              </a>
             </div>
 
             <nav
@@ -141,6 +130,17 @@ export default function MobileNav({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+      {/* the mark carries data-nav-mark: the intro's traveller lands on it, as
+          on the xl corner's (IntroSplash picks whichever is laid out) */}
+      <a
+        href="#hero"
+        data-nav-mark=""
+        onClick={(e) => go(e, "hero")}
+        className={glassSeat}
+      >
+        <GMark size={MARK_SIZE} ruled title={site.name} />
+      </a>
+
     </div>
   );
 }
