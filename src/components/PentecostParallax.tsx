@@ -84,6 +84,12 @@ type Waypoint = {
   aim?: "dove";
   /** where in frame the aimed layer should sit (0 = bottom, 1 = top) */
   at?: number;
+  /**
+   * the same on a portrait frame, where the copy sits at the foot: the dove
+   * goes to the top fifth, above the panel, which also keeps the frame's top
+   * at the plate's edge rather than past it (clamped rows read as a smear)
+   */
+  atPortrait?: number;
 };
 
 export type PentecostParallaxProps = {
@@ -226,7 +232,7 @@ const WAYPOINTS: Waypoint[] = [
   { band: [0.30, 0.58], u: 0.0 },   // house churches — centre, under the beam
   { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
   { band: [0.36, 0.66], u: -0.03 }, // give — close on the faces, robes below
-  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7 }, // visit — the dove, with the copy under it
+  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7, atPortrait: 0.82 }, // visit — the dove, with the copy under it
 ];
 
 // lateral camera travel is what shears the figures apart and exposes the bare
@@ -605,7 +611,11 @@ export default function PentecostParallax({
         // the distance that makes the band fill the frame vertically — note it
         // never involves aspect, which is the whole point
         const solve = (wp: Waypoint) => {
-          const band = widenBand(wp.band, pf);
+          // the dove stop keeps its authored band on a portrait frame: it
+          // already starts above the plate's top edge, and widened it would
+          // look a quarter of the frame past the plate — clamped rows
+          // streaking down from the top. Every other stop widens.
+          const band = widenBand(wp.band, wp.aim === "dove" ? 1 : pf);
           const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((band[1] - band[0]) / 2) * IH / tanA));
           const hh = z * tanA;
           let y: number;
@@ -614,7 +624,8 @@ export default function PentecostParallax({
             // to be solved against where its own plane actually is
             const zL = doveLayer.mesh.position.z;
             const yL = (0.5 - DOVE_V) * IH * ((baseZ - zL) / baseZ);
-            y = yL - (2 * (wp.at ?? 0.6) - 1) * hh / (z / (z - zL));
+            const at = pf > 1 && wp.atPortrait !== undefined ? wp.atPortrait : (wp.at ?? 0.6);
+            y = yL - (2 * at - 1) * hh / (z / (z - zL));
           } else {
             y = (0.5 - (band[0] + band[1]) / 2) * IH;
           }
