@@ -32,6 +32,8 @@ import PentecostParallax from "@/components/PentecostParallax";
 import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
 import WayIn from "@/components/WayIn";
+import { useInTurn } from "@/components/useInTurn";
+import { PLAY_MARGIN, useInView, type InViewOptions } from "@/components/useInView";
 import { useInViewOnce } from "@/components/useInViewOnce";
 import { vignetteCss } from "@/components/vignette";
 import {
@@ -76,8 +78,39 @@ const PANEL_BRACKET_OUT = "-10px";
 /** how much of a copy panel must be on screen before its brackets come in */
 const PANEL_ENTER_THRESHOLD = 0.45;
 
+/**
+ * When a stop's panel is shown, as `useInView` watches it. On desktop, once
+ * most of it is on screen (its section is a viewport, so that is the turn of
+ * the page). Below lg the sections are as tall as their words (#52), so the
+ * next stop's panel can stand on screen before its own turn: there it is
+ * shown while it is settled in the play band — enter and leave, so it fills
+ * as it arrives and empties again once well past. Both start shown, so the
+ * words are up until the observer says otherwise.
+ */
+const PANEL_SHOWN_DESKTOP: InViewOptions = {
+  threshold: PANEL_ENTER_THRESHOLD,
+  initial: true,
+};
+const PANEL_SHOWN_BELOW_LG: InViewOptions = {
+  rootMargin: PLAY_MARGIN,
+  initial: true,
+};
+
+/**
+ * On a phone a stop's ornament plays the pointer's part a beat after its
+ * rows have printed in (useInTurn), so its rest state — the program, the
+ * empty table, the seed, the traced emblems — is seen first, as it is on a
+ * desktop before the pointer arrives; the gathering emblems then light one
+ * after the next, a beat apart.
+ */
+const ORNAMENT_LIT_AT_MS = 1200;
+const EMBLEM_LIT_STEP_MS = 400;
+
 /** whether the copy panel around a component is shown, for ornaments that come in with its brackets */
 const PanelShownContext = createContext(true);
+
+/** whether the reader prefers reduced motion: the stops' ornaments then rest, shown */
+const ReducedMotionContext = createContext(false);
 
 /** whether the splash is still up, for the hero's pieces that wait for the handoff */
 const IntroPendingContext = createContext(false);
@@ -138,21 +171,26 @@ const TUCK: Partial<Record<string, string>> = {
  * carry a step of STACK: the panel is a stacking context of its own.
  */
 function Bracketed({
+  ref,
+  shown,
   className = "",
   onMouseEnter,
   onMouseLeave,
   children,
 }: {
+  /** the panel, for the stop to watch (Scene) */
+  ref: React.RefObject<HTMLDivElement | null>;
+  /**
+   * whether the panel is shown: its brackets slide home and its words rise,
+   * and reset when it is not, so every turn of the page brings them in again
+   */
+  shown: boolean;
   className?: string;
   /** for a panel lit as a whole while the reader is over it */
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   children: React.ReactNode;
 }) {
-  // the brackets slide home once most of the panel is on screen, and reset
-  // when it leaves, so every turn of the page brings them in again
-  const ref = useRef<HTMLDivElement>(null);
-  const shown = useInView(ref, PANEL_ENTER_THRESHOLD);
   return (
     <div
       ref={ref}
@@ -196,22 +234,6 @@ function jumpTo(id: string) {
 function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
   e.preventDefault();
   jumpTo(id);
-}
-
-/** whether an element is on screen; true wherever IntersectionObserver is missing */
-function useInView(ref: React.RefObject<HTMLElement | null>, threshold = 0) {
-  const [inView, setInView] = useState(true);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [ref, threshold]);
-  return inView;
 }
 
 function longform(site: SiteContent, id: string) {
@@ -261,7 +283,7 @@ export default function App() {
 
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible
-  const sceneInView = useInView(sceneRef);
+  const sceneInView = useInView(sceneRef, { initial: true });
 
   // after a played intro, the nav unfurls from its mark and the hero headline
   // rises, the moment the splash's mark has landed: before the first paint
@@ -477,9 +499,11 @@ export default function App() {
             cell, and the sticky layers with it, past the viewport (#51) */}
             <div className="relative col-start-1 row-start-1 min-w-0">
               <IntroPendingContext.Provider value={intro}>
-                {site.scene.map((s) => (
-                  <Scene key={s.id} section={s} />
-                ))}
+                <ReducedMotionContext.Provider value={policy.reducedMotion}>
+                  {site.scene.map((s) => (
+                    <Scene key={s.id} section={s} />
+                  ))}
+                </ReducedMotionContext.Provider>
               </IntroPendingContext.Provider>
             </div>
           </div>
@@ -775,8 +799,8 @@ function Kicker({
  * left of the panel in the column its tuck clears for the figures, cascading
  * in with the panel's brackets and lit for the gathering under the pointer
  * (GatheringCalendar). A divider stands between it and the words. Desktop
- * only: the column exists only where the panel tucks, and a phone has no
- * pointer to light it.
+ * only: the column exists only where the panel tucks; on a phone the
+ * gatherings' emblems (GatheringEmblem) light in turn instead.
  */
 /**
  * A gathering's emblem at the foot of its column (GatheringMark): its
@@ -841,26 +865,33 @@ function TheWayIn({
 }
 
 /**
+ * Where a stop's column ornament sits (HouseChurchesTable, AboutSharedLife):
+ * from md up in a column on the right of the words past a divider, the
+ * drawing absolutely placed inside so it fills the column's height (set by
+ * the words beside it) without ever adding to it; on a phone, where the
+ * words need the whole width, under them at the panel's left, its own
+ * height. The desktop column's width is each ornament's own.
+ */
+const ORNAMENT_COLUMN =
+  "relative mt-5 shrink-0 md:mt-0 md:w-[clamp(72px,20vw,120px)] md:border-l md:border-cream/25 md:pl-[clamp(20px,2vw,32px)]";
+const ORNAMENT_IN_COLUMN =
+  "w-[clamp(72px,20vw,120px)] md:absolute md:inset-y-1 md:right-0 md:h-[calc(100%_-_8px)] md:w-[calc(100%_-_clamp(20px,2vw,32px))]";
+
+/**
  * The house churches' ornament, the calendar's mirror: a house church at
  * table in the G mark's box (HouseTable), on the right of the panel past a
  * divider, its seats taken with the panel's brackets and drawn in while
- * the reader is over the panel. Desktop only, like the calendar: a phone
- * has no pointer to light it, and no room beside the words.
+ * the reader is over the panel — or, below lg, while the stop is settled
+ * on screen (Scene), seated under the words on a phone (ORNAMENT_COLUMN).
  */
 function HouseChurchesTable({ lit }: { lit: boolean }) {
   const shown = useContext(PanelShownContext);
   return (
     <div
       data-house-churches-table=""
-      // the table is absolutely placed inside, so it fills the column's
-      // height (set by the words beside it) without ever adding to it
-      className="relative hidden shrink-0 border-l border-cream/25 pl-[clamp(20px,2vw,32px)] lg:block lg:w-[clamp(150px,12vw,200px)]"
+      className={`${ORNAMENT_COLUMN} lg:w-[clamp(150px,12vw,200px)]`}
     >
-      <HouseTable
-        lit={lit}
-        shown={shown}
-        className="absolute inset-y-1 right-0 h-[calc(100%_-_8px)] w-[calc(100%_-_clamp(20px,2vw,32px))]"
-      />
+      <HouseTable lit={lit} shown={shown} className={ORNAMENT_IN_COLUMN} />
     </div>
   );
 }
@@ -869,20 +900,22 @@ function HouseChurchesTable({ lit }: { lit: boolean }) {
  * The giving's ornament: a field sown and reaped in the G mark's box
  * (SowingMark), standing in the band the give panel pads on its left to keep
  * its words centred under the hood (TUCK). It cascades in with the panel's
- * brackets and the harvest fills while the reader is over the panel. Desktop
- * only: the band exists only where the panel pads, and a phone has no
- * pointer to light it.
+ * brackets and the harvest fills while the reader is over the panel. Below
+ * lg there is no band: the field stands at the head of the panel over the
+ * words, a size that keeps its tiles the calendar's, and fills while the
+ * stop is settled on screen (Scene).
  */
 function GiveSowing({ lit }: { lit: boolean }) {
   const shown = useContext(PanelShownContext);
   return (
     <div
       data-give-sowing=""
-      // it starts at the glass's padding and runs the width of the house
-      // table's column (HouseChurchesTable), wider than the give tuck alone:
-      // the words set narrower than the room the tuck leaves them, so the
-      // field can borrow the slack and keep tiles the calendar's size
-      className="absolute top-1/2 left-[clamp(18px,2.6vw,32px)] hidden w-[clamp(140px,11.5vw,200px)] -translate-y-1/2 lg:block"
+      // on desktop it starts at the glass's padding and runs the width of
+      // the house table's column (HouseChurchesTable), wider than the give
+      // tuck alone: the words set narrower than the room the tuck leaves
+      // them, so the field can borrow the slack and keep tiles the
+      // calendar's size
+      className="relative w-[clamp(120px,32vw,150px)] lg:absolute lg:top-1/2 lg:left-[clamp(18px,2.6vw,32px)] lg:w-[clamp(140px,11.5vw,200px)] lg:-translate-y-1/2"
     >
       <SowingMark lit={lit} shown={shown} className="w-full" />
     </div>
@@ -895,24 +928,18 @@ function GiveSowing({ lit }: { lit: boolean }) {
  * column its tuck clears for the two near apostles — never narrower than
  * the house table's column, so on a wide screen where the tuck is slight
  * the words give up the room instead. Its rows print in with the panel's
- * brackets and huddle while the reader is over the panel. Desktop only,
- * like the calendar: a phone has no pointer to light it, and no room
- * beside the words.
+ * brackets and huddle while the reader is over the panel — or, below lg,
+ * while the stop is settled on screen (Scene), seated under the words on
+ * a phone (ORNAMENT_COLUMN).
  */
 function AboutSharedLife({ lit }: { lit: boolean }) {
   const shown = useContext(PanelShownContext);
   return (
     <div
       data-about-shared-life=""
-      // the drawing is absolutely placed inside, so it fills the column's
-      // height (set by the words beside it) without ever adding to it
-      className="relative hidden shrink-0 border-l border-cream/25 pl-[clamp(20px,2vw,32px)] lg:block lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_clamp(18px,2.6vw,32px)))]"
+      className={`${ORNAMENT_COLUMN} lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_clamp(18px,2.6vw,32px)))]`}
     >
-      <SharedLife
-        lit={lit}
-        shown={shown}
-        className="absolute inset-y-1 right-0 h-[calc(100%_-_8px)] w-[calc(100%_-_clamp(20px,2vw,32px))]"
-      />
+      <SharedLife lit={lit} shown={shown} className={ORNAMENT_IN_COLUMN} />
     </div>
   );
 }
@@ -955,6 +982,30 @@ function Scene({ section: s }: { section: SceneSection }) {
   const [giving, setGiving] = useState(false);
   // the step of the way in the reader stands on (visit)
   const [way, setWay] = useState(0);
+  // the stop's panel, watched for when it is shown (PANEL_SHOWN_*). Below lg
+  // the same signal plays the stop's ornament — the pointer's part on
+  // desktop — while the panel is settled on screen, and undoes it as the
+  // panel leaves; under reduced motion the panel is shown and the ornament
+  // rests. The hero has no panel: its watch reports the initial answer
+  const belowLg = useBelowLg();
+  const reduced = useContext(ReducedMotionContext);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const settled = useInView(
+    panelRef,
+    belowLg ? PANEL_SHOWN_BELOW_LG : PANEL_SHOWN_DESKTOP,
+  );
+  const shown = belowLg ? reduced || settled : settled;
+  const settledIn = belowLg && !reduced && settled;
+  // the stop's ornament lights a beat after it is in, and the gathering
+  // emblems in turn; the calendar beside them is desktop's, lit by the pointer
+  const playing = useInTurn(settledIn, 1, 0, ORNAMENT_LIT_AT_MS) > 0;
+  const inTurn = useInTurn(
+    settledIn,
+    site.gatherings.length,
+    EMBLEM_LIT_STEP_MS,
+    ORNAMENT_LIT_AT_MS,
+  );
+  const panel = { ref: panelRef, shown };
   // no z-index: a section must not form a stacking context, or its headline
   // could never sit under the front canvas while its copy sits over it.
   // On desktop a section is one viewport: one camera waypoint each, turned
@@ -999,6 +1050,7 @@ function Scene({ section: s }: { section: SceneSection }) {
       >
         {/* three cards stack on a phone, so they tighten up to fit one viewport */}
         <Bracketed
+          {...panel}
           className={`flex w-full max-w-[1080px] flex-col lg:flex-row ${TUCK[s.id]}`}
         >
           <GatheringsCalendar lit={lit} />
@@ -1044,7 +1096,10 @@ function Scene({ section: s }: { section: SceneSection }) {
                     <p className="text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed [@media(max-height:820px)]:lg:text-base">
                       {g.body}
                     </p>
-                    <GatheringEmblem mark={mark} lit={lit === mark} />
+                    <GatheringEmblem
+                      mark={mark}
+                      lit={belowLg ? i < inTurn : lit === mark}
+                    />
                   </div>
                 );
               })}
@@ -1069,7 +1124,10 @@ function Scene({ section: s }: { section: SceneSection }) {
       >
         {/* the panel keeps clear of the lockup at the frame's foot, so it sets
             a size down from the give stop's and tighter still on a short viewport */}
-        <Bracketed className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
+        <Bracketed
+          {...panel}
+          className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
+        >
           {/* the kicker stands at the panel's left, its rule drawn from there; the rest is centred */}
           <Kicker className="self-start text-left">{s.kicker}</Kicker>
           <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
@@ -1119,11 +1177,14 @@ function Scene({ section: s }: { section: SceneSection }) {
         className={`${base} flex-col items-center text-center justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}
       >
         <Bracketed
+          {...panel}
           className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
           onMouseEnter={s.id === "give" ? () => setGiving(true) : undefined}
           onMouseLeave={s.id === "give" ? () => setGiving(false) : undefined}
         >
-          {s.id === "give" && <GiveSowing lit={giving} />}
+          {s.id === "give" && (
+            <GiveSowing lit={belowLg ? playing : giving} />
+          )}
           <Kicker centred>{s.kicker}</Kicker>
           <PanelReveal className="flex flex-col items-center gap-5 md:gap-[26px]">
             <h2
@@ -1196,9 +1257,10 @@ function Scene({ section: s }: { section: SceneSection }) {
       className={`${base} ${clear} items-center ${side}`}
     >
       <Bracketed
+        {...panel}
         className={
           beside
-            ? `flex w-full max-w-[600px] flex-col ${houses ? "lg:max-w-[840px]" : ""} lg:flex-row ${TUCK[s.id] ?? ""}`
+            ? `flex w-full max-w-[600px] flex-col ${houses ? "lg:max-w-[840px]" : ""} md:flex-row ${TUCK[s.id] ?? ""}`
             : `${column} max-w-[600px] ${TUCK[s.id] ?? ""}`
         }
         onMouseEnter={beside ? () => setOver(true) : undefined}
@@ -1207,14 +1269,14 @@ function Scene({ section: s }: { section: SceneSection }) {
         {beside ? (
           <>
             <div
-              className={`${column} min-w-0 flex-1 lg:pr-[clamp(24px,2.4vw,40px)]`}
+              className={`${column} min-w-0 flex-1 md:pr-[clamp(24px,2.4vw,40px)]`}
             >
               {words}
             </div>
             {houses ? (
-              <HouseChurchesTable lit={over} />
+              <HouseChurchesTable lit={belowLg ? playing : over} />
             ) : (
-              <AboutSharedLife lit={over} />
+              <AboutSharedLife lit={belowLg ? playing : over} />
             )}
           </>
         ) : (
