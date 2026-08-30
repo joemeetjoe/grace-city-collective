@@ -18,6 +18,7 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
+import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
@@ -597,10 +598,15 @@ export default function PentecostParallax({
         const fe = th * th * (3 - 2 * th);
 
         const tanA = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+        // a portrait frame widens every band about its centre (portraitBand.ts)
+        // so the phone sees a gathering, not a slice two faces wide; a
+        // landscape frame passes 1, so the desktop framing cannot move
+        const pf = portraitFactor(camera.aspect);
         // the distance that makes the band fill the frame vertically — note it
         // never involves aspect, which is the whole point
         const solve = (wp: Waypoint) => {
-          const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((wp.band[1] - wp.band[0]) / 2) * IH / tanA));
+          const band = widenBand(wp.band, pf);
+          const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((band[1] - band[0]) / 2) * IH / tanA));
           const hh = z * tanA;
           let y: number;
           if (wp.aim === "dove" && doveLayer) {
@@ -610,7 +616,7 @@ export default function PentecostParallax({
             const yL = (0.5 - DOVE_V) * IH * ((baseZ - zL) / baseZ);
             y = yL - (2 * (wp.at ?? 0.6) - 1) * hh / (z / (z - zL));
           } else {
-            y = (0.5 - (wp.band[0] + wp.band[1]) / 2) * IH;
+            y = (0.5 - (band[0] + band[1]) / 2) * IH;
           }
           return { y, z, x: (wp.u ?? 0) * IW };
         };
