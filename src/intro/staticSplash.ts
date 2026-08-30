@@ -48,12 +48,14 @@ export function staticSplashSvg(): string {
   );
 }
 
-/** the splash: the mark centred on a fixed sheet of ink, as IntroSplash lays it out */
+/** the splash's root: a fixed sheet of ink with the mark centred on it, as IntroSplash lays it out */
+export const STATIC_SPLASH_LAYOUT =
+  "position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;" +
+  `background:${tokens.ink}`;
+
+/** the splash: the mark centred on a fixed sheet of ink */
 export function staticSplashMarkup(): string {
-  const style =
-    "position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;" +
-    `background:${tokens.ink}`;
-  return `<div ${STATIC_SPLASH_ATTR}="" style="${style}">${staticSplashSvg()}</div>`;
+  return `<div ${STATIC_SPLASH_ATTR}="" style="${STATIC_SPLASH_LAYOUT}">${staticSplashSvg()}</div>`;
 }
 
 /**
@@ -82,7 +84,12 @@ export type StaticSplashTag = {
 export function staticSplashTags(): StaticSplashTag[] {
   return [
     { tag: "style", children: STATIC_SPLASH_STYLE, injectTo: "head" },
-    { tag: "div", attrs: { [STATIC_SPLASH_ATTR]: "" }, children: staticSplashSvg(), injectTo: "body-prepend" },
+    {
+      tag: "div",
+      attrs: { [STATIC_SPLASH_ATTR]: "", style: STATIC_SPLASH_LAYOUT },
+      children: staticSplashSvg(),
+      injectTo: "body-prepend",
+    },
     { tag: "script", children: staticSplashScript(), injectTo: "body-prepend" },
   ];
 }
