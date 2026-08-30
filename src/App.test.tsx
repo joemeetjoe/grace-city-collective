@@ -573,10 +573,9 @@ describe("App canvas split", () => {
     expect(corners).not.toBeNull();
     expect(corners.querySelectorAll("[data-ornate-rule]").length).toBe(4);
     expect(corners.className).toMatch(/text-seal/);
-    // below lg the lockup sits in that corner at the hero's foot (#53), so
-    // the frame's brackets wait for lg
+    // a phone's lockup sits in that corner, so the frame's brackets wait for md
     expect(corners.className).toMatch(/\bhidden\b/);
-    expect(corners.className).toMatch(/lg:block/);
+    expect(corners.className).toMatch(/md:block/);
     const sections = container.querySelectorAll("[data-longform] section");
     expect(sections.length).toBe(4);
     for (const section of sections)
@@ -654,103 +653,5 @@ describe("App canvas split", () => {
     seams.webgl = false;
     const { container } = render(<App />);
     expect(container.querySelector("[data-parallax-front]")).toBeNull();
-  });
-});
-
-describe("App phone stops", () => {
-  const stops = (container: HTMLElement) =>
-    [...container.querySelectorAll<HTMLElement>("section[data-screen-label]")];
-
-  it("from lg up no stop is a phone stop", () => {
-    const { container } = render(<App />);
-    expect(container.querySelector("[data-phone-stop]")).toBeNull();
-  });
-
-  it("below lg every stop but the hero puts its words on the scene, over both canvases, with no panel, glass or brackets", () => {
-    belowLg();
-    const { container } = render(<App />);
-    const all = stops(container);
-    expect(all.length).toBe(6);
-    for (const stop of all) {
-      if (stop.id === "hero") {
-        expect(stop.hasAttribute("data-phone-stop")).toBe(false);
-        // the hero is untouched: its headline still sits between the canvases
-        expect(stop.querySelector("h1")!.classList.contains(STACK.between)).toBe(true);
-        continue;
-      }
-      expect(stop.hasAttribute("data-phone-stop"), stop.id).toBe(true);
-      expect(stop.querySelector("[data-copy-panel]"), stop.id).toBeNull();
-      expect(stop.querySelector("[data-corner-ornaments]"), stop.id).toBeNull();
-      expect(stop.innerHTML, stop.id).not.toMatch(/backdrop-blur/);
-      // the section itself forms no stacking context
-      expect([...stop.classList].some((c) => /^z-/.test(c)), stop.id).toBe(false);
-      // every word sits over both canvases, never merely between them
-      for (const el of stop.querySelectorAll("p, h2, h3, a")) {
-        expect(el.closest(`.${STACK.copy}`), el.textContent ?? "").not.toBeNull();
-      }
-      // one scrim per stop, under the caption; the last stop's ends solid
-      const scrims = stop.querySelectorAll("[data-copy-scrim]");
-      expect(scrims.length, stop.id).toBe(1);
-      const last = site.scene[site.scene.length - 1].id === stop.id;
-      expect(scrims[0].getAttribute("data-copy-scrim"), stop.id).toBe(last ? "last" : "");
-      expect(scrims[0].className, stop.id).toMatch(last ? /\bscene-scrim-last\b/ : /\bscene-scrim\b/);
-      expect(scrims[0].querySelector("p, h3"), stop.id).not.toBeNull();
-      // the kicker and headline stand before the scrim, on the art
-      const h2 = stop.querySelector("h2")!;
-      expect(scrims[0].contains(h2), stop.id).toBe(false);
-      expect(
-        h2.compareDocumentPosition(scrims[0]) & Node.DOCUMENT_POSITION_FOLLOWING,
-        stop.id,
-      ).toBeTruthy();
-    }
-  });
-
-  it("below lg every paragraph of every stop renders, the first as the lede, a lozenge rule between them", () => {
-    belowLg();
-    const { container } = render(<App />);
-    for (const s of site.scene) {
-      if (!s.body.length) continue;
-      const stop = container.querySelector(`#${s.id}`)!;
-      const text = stop.textContent ?? "";
-      for (const p of s.body) expect(text, s.id).toContain(p);
-      const paragraphs = [...stop.querySelectorAll("[data-copy-scrim] p")].filter((p) =>
-        s.body.includes(p.textContent ?? ""),
-      );
-      expect(paragraphs.length, s.id).toBe(s.body.length);
-      expect(paragraphs[0].className, s.id).toMatch(/text-\[17px\]/);
-      for (const p of paragraphs.slice(1)) expect(p.className, s.id).toMatch(/text-\[15px\]/);
-      const rules = stop.querySelectorAll('[data-copy-scrim] [data-ornate-rule="both"]');
-      expect(rules.length, s.id).toBe(s.body.length - 1);
-    }
-  });
-
-  it("below lg the gatherings stack with their emblems, and give's call and visit's way in sit under their words", () => {
-    belowLg();
-    const { container } = render(<App />);
-    const gatherings = container.querySelector("#gatherings [data-copy-scrim]")!;
-    const cards = gatherings.querySelectorAll("[data-gathering]");
-    expect(cards.length).toBe(site.gatherings.length);
-    for (const card of cards) {
-      expect(card.querySelector("[data-gathering-mark]")).not.toBeNull();
-      expect(card.querySelector("h3")).not.toBeNull();
-    }
-    expect(container.querySelector("#gatherings [data-gathering-calendar]")).toBeNull();
-    const give = container.querySelector("#give [data-copy-scrim] a")!;
-    expect(give.textContent).toBe(site.scene.find((s) => s.id === "give")!.cta!.label);
-    expect(give.className).toMatch(/\bw-full\b/);
-    const visit = container.querySelector("#visit [data-copy-scrim]")!;
-    expect(visit.querySelector("[data-way-in]")).not.toBeNull();
-    expect(visit.querySelector("[data-way-words]")).not.toBeNull();
-    expect(visit.querySelector("a")!.className).toMatch(/\bw-full\b/);
-    // the visit's headline is the current step's, and turns with the way in
-    const visitStop = container.querySelector("#visit")!;
-    expect(visitStop.querySelector("h2")!.textContent).toBe(site.wayIn![0].title);
-    fireEvent.click(visitStop.querySelector("[data-way-arrow=next]")!);
-    expect(visitStop.querySelector("h2")!.textContent).toBe(site.wayIn![1].title);
-    expect(visit.textContent).toContain(site.wayIn![1].body);
-    // the call to write goes with the first step
-    expect(visit.querySelector("a")).toBeNull();
-    // the desktop ornaments have no column here
-    expect(container.querySelector("[data-house-table], [data-shared-life], [data-sowing-mark]")).toBeNull();
   });
 });

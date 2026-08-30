@@ -29,7 +29,7 @@ import OrnateRule from "@/components/OrnateRule";
 import ScriptureRefs from "@/components/ScriptureRefs";
 import SmoothHeight from "@/components/SmoothHeight";
 import PentecostParallax from "@/components/PentecostParallax";
-import Reveal, { REVEAL_STAGGER_MS, REVEAL_THRESHOLD } from "@/components/Reveal";
+import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
 import WayIn from "@/components/WayIn";
 import { useInViewOnce } from "@/components/useInViewOnce";
@@ -84,18 +84,6 @@ const IntroPendingContext = createContext(false);
 
 /** how much of a long-form section's opening rule must be on screen before it draws */
 const RULE_DRAW_THRESHOLD = 0.5;
-
-/**
- * The type of a stop's words on a phone or tablet (PhoneStop): the kicker
- * one line at 375px, the headline set by the viewport, the body a caption's
- * size at a caption's measure, its first paragraph a size up as the lede.
- */
-const PHONE = {
-  kicker: "text-[10px] uppercase tracking-[0.2em] text-seal",
-  headline: `max-w-[16ch] text-[clamp(28px,8vw,38px)] leading-[1.06] text-balance ${serif}`,
-  lede: "max-w-[36ch] text-[17px] leading-[1.5] text-pretty text-cream/90",
-  body: "max-w-[36ch] text-[15px] leading-[1.5] text-pretty text-cream/85",
-} as const;
 
 /** the filled call to action, in the seal's red: it lifts and glows under the pointer */
 const SEAL_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} bg-seal text-cream hover:bg-seal-deep`;
@@ -474,13 +462,12 @@ export default function App() {
                 data-scene-frame=""
                 className={`absolute inset-[clamp(12px,2.4vw,26px)] border border-cream/35 ${FRAME_CORNERS}`}
               />
-              {/* not below lg, where the lockup sits right in the bottom-left
-                  corner at the hero's foot — on a tablet as on a phone (#53) */}
+              {/* not on a phone, where the lockup sits right in the bottom-left corner */}
               <CornerOrnaments
                 arm={FRAME_ARM}
                 inset={FRAME_INSET}
                 shown={!intro}
-                className="hidden lg:block"
+                className="hidden md:block"
               />
             </div>
 
@@ -748,20 +735,17 @@ const KICKER_RULE_AT_MS = 300;
  * A section's kicker with the hairline rule under it, both between the
  * canvases like the rest of a section's words. The rule draws out — from
  * the left, or from the middle when centred — when the panel around it is
- * shown, or as `drawn` says. `small` is the phone's size (PHONE.kicker):
- * one line at 375px.
+ * shown, or as `drawn` says.
  */
 function Kicker({
   children,
   className = "",
   centred = false,
-  small = false,
   drawn,
 }: {
   children: React.ReactNode;
   className?: string;
   centred?: boolean;
-  small?: boolean;
   /** when to draw the rule; by default, with the panel's brackets */
   drawn?: boolean;
 }) {
@@ -771,11 +755,7 @@ function Kicker({
     <div
       className={`flex flex-col gap-3 ${centred ? "items-center" : ""} ${className}`}
     >
-      <p
-        className={`${between} text-balance ${small ? PHONE.kicker : kickerCls}`}
-      >
-        {children}
-      </p>
+      <p className={`${between} text-balance ${kickerCls}`}>{children}</p>
       <hr
         aria-hidden
         data-kicker-rule=""
@@ -803,27 +783,14 @@ function Kicker({
  * lozenges trace in with the panel's brackets, and gather while the reader
  * is over the gathering.
  */
-function GatheringEmblem({
-  mark,
-  lit,
-  beside = false,
-}: {
-  mark: Mark;
-  lit: boolean;
-  /** beside the gathering's name (a phone caption) rather than at its column's foot */
-  beside?: boolean;
-}) {
+function GatheringEmblem({ mark, lit }: { mark: Mark; lit: boolean }) {
   const shown = useContext(PanelShownContext);
   return (
     <GatheringMark
       mark={mark}
       shown={shown}
       lit={lit}
-      className={
-        beside
-          ? "h-8 w-8 text-seal"
-          : "mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 [@media(max-height:820px)]:lg:h-9 [@media(max-height:820px)]:lg:w-9"
-      }
+      className="mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 [@media(max-height:820px)]:lg:h-9 [@media(max-height:820px)]:lg:w-9"
     />
   );
 }
@@ -975,19 +942,10 @@ function HeroLockup({ at }: { at: "chrome" | "foot" }) {
   );
 }
 
-/**
- * One stop of the scene; the layout varies by stop, the words come from
- * site.ts. From lg up a stop is one viewport with its words in a glass
- * panel (Bracketed); below lg it is PhoneStop, the words on the scene
- * itself. The hero is the same at every width. The stop's state — the
- * gathering lit, whether the reader is over the panel, the giving, the step
- * of the way in — lives here whichever layout renders, so a phone can
- * drive it from the scroll (#56) where a desktop has the pointer.
- */
+/** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
   const pending = useContext(IntroPendingContext);
-  const belowLg = useBelowLg();
   // the gathering under the pointer, lighting the tiles beside the headline
   const [lit, setLit] = useState<Mark | null>(null);
   // whether the reader is over the house churches' panel, seating its table,
@@ -1004,6 +962,9 @@ function Scene({ section: s }: { section: SceneSection }) {
   // tall as its words; only the hero keeps the whole first frame, so the
   // lockup at its foot stands alone before the next section's words arrive
   const base = `relative flex ${s.id === "hero" ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter}`;
+  // below lg the seal row sits over the top of every section and the lockup
+  // over its foot; desktop keeps its unpadded frames
+  const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
   if (s.id === "hero") {
     return (
       <section
@@ -1029,23 +990,12 @@ function Scene({ section: s }: { section: SceneSection }) {
       </section>
     );
   }
-  if (belowLg) {
-    return (
-      <PhoneScene
-        section={s}
-        last={site.scene[site.scene.length - 1]?.id === s.id}
-        lit={lit}
-        way={way}
-        onStep={setWay}
-      />
-    );
-  }
   if (s.id === "gatherings") {
     return (
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} items-center`}
+        className={`${base} ${clear} items-center`}
       >
         {/* three cards stack on a phone, so they tighten up to fit one viewport */}
         <Bracketed
@@ -1115,7 +1065,7 @@ function Scene({ section: s }: { section: SceneSection }) {
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} flex-col items-center justify-end text-center lg:pt-[clamp(104px,13vh,140px)] lg:pb-[clamp(120px,17vh,170px)]`}
+        className={`${base} ${clear} flex-col items-center justify-end text-center lg:pt-[clamp(104px,13vh,140px)] lg:pb-[clamp(120px,17vh,170px)]`}
       >
         {/* the panel keeps clear of the lockup at the frame's foot, so it sets
             a size down from the give stop's and tighter still on a short viewport */}
@@ -1166,7 +1116,7 @@ function Scene({ section: s }: { section: SceneSection }) {
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} flex-col items-center text-center justify-center lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}
+        className={`${base} flex-col items-center text-center justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}
       >
         <Bracketed
           className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
@@ -1243,7 +1193,7 @@ function Scene({ section: s }: { section: SceneSection }) {
     <section
       id={s.id}
       data-screen-label={s.label}
-      className={`${base} items-center ${side}`}
+      className={`${base} ${clear} items-center ${side}`}
     >
       <Bracketed
         className={
@@ -1272,223 +1222,5 @@ function Scene({ section: s }: { section: SceneSection }) {
         )}
       </Bracketed>
     </section>
-  );
-}
-
-/** how much of a phone stop's block must be on screen before it fades up */
-const PHONE_ENTER_THRESHOLD = REVEAL_THRESHOLD;
-
-/**
- * A block of a phone stop's words: it fades up once, the first time it is
- * seen (Reveal), and while it waits so does everything inside that draws
- * in with a panel's brackets on desktop — a kicker's rule, a gathering's
- * emblem, the way in — through the same PanelShownContext. Over both
- * canvases (STACK.copy): on a phone the nearest figures stand behind the
- * words rather than crossing them (#55).
- */
-function PhoneBlock({
-  className = "",
-  delay,
-  children,
-  ...rest
-}: Omit<React.ComponentProps<"div">, "children"> & {
-  delay?: number;
-  children: React.ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const seen = useInViewOnce(ref, PHONE_ENTER_THRESHOLD);
-  return (
-    <div ref={ref} className={`relative ${STACK.copy} ${className}`} {...rest}>
-      <PanelShownContext.Provider value={seen}>
-        {/* one child of the reveal: the block rises as a whole */}
-        <Reveal shown={seen} delay={delay} className="relative">
-          <div className="flex flex-col gap-5">{children}</div>
-        </Reveal>
-      </PanelShownContext.Provider>
-    </div>
-  );
-}
-
-/**
- * A stop's words on a phone or tablet (#55): no panel, no glass, no
- * brackets. The kicker and headline sit on the scene near the top of the
- * stop; the caption — the body, and whatever the stop keeps under it —
- * sits over an ink scrim at the stop's foot, a caption on a film still. The
- * scrim is the caption block's own (scene-scrim, index.css), not the
- * viewport's: it runs edge to edge, fades in over the block's top padding
- * so the art shows on under the headline and dims towards the words, and
- * fades out again at its foot so no hard edge of ink crosses the next
- * stop's art — except at the last stop, where it ends solid on the
- * long-form's ink. Everything is over both canvases (STACK.copy), so the
- * nearest figures simply stand behind the words, the scrim keeping the
- * body legible over them; nothing is fitted per screen size. The section
- * keeps the nav's clearance at its top and is otherwise as tall as its
- * words (#52); the lockup rides with the hero (#53), so nothing here
- * clears it.
- */
-function PhoneStop({
-  section: s,
-  headline,
-  last = false,
-  children,
-  ...rest
-}: Omit<React.ComponentProps<"section">, "children"> & {
-  section: SceneSection;
-  /** the headline, where it is not the section's own (visit's is the step's) */
-  headline?: React.ReactNode;
-  /** the last stop: its scrim ends solid, on the long-form's ink */
-  last?: boolean;
-  /** the caption: what sits over the scrim */
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      id={s.id}
-      data-screen-label={s.label}
-      data-phone-stop=""
-      // the last stop fills the viewport, its caption at the foot: the scene
-      // closes on a whole frame before it scrolls away under the long-form
-      className={`relative flex min-w-0 flex-col pt-[clamp(88px,11vh,110px)] ${last ? "min-h-[100svh]" : ""}`}
-      {...rest}
-    >
-      <PhoneBlock className={`${gutter} flex flex-col`}>
-        <Kicker small className="mb-1">
-          {s.kicker}
-        </Kicker>
-        <h2 className={PHONE.headline}>{headline ?? s.heading}</h2>
-      </PhoneBlock>
-      {/* the caption's top padding is the scrim's fade (--scrim-fade runs a
-          little past it, so the first lines sit in the last of the fade):
-          the art shows on under the headline and dims towards the words */}
-      <PhoneBlock
-        data-copy-scrim={last ? "last" : ""}
-        delay={REVEAL_STAGGER_MS}
-        className={`${last ? "scene-scrim-last mt-auto pb-[clamp(40px,6vh,64px)]" : "scene-scrim pb-[clamp(48px,7vh,72px)]"} ${gutter} pt-[clamp(96px,16vh,150px)] [--scrim-fade:calc(clamp(96px,16vh,150px)_+_48px)]`}
-      >
-        {children}
-      </PhoneBlock>
-    </section>
-  );
-}
-
-/** the break between two paragraphs of a phone caption: a short rule in the finials' lozenges, in the seal's red */
-function ParagraphBreak() {
-  const shown = useContext(PanelShownContext);
-  return (
-    <OrnateRule
-      drawn={shown}
-      delay={REVEAL_STAGGER_MS}
-      className="mx-auto my-0.5 w-[96px] text-seal"
-    />
-  );
-}
-
-/** every paragraph of a stop, the first as the lede, a break between each */
-function PhoneParagraphs({ body }: { body: readonly string[] }) {
-  return body.flatMap((p, i) => [
-    ...(i > 0 ? [<ParagraphBreak key={`break-${p}`} />] : []),
-    <p key={p} className={i === 0 ? PHONE.lede : PHONE.body}>
-      {p}
-    </p>,
-  ]);
-}
-
-/** the filled call to action across a phone caption's width */
-const PHONE_SEAL_BUTTON = `${SEAL_BUTTON} mt-1 flex w-full justify-center px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`;
-
-/**
- * A scene stop below lg, by id (Scene keeps the state): the who-we-are and
- * house churches are their paragraphs; the gatherings stack, each with its
- * emblem beside its name and the hairline of its card above it; the giving
- * is its paragraphs with the call to give across the caption; the visit's
- * headline is the current step's, its caption the step's words, the call
- * to write on the first step, and the way in itself. The ornaments beside
- * the desktop panels (the calendar, the table, the program, the field) have
- * no column here and no pointer to light them, so they stay on desktop.
- */
-function PhoneScene({
-  section: s,
-  last,
-  lit,
-  way,
-  onStep,
-}: {
-  section: SceneSection;
-  last: boolean;
-  lit: Mark | null;
-  way: number;
-  onStep: (step: number) => void;
-}) {
-  const site = useSite();
-  if (s.id === "gatherings") {
-    return (
-      <PhoneStop section={s} last={last}>
-        {site.gatherings.map((g, i) => {
-          const mark = g.mark ?? GATHERING_MARKS[i % GATHERING_MARKS.length];
-          return (
-            <div
-              key={g.title}
-              data-gathering={mark}
-              className="rule-draw flex flex-col gap-2 pt-5"
-            >
-              <div className="flex items-center gap-3">
-                <GatheringEmblem mark={mark} lit={lit === mark} beside />
-                <h3 className={`text-[24px] leading-[1.12] ${serif}`}>
-                  {g.title}
-                </h3>
-              </div>
-              <p className="text-[10px] uppercase tracking-[0.16em] text-seal">
-                {g.when}
-              </p>
-              <p className={PHONE.body}>{g.body}</p>
-            </div>
-          );
-        })}
-      </PhoneStop>
-    );
-  }
-  if (s.id === "visit") {
-    const steps = wayIn(site);
-    const at = steps[Math.min(way, steps.length - 1)];
-    return (
-      <PhoneStop
-        section={s}
-        last={last}
-        // the step's title and words both change when the traveller lands:
-        // announced together, in order
-        aria-live="polite"
-        headline={
-          <span key={way} className="way-in-rise block">
-            {at?.title}
-          </span>
-        }
-      >
-        <SmoothHeight className="w-full">
-          <div
-            key={way}
-            data-way-words=""
-            className="way-in-rise flex flex-col gap-5"
-          >
-            <p className={PHONE.lede}>{at?.body}</p>
-            {way === 0 && s.cta && (
-              <a href={s.cta.href} className={PHONE_SEAL_BUTTON}>
-                {s.cta.label}
-              </a>
-            )}
-          </div>
-        </SmoothHeight>
-        <TheWayIn step={way} onStep={onStep} />
-      </PhoneStop>
-    );
-  }
-  return (
-    <PhoneStop section={s} last={last}>
-      <PhoneParagraphs body={s.body} />
-      {s.cta && (
-        <a href={s.cta.href} className={PHONE_SEAL_BUTTON}>
-          {s.cta.label}
-        </a>
-      )}
-    </PhoneStop>
   );
 }

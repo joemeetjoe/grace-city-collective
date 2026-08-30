@@ -321,29 +321,3 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     }
   }
 }
-
-/* A phone stop's caption scrim (App.tsx, PhoneStop): ink under the body
-   copy, sized to the caption block rather than the viewport. Read from the
-   bottom: it fades in over a short foot — so no hard edge of ink crosses
-   the next stop's art — holds at ink, eases to ink/85 under the words, and
-   fades out over --scrim-fade at the top (the block's top padding, and a
-   little of its first lines), so the art shows on under the headline above
-   however tall the caption runs. The last stop's ends solid at its foot,
-   on the long-form's ink that follows. */
-@utility scene-scrim {
-  background: linear-gradient(
-    to top,
-    transparent 0,
-    var(--color-ink) 40px,
-    color-mix(in oklab, var(--color-ink) 85%, transparent) calc(100% - var(--scrim-fade, 160px)),
-    transparent 100%
-  );
-}
-@utility scene-scrim-last {
-  background: linear-gradient(
-    to top,
-    var(--color-ink) 0,
-    color-mix(in oklab, var(--color-ink) 85%, transparent) calc(100% - var(--scrim-fade, 160px)),
-    transparent 100%
-  );
-}
