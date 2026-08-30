@@ -49,6 +49,7 @@ import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
 import { removeStaticSplash } from "@/intro/staticSplashDom";
 import { buildNavReveal, collectNavReveal } from "@/intro/navReveal";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
+import { useBelowLg } from "@/layout/breakpoint";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
 import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
 import { jumpTo as scrollJumpTo } from "@/scroll/jump";
@@ -447,19 +448,14 @@ export default function App() {
             )}
 
             {/* stationary chrome above the front canvas: the lockup in the
-            bottom-left corner, and the frame border in the G mark's shape —
-            rounded top-left and bottom-right, square elsewhere */}
+            bottom-left corner (lg and up; below, it rides at the hero's foot),
+            and the frame border in the G mark's shape — rounded top-left and
+            bottom-right, square elsewhere */}
             <div
               ref={frameRef}
               className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100svh] self-start`}
             >
-              <div
-                data-hero-lockup=""
-                className="absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex justify-start"
-              >
-                {/* the seal is live so the stamp can replay on click, resting with its filters off */}
-                <Lockup sealVariant="live" interactiveSeal />
-              </div>
+              <HeroLockup at="chrome" />
               <div
                 aria-hidden
                 data-scene-frame=""
@@ -922,6 +918,31 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
   );
 }
 
+/**
+ * The hero's lockup, rendered once: from lg up pinned in the sticky chrome's
+ * bottom-left corner over every stop; below lg at the hero's foot, where it
+ * stacks (Lockup.tsx) and scrolls away with the hero — from the second stop
+ * on the G in the nav corner carries the identity (#53). Above the front
+ * canvas either way, so the nearest figures never cover it.
+ */
+function HeroLockup({ at }: { at: "chrome" | "foot" }) {
+  const belowLg = useBelowLg();
+  if (belowLg !== (at === "foot")) return null;
+  return (
+    <div
+      data-hero-lockup=""
+      className={
+        at === "chrome"
+          ? "absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex justify-start"
+          : `relative ${STACK.copy} mt-auto flex justify-start`
+      }
+    >
+      {/* the seal is live so the stamp can replay on click, resting with its filters off */}
+      <Lockup sealVariant="live" interactiveSeal />
+    </div>
+  );
+}
+
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 function Scene({ section: s }: { section: SceneSection }) {
   const site = useSite();
@@ -946,7 +967,10 @@ function Scene({ section: s }: { section: SceneSection }) {
       <section
         id={s.id}
         data-screen-label={s.label}
-        className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-[clamp(150px,24vh,220px)]`}
+        // below lg the lockup is the hero's last child, set into the same
+        // corner the chrome pins it to on desktop; lg and up the padding
+        // clears the pinned one
+        className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-[clamp(22px,4.2vw,52px)] lg:pb-[clamp(150px,24vh,220px)]`}
       >
         <Kicker className="mb-[22px]" drawn={!pending}>
           {s.kicker}
@@ -959,6 +983,7 @@ function Scene({ section: s }: { section: SceneSection }) {
         >
           {s.heading}
         </h1>
+        <HeroLockup at="foot" />
       </section>
     );
   }
