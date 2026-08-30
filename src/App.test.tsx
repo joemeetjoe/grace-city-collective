@@ -392,6 +392,31 @@ describe("App page structure", () => {
     ]);
   });
 
+  it("the long-form lists reveal per item, the list itself plain (#58)", () => {
+    const { container } = render(<App />);
+    const longform = container.querySelector("[data-longform]")!;
+    const lists = [
+      ["#devotions ol", site.devotions.length],
+      ["#beliefs ul", site.beliefPosture.length],
+      ["#beliefs dl", site.beliefs.length],
+      ["#faq dl", site.faq.length],
+      ["#messages ol", site.messages.latest.length],
+    ] as const;
+    for (const [sel, n] of lists) {
+      const list = longform.querySelector(sel)!;
+      expect(list, sel).not.toBeNull();
+      // a whole-list reveal waits on a fraction of the whole: screens of blank ink on a phone
+      expect(list.hasAttribute("data-reveal"), sel).toBe(false);
+      const items = Array.from(list.children);
+      expect(items.length, sel).toBe(n);
+      for (const item of items)
+        expect(item.getAttribute("data-reveal"), sel).not.toBeNull();
+    }
+    // the hairline items keep their rule on the revealed element itself
+    for (const item of longform.querySelectorAll(".rule-draw"))
+      expect(item.hasAttribute("data-reveal")).toBe(true);
+  });
+
   it("the long-form sections carry no screen label and sit after the scene", () => {
     const { container } = render(<App />);
     const longform = container.querySelector("[data-longform]")!;

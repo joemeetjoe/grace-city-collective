@@ -488,7 +488,7 @@ export default function App() {
           <div data-longform="" className="relative z-10 bg-ink">
             <section
               id={devotions.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(80px,12vh,140px)]`}
+              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
             >
               <SectionRule />
               <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
@@ -506,12 +506,11 @@ export default function App() {
                     {site.devotionsIntro}
                   </p>
                 </Reveal>
-                <Reveal
-                  as="ol"
-                  className="grid gap-x-10 gap-y-9 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]"
-                >
+                {/* revealed per item, so the list comes in as it is reached however tall it runs */}
+                <ol className="grid gap-x-10 gap-y-9 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
                   {site.devotions.map((d, i) => (
-                    <li
+                    <Reveal
+                      as="li"
                       key={d.title}
                       className="rule-draw flex flex-col gap-3 pt-5"
                     >
@@ -525,15 +524,15 @@ export default function App() {
                       <p className="text-base leading-relaxed text-cream/70">
                         {d.body}
                       </p>
-                    </li>
+                    </Reveal>
                   ))}
-                </Reveal>
+                </ol>
               </div>
             </section>
 
             <section
               id={beliefs.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(80px,12vh,140px)]`}
+              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
             >
               <SectionRule />
               <div className="mx-auto flex max-w-[1080px] flex-col gap-12">
@@ -548,9 +547,10 @@ export default function App() {
                     {beliefs.heading}
                   </h2>
                 </Reveal>
-                <Reveal as="ul" className="grid gap-8 md:grid-cols-3">
+                <ul className="grid gap-8 md:grid-cols-3">
                   {site.beliefPosture.map((p) => (
-                    <li
+                    <Reveal
+                      as="li"
                       key={p.ref}
                       className="rule-draw flex flex-col gap-3 pt-5"
                     >
@@ -563,15 +563,12 @@ export default function App() {
                       <p className="text-xs uppercase tracking-[0.16em] text-seal">
                         {p.ref}
                       </p>
-                    </li>
+                    </Reveal>
                   ))}
-                </Reveal>
-                <Reveal
-                  as="dl"
-                  className="grid gap-x-10 gap-y-10 md:grid-cols-2"
-                >
+                </ul>
+                <dl className="grid gap-x-10 gap-y-10 md:grid-cols-2">
                   {site.beliefs.map((b) => (
-                    <div key={b.title} className="flex flex-col gap-3">
+                    <Reveal key={b.title} className="flex flex-col gap-3">
                       <dt className={`text-[28px] leading-[1.12] ${serif}`}>
                         {b.title}
                       </dt>
@@ -581,15 +578,15 @@ export default function App() {
                       <dd className="text-xs uppercase tracking-[0.16em] text-seal">
                         <ScriptureRefs refs={b.refs} />
                       </dd>
-                    </div>
+                    </Reveal>
                   ))}
-                </Reveal>
+                </dl>
               </div>
             </section>
 
             <section
               id={faq.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(80px,12vh,140px)]`}
+              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
             >
               <SectionRule />
               <div className="mx-auto flex max-w-[1080px] flex-col gap-10 md:flex-row md:gap-16">
@@ -601,9 +598,9 @@ export default function App() {
                     {faq.heading}
                   </h2>
                 </Reveal>
-                <Reveal as="dl" className="flex flex-1 flex-col">
+                <dl className="flex flex-1 flex-col">
                   {site.faq.map((q) => (
-                    <div
+                    <Reveal
                       key={q.question}
                       className="rule-draw flex flex-col gap-3 py-6"
                     >
@@ -613,15 +610,15 @@ export default function App() {
                       <dd className="text-base leading-relaxed text-cream/70">
                         {q.answer}
                       </dd>
-                    </div>
+                    </Reveal>
                   ))}
-                </Reveal>
+                </dl>
               </div>
             </section>
 
             <section
               id={messages.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(80px,12vh,140px)]`}
+              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
             >
               <SectionRule />
               <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
@@ -636,12 +633,10 @@ export default function App() {
                     {site.messages.series}
                   </h2>
                 </Reveal>
-                <Reveal
-                  as="ol"
-                  className="grid gap-x-10 gap-y-8 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]"
-                >
+                <ol className="grid gap-x-10 gap-y-8 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
                   {site.messages.latest.map((m) => (
-                    <li
+                    <Reveal
+                      as="li"
                       key={m.href}
                       className="rule-draw flex flex-col gap-3 pt-5"
                     >
@@ -657,9 +652,9 @@ export default function App() {
                         </a>
                       </h3>
                       <p className="text-sm text-cream/60">{m.speaker}</p>
-                    </li>
+                    </Reveal>
                   ))}
-                </Reveal>
+                </ol>
                 <Reveal className="flex">
                   <p className="text-[11px] uppercase tracking-[0.22em]">
                     <a

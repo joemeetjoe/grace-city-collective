@@ -183,7 +183,13 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     .rule-draw::before {
       transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-at, 0ms);
     }
-    [data-reveal="false"] > .rule-draw::before {
+    /* a Reveal that is itself the rule-draw item (a list revealed per item)
+       draws its own hairline, at its delay, ahead of its first child */
+    [data-reveal].rule-draw::before {
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+    [data-reveal="false"] > .rule-draw::before,
+    [data-reveal="false"].rule-draw::before {
       transform: scaleX(0);
     }
     /* SowingMark: a grain travels down from the tile it waits in
