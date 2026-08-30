@@ -956,7 +956,19 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
       data-about-shared-life=""
       className={`${ORNAMENT_COLUMN} lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_clamp(18px,2.6vw,32px)))]`}
     >
-      <SharedLife lit={lit} shown={shown} className={ORNAMENT_IN_COLUMN} />
+      {/* a phone runs the dozen rows six and six, side by side (a single
+          column runs too long under the words); from md the tall column */}
+      <SharedLife
+        lit={lit}
+        shown={shown}
+        columns={2}
+        className="w-full max-w-[300px] md:hidden"
+      />
+      <SharedLife
+        lit={lit}
+        shown={shown}
+        className={`hidden md:block ${ORNAMENT_IN_COLUMN}`}
+      />
     </div>
   );
 }
