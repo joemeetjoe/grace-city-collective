@@ -16,6 +16,12 @@ export type HouseTableProps = {
    * table, and come in one after the next round the table when it turns true
    */
   shown?: boolean;
+  /**
+   * the table on its side: the long axis across the box, the head at the
+   * left — for a phone card, where the words run above it and a tall column
+   * would push everything down
+   */
+  across?: boolean;
   className?: string;
 };
 
@@ -105,6 +111,7 @@ function pose(seat: Seat, shown: boolean, lit: boolean): string {
 export default function HouseTable({
   lit = false,
   shown = true,
+  across = false,
   className,
 }: HouseTableProps) {
   const table: CSSProperties = {
@@ -118,10 +125,14 @@ export default function HouseTable({
       aria-hidden
       data-house-table=""
       data-lit={lit ? "" : undefined}
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      data-across={across ? "" : undefined}
+      viewBox={across ? `0 0 ${VIEW_H} ${VIEW_W}` : `0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
       className={cn("block text-cream", className)}
     >
+      {/* on its side the whole drawing turns a quarter anticlockwise about the
+          box, so the head comes to the left; the seats' own poses turn with it */}
+      <g transform={across ? `translate(0 ${VIEW_W}) rotate(-90)` : undefined}>
       <g transform={`translate(${VIEW_W / 2} ${VIEW_H / 2})`}>
         <path
           data-table=""
@@ -171,6 +182,7 @@ export default function HouseTable({
           </g>
         );
       })}
+      </g>
     </svg>
   );
 }

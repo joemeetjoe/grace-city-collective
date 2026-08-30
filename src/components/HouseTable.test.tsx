@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import HouseTable, { ENTER_STAGGER_MS, SEATS, SIDE_SEATS } from "./HouseTable";
+import HouseTable, { ENTER_STAGGER_MS, SEATS, SIDE_SEATS, VIEW_H, VIEW_W } from "./HouseTable";
 
 function seats(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-seat]"));
@@ -122,5 +122,15 @@ describe("HouseTable", () => {
     expect(seats(shown)[0].style.transform).toBe(
       "translate(0px, 0px) scale(1)",
     );
+  });
+
+  it("on its side, the box turns: the long axis runs across, the head to the left", () => {
+    const { container } = render(<HouseTable across />);
+    const svg = container.querySelector("svg[data-house-table]")!;
+    expect(svg.getAttribute("data-across")).toBe("");
+    expect(svg.getAttribute("viewBox")).toBe(`0 0 ${VIEW_H} ${VIEW_W}`);
+    const turned = svg.querySelector(`g[transform="translate(0 ${VIEW_W}) rotate(-90)"]`);
+    expect(turned).not.toBeNull();
+    expect(turned!.querySelectorAll("[data-seat]").length).toBe(SEATS);
   });
 });
