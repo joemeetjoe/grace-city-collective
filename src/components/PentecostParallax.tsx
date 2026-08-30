@@ -194,9 +194,9 @@ void main(){
   // Measured against the plate, not the oversized plane, so it stays put;
   // clamped before pow(): a negative base is NaN in GLSL
   vec2 cv = clamp(uv, 0.0, 1.0);
-  float spread = mix(0.055, 0.34, pow(1.0 - cv.y, 1.5));
+  float spread = mix(0.055, 0.42, pow(1.0 - cv.y, 1.5));
   float bx = (cv.x - 0.5) / spread;
-  float beam = exp(-bx * bx * 1.9) * smoothstep(0.26, 0.96, cv.y);
+  float beam = exp(-bx * bx * 1.9) * smoothstep(-0.2, 0.85, cv.y);
   float dv = distance(cv * vec2(1.0, 1.22), vec2(0.5, 0.965 * 1.22));
   float halo = exp(-dv * dv * 180.0);
   col += (beam * 0.22 + halo * 0.34) * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
