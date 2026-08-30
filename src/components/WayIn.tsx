@@ -125,8 +125,10 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         className={cn(
           // the lozenge sits level with the rule, its word under it level with the numerals
           // both the same width, whatever their words, so the rule between them stays centred
-          // wide enough that "before that" stays on one line; it lifts a hair under the pointer, no glow
-          "mt-[6px] flex w-[92px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-1 pt-1 text-seal md:w-[108px] md:gap-[5px] transition-[opacity,color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
+          // on a phone 56px wide, where "before that" wraps to two lines, so the way in — two
+          // arrows and five steps — fits a 375px viewport inside its panel (#51); from md wide
+          // enough that it stays on one line; it lifts a hair under the pointer, no glow
+          "mt-[6px] flex w-[56px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-0.5 pt-1 text-seal md:w-[108px] md:gap-[5px] md:px-1 transition-[opacity,color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
           FOCUS_RING,
         )}
         style={{
@@ -135,7 +137,7 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
         }}
       >
         <DiamondArrow back={back} disabled={disabled} />
-        <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.15em] md:text-[11px] md:tracking-[0.2em]">
+        <span className="text-center text-[10px] leading-[1.3] uppercase tracking-[0.15em] md:whitespace-nowrap md:text-[11px] md:tracking-[0.2em]">
           {back ? "Before that" : "And then"}
         </span>
       </button>
@@ -143,7 +145,8 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
   };
   return (
     <div data-way-in="" data-step={step} className={cn("flex w-full flex-col items-center", className)}>
-      <div className="flex w-full items-center gap-1 md:gap-2">
+      {/* no gap on a phone: the arrows and the steps together are the panel's whole width at 375px */}
+      <div className="flex w-full items-center md:gap-2">
         {arrow(true)}
         <ol aria-label="The way in" className="relative flex min-w-0 flex-1 items-start">
           {steps.map((s, i) => {
@@ -167,14 +170,14 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
                 <span
                   aria-hidden
                   data-way-rule=""
-                  className="pointer-events-none absolute inset-x-0 top-[20px] flex h-px items-center md:top-[22px]"
+                  className="pointer-events-none absolute inset-x-0 top-[18px] flex h-px items-center md:top-[22px]"
                 >
                   <span
-                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} mr-[16px] md:mr-[20px]`}
+                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} mr-[14px] md:mr-[20px]`}
                     style={spanStyle(2 * i, walked || on)}
                   />
                   <span
-                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} ml-[16px] md:ml-[20px]`}
+                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} ml-[14px] md:ml-[20px]`}
                     style={spanStyle(2 * i + 1, walked)}
                   />
                 </span>
@@ -184,7 +187,8 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
                   delay={traceAt(i)}
                   lit={on}
                   tour={on && i === last}
-                  className="relative h-10 w-10 md:h-11 md:w-11"
+                  // 36px on a phone (the rule and its margins about the emblem scale with it), 44 from md
+                  className="relative h-9 w-9 md:h-11 md:w-11"
                 />
                 <span
                   className="text-[10px] tracking-[0.12em] md:text-[11px] [font-family:'Cormorant_Garamond',Georgia,serif]"
@@ -202,7 +206,7 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
           <span
             aria-hidden
             data-way-traveller=""
-            className={`pointer-events-none absolute top-[22px] left-0 flex h-0 items-center justify-center ${MOVE} md:top-[22px]`}
+            className={`pointer-events-none absolute top-[20px] left-0 flex h-0 items-center justify-center ${MOVE} md:top-[22px]`}
             style={{ ...travellerStyle, width: `${100 / count}%` }}
           >
             <svg

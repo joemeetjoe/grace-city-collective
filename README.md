@@ -100,4 +100,9 @@ The Doré layers in `public/dore/` are produced by the Python scripts in
 `tools/recut` (SAM segmentation, depth baking, SDXL inpainting of occluded
 figures). They expect a `.venv-recut` virtualenv and write scratch output to
 `tools/recut/out-*`, both gitignored. `tools/shots/cdp-shot.mjs` takes
-headless-Chrome screenshots of the scene at scroll waypoints.
+headless-Chrome screenshots of the scene at scroll waypoints, and
+`tools/shots/mobile-check.mjs` is the standing mobile guard: it loads the
+built site at the four phone/tablet sizes (375×667, 390×844, 430×932 at
+dpr 3; 768×1024 at dpr 2) and fails if the page is ever wider than the
+viewport at the top or at any section's top (`node tools/shots/mobile-check.mjs
+--url http://localhost:4173/`).
