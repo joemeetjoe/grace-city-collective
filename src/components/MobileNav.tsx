@@ -15,11 +15,9 @@ const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
 /** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens */
 const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;
-// over the scene the bar carries no backdrop of its own (App.tsx), and with
-// the words set on the scene below lg (#55) the captions scroll under the
-// corner — so the mark and Menu wear the desktop links' frosted glass (#60).
-// The sheet is solid ink; there the same controls stay bare.
-const glassSeat = `${seat} ${GLASS}`;
+// over the scene the bar carries no backdrop of its own (App.tsx), so Menu
+// wears the desktop links' frosted glass (#60); the mark stays bare — its
+// own box is enough of a seat. The sheet is solid ink; Close stays bare there.
 const glassPill = `${pill} ${GLASS}`;
 
 export type MobileNavProps = {
@@ -136,7 +134,7 @@ export default function MobileNav({
         href="#hero"
         data-nav-mark=""
         onClick={(e) => go(e, "hero")}
-        className={glassSeat}
+        className={seat}
       >
         <GMark size={MARK_SIZE} ruled title={site.name} />
       </a>
