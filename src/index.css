@@ -152,8 +152,9 @@ body {
    viewport jump. While the smoother drives, the native scrollbar goes — the
    position it would show is the wheel's, not the page's. Keyboard scrolling
    (space, page down, arrows) is still native and still works. Under reduced
-   motion the smoother is never created, so the attribute is never set and the
-   scrollbar stays. */
+   motion, and below lg (native scroll, src/scroll/useSmoothScroll.ts), the
+   smoother is never created, so the attribute is never set and the scrollbar
+   stays. */
 html[data-smooth-scroll] {
   scrollbar-width: none;
 }
