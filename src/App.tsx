@@ -61,6 +61,11 @@ import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const gutter = "px-[clamp(20px,4.4vw,60px)]";
 const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
+// a scene card's paragraphs below lg: the phone headline is ~30px to the
+// desktop's ~48px, so 16px Geist (a big x-height, uniform strokes) out-weighs
+// the hairline Cormorant beside it; a half-size down, more leading and a
+// hair lighter on the variable axis restores the desktop's hierarchy
+const PHONE_BODY = "max-lg:text-[14.5px] max-lg:leading-[1.6] max-lg:font-[380]";
 // everything a scene section says sits between the canvases (layerSplit.ts),
 // so the nearest figures cross it: a panel rises from behind them and rests
 // with an edge tucked behind one, its words placed clear
@@ -1041,7 +1046,7 @@ function Scene({ section: s }: { section: SceneSection }) {
                     <p className="text-[11px] uppercase tracking-[0.16em] text-seal md:text-xs">
                       {g.when}
                     </p>
-                    <p className="text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed [@media(max-height:820px)]:lg:text-base">
+                    <p className={`text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}>
                       {g.body}
                     </p>
                     <GatheringEmblem mark={mark} lit={lit === mark} />
@@ -1090,7 +1095,7 @@ function Scene({ section: s }: { section: SceneSection }) {
                   >
                     {at?.title}
                   </h2>
-                  <p className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base">
+                  <p className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}>
                     {at?.body}
                   </p>
                   {/* the call to write sits under the first step's words, and goes with them */}
@@ -1134,7 +1139,7 @@ function Scene({ section: s }: { section: SceneSection }) {
             {s.body.map((p) => (
               <p
                 key={p}
-                className="max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base"
+                className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}
               >
                 {p}
               </p>
@@ -1180,7 +1185,7 @@ function Scene({ section: s }: { section: SceneSection }) {
         {s.body.map((p) => (
           <p
             key={p}
-            className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"}`}
+            className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"} ${PHONE_BODY}`}
           >
             {p}
           </p>
