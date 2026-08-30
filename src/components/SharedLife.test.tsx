@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import SharedLife, { ENTER_STAGGER_MS, HUDDLE_SCALE, ROWS } from "./SharedLife";
+import SharedLife, { ENTER_STAGGER_MS, HUDDLE_SCALE, ROWS, VIEW_H, VIEW_H_2, VIEW_W, VIEW_W_2 } from "./SharedLife";
 
 function slots(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-slot]"));
@@ -119,5 +119,23 @@ describe("SharedLife", () => {
     const lines = container.querySelectorAll<HTMLElement>("[data-line]");
     expect(Array.from(lines).every((l) => l.style.opacity === "0")).toBe(true);
     expect(lines[0].style.transform).toMatch(/translateY\(-\d/);
+  });
+
+  it("in two columns the rows run six and six side by side, in a wider, shorter box", () => {
+    const { container } = render(<SharedLife columns={2} />);
+    const svg = container.querySelector("svg[data-shared-life]")!;
+    expect(VIEW_W_2).toBeGreaterThan(2 * VIEW_W);
+    expect(VIEW_H_2).toBeLessThan(VIEW_H / 2 + 1);
+    expect(svg.getAttribute("viewBox")).toBe(`0 0 ${VIEW_W_2} ${VIEW_H_2}`);
+    expect(svg.querySelectorAll("[data-slot]")).toHaveLength(ROWS);
+    const at = (row: number) => {
+      const g = svg.querySelector(`[data-slot="${row}"]`)!.parentElement!;
+      const [x, y] = g.getAttribute("transform")!.match(/[\d.]+/g)!.map(Number);
+      return { x, y };
+    };
+    // the seventh row starts the second column: level with the first, well to its right
+    expect(at(6).y).toBe(at(0).y);
+    expect(at(6).x).toBeGreaterThan(VIEW_W);
+    expect(at(5).y).toBeGreaterThan(at(4).y);
   });
 });

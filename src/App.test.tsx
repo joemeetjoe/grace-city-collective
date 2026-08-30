@@ -364,7 +364,11 @@ describe("App shared life", () => {
     expect(
       kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(container.querySelectorAll("[data-shared-life]")).toHaveLength(1);
+    // two drawings, one per layout: the phone's two columns and the desktop's one
+    const drawings = container.querySelectorAll("[data-shared-life]");
+    expect(drawings).toHaveLength(2);
+    expect(drawings[0].getAttribute("data-columns")).toBe("2");
+    expect(drawings[1].getAttribute("data-columns")).toBe("1");
   });
 });
 

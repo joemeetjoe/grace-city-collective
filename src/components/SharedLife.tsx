@@ -19,6 +19,12 @@ export type SharedLifeProps = {
    * their lines, and print in from the top when it turns true
    */
   shown?: boolean;
+  /**
+   * the rows in one column (the desktop's tall divider column) or two side
+   * by side, six and six, for a phone card where a dozen rows run too long;
+   * in two columns the huddle gathers in the middle between them
+   */
+  columns?: 1 | 2;
   className?: string;
 };
 
@@ -54,18 +60,36 @@ const HUDDLE_Y = 0.3;
 /** a little unevenness in the ring, so the huddle reads as a crowd and not a pattern */
 const JITTER = 0.09;
 
-/** the drawing's extent, in the logo's units */
+/** the drawing's extent in one column, in the logo's units */
 export const VIEW_W = SLOT_W + GAP + LINE_W;
 export const VIEW_H = ROWS * SLOT_H + (ROWS - 1) * GAP;
+/** the gap between two columns, in the mark's width */
+const COLUMN_GAP = Math.round(W * 0.9);
+/** the drawing's extent in two columns: six rows down each, side by side */
+export const VIEW_W_2 = 2 * VIEW_W + COLUMN_GAP;
+export const VIEW_H_2 = (ROWS / 2) * SLOT_H + (ROWS / 2 - 1) * GAP;
+
+/** the drawing's extent for a number of columns, and the rows down each */
+function extent(columns: 1 | 2): { viewW: number; viewH: number; perColumn: number } {
+  const perColumn = ROWS / columns;
+  return {
+    viewW: columns * VIEW_W + (columns - 1) * COLUMN_GAP,
+    viewH: perColumn * SLOT_H + (perColumn - 1) * GAP,
+    perColumn,
+  };
+}
 
 const TRANSITION =
   "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
 
 const BOX = markBox(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, SLOT_CORNER);
 
-/** a row's slot at rest: its centre, in the logo's units */
-function restCentre(row: number): { cx: number; cy: number } {
-  return { cx: SLOT_W / 2, cy: row * (SLOT_H + GAP) + SLOT_H / 2 };
+/** a row's slot at rest: its centre, in the logo's units — down the first column, then the next */
+function restCentre(row: number, columns: 1 | 2 = 1): { cx: number; cy: number } {
+  const { perColumn } = extent(columns);
+  const column = Math.floor(row / perColumn);
+  const r = row % perColumn;
+  return { cx: column * (VIEW_W + COLUMN_GAP) + SLOT_W / 2, cy: r * (SLOT_H + GAP) + SLOT_H / 2 };
 }
 
 /**
@@ -73,8 +97,10 @@ function restCentre(row: number): { cx: number; cy: number } {
  * in the middle, the next five in a ring round it, the last six in a ring
  * round those, each nudged a little off its place
  */
-function huddleCentre(row: number): { cx: number; cy: number } {
-  const mid = { cx: VIEW_W / 2, cy: Math.round(VIEW_H * HUDDLE_Y) };
+function huddleCentre(row: number, columns: 1 | 2 = 1): { cx: number; cy: number } {
+  const { viewW, viewH } = extent(columns);
+  // one column: up in the top third; two: in the middle, between the columns
+  const mid = { cx: viewW / 2, cy: Math.round(viewH * (columns === 1 ? HUDDLE_Y : 0.5)) };
   if (row === 0) return mid;
   const inner = row <= 5;
   const n = inner ? 5 : 6;
@@ -89,13 +115,13 @@ function huddleCentre(row: number): { cx: number; cy: number } {
 }
 
 /** a slot's transform about its own centre, in the logo's units */
-function pose(row: number, shown: boolean, lit: boolean): string {
+function pose(row: number, shown: boolean, lit: boolean, columns: 1 | 2): string {
   if (!shown) {
     return `translate(0px, ${-ENTER_OUT * SLOT_H}px) scale(${ENTER_SCALE})`;
   }
   if (!lit) return "translate(0px, 0px) scale(1)";
-  const rest = restCentre(row);
-  const to = huddleCentre(row);
+  const rest = restCentre(row, columns);
+  const to = huddleCentre(row, columns);
   return `translate(${to.cx - rest.cx}px, ${to.cy - rest.cy}px) scale(${HUDDLE_SCALE})`;
 }
 
@@ -117,22 +143,25 @@ function pose(row: number, shown: boolean, lit: boolean): string {
 export default function SharedLife({
   lit = false,
   shown = true,
+  columns = 1,
   className,
 }: SharedLifeProps) {
   const rows = Array.from({ length: ROWS }, (_, row) => row);
+  const { viewW, viewH } = extent(columns);
   return (
     <svg
       aria-hidden
       data-shared-life=""
       data-lit={lit ? "" : undefined}
-      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      data-columns={columns}
+      viewBox={`0 0 ${viewW} ${viewH}`}
       preserveAspectRatio="xMidYMid meet"
       className={cn("block text-cream", className)}
     >
       {rows.map((row) => {
-        const { cy } = restCentre(row);
+        const { cx, cy } = restCentre(row, columns);
         const delay = `${(row + 1) * ENTER_STAGGER_MS}ms`;
-        const x1 = SLOT_W + GAP;
+        const x1 = cx + SLOT_W / 2 + GAP;
         return (
           <line
             key={row}
@@ -158,12 +187,12 @@ export default function SharedLife({
       })}
       {/* the heart is drawn last, so its red sits over the cream of the rest */}
       {[...rows.slice(1), 0].map((row) => {
-        const { cx, cy } = restCentre(row);
+        const { cx, cy } = restCentre(row, columns);
         const heart = row === 0;
         const delay = `${(row + 1) * ENTER_STAGGER_MS}ms`;
         // the pose moves the slot's own group, so the path keeps its centring
         const style: CSSProperties = {
-          transform: pose(row, shown, lit),
+          transform: pose(row, shown, lit, columns),
           transformOrigin: "center",
           transformBox: "fill-box",
           transitionDelay: delay,
