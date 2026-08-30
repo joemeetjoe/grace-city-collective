@@ -12,8 +12,11 @@ Outputs, in tools/recut/dist/:
   plate-backdrop.png the plate with every cut region filled back in
                      (row-wise texture fill — the wall is horizontal hatching,
                      so propagating along rows preserves the line pattern)
-  cuts.json          [{name, z, isFlame, parent?}] for the component; every
-                     flame names the cut it hangs over (a figure, or crowd).
+  cuts.json          [{name, z, isFlame, parent?, at?}] for the component;
+                     every flame names the cut it hangs over (a figure, or
+                     crowd), and figures and flames carry their mask
+                     centroid `at` as plate fractions (the huddle and the
+                     flame ascent read it).
                      The crowd — the wall behind the apostles — sits on the
                      backdrop's plane (dolly.py mirrors the scene camera; see CROWD_Z)
   qc-masks.png       tinted composite of the final masks
@@ -29,7 +32,13 @@ Outputs, in tools/recut/dist/:
                      generated and picked its hidden body
 
 Fills (--fill):
-  lama-ring  default. The tiled, tone-matched fill, then LaMa re-inpaints a
+  ray        default. lama-ring for every hole, then the whole crowd band —
+             the wall behind the apostles — is replaced with a synthesized
+             continuation of the plate's rays (ray_wall.py), written to
+             both the crowd map and the backdrop. Nothing of the plate
+             survives in the band, so no sliver of a figure that SAM missed
+             can float in the wall.
+  lama-ring  The tiled, tone-matched fill, then LaMa re-inpaints a
              LAMA_RING_PX band just inside every hole boundary so the hatch
              continues on the plate's own rows (issue #19). Needs
              simple-lama-inpainting in .venv-recut; ~3 min on CPU.
@@ -41,10 +50,10 @@ nearest below its centroid, else the crowd; the component then stacks it just
 in front of that parent (issue #27). flame_parents.json beside this script
 overrides the choice: {"flame6": "fig13"}.
 
-Usage: .venv-recut/bin/python tools/recut/build_cuts.py [--fill tile|lama-ring]
+Usage: .venv-recut/bin/python tools/recut/build_cuts.py [--fill tile|lama-ring|ray]
        .venv-recut/bin/python tools/recut/build_cuts.py --manifest-only
-           rewrite dist/cuts.json (flame parents) from the masks already in
-           dist/, without touching any texture
+           rewrite dist/cuts.json (flame parents, anchors) from the masks
+           already in dist/, without touching any texture
 """
 
 import argparse
@@ -455,25 +464,36 @@ def assign_flame_parents(flames: dict[str, np.ndarray], figures: dict[str, np.nd
 def flame_anchors(flames: dict[str, np.ndarray]) -> dict[str, list[float]]:
     """Each flame's centroid as [u, v] plate fractions from the top-left —
     the point the runtime ascent (#35) lifts the flame by."""
-    return {name: [round(c, 4) for c in centroid(m)] for name, m in flames.items()}
+    return anchors(flames)
+
+
+def anchors(masks: dict[str, np.ndarray]) -> dict[str, list[float]]:
+    """Each mask's centroid as [u, v] plate fractions from the top-left. A
+    figure's is what the runtime huddle slides it toward the centre by."""
+    return {name: [round(c, 4) for c in centroid(m)] for name, m in masks.items()}
 
 
 def build_manifest(fig_z: dict[int, float], flame_count: int,
                    extras: dict[int, dict] | None = None,
                    flame_parents: dict[str, str] | None = None,
-                   flame_at: dict[str, list[float]] | None = None) -> list[dict]:
+                   flame_at: dict[str, list[float]] | None = None,
+                   fig_at: dict[str, list[float]] | None = None) -> list[dict]:
     """The cuts.json entries. Cuts sample the shared plate unless they carry
     a dedicated color map: the crowd (its plate region contains the figures)
     and completed figures (their hidden pixels were generated), whose extras
     add map/mapRect/depthMap. A completed figure without its own depth map
     goes flat — the shared depth under its adopted pixels is the occluder's.
     Every flame names the cut it hangs over (flame_parents, else the crowd);
-    the component places it just in front of that parent."""
+    the component places it just in front of that parent. Figures and
+    flames carry their centroid `at` when given."""
     cuts: list[dict] = []
     for i, z in fig_z.items():
         extra = (extras or {}).get(i, {})
         relief = 0 if ("map" in extra and "depthMap" not in extra) else 1
-        cuts.append({"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra})
+        cut = {"name": f"fig{i}", "z": z, "isFlame": 0, "relief": relief, **extra}
+        if fig_at and f"fig{i}" in fig_at:
+            cut["at"] = fig_at[f"fig{i}"]
+        cuts.append(cut)
     for i in range(flame_count):
         parent = (flame_parents or {}).get(f"flame{i}", "crowd")
         cut = {"name": f"flame{i}", "z": FLAME_Z[i % 3], "isFlame": 1, "parent": parent}
@@ -513,18 +533,19 @@ def load_dist_mask(name: str) -> np.ndarray:
 
 
 def rebuild_manifest() -> list[dict]:
-    """Recompute the flame parents from the masks already in dist/ and
-    rewrite cuts.json, every other entry and value preserved — so a change
-    of binding never re-inpaints a texture."""
+    """Recompute the flame parents and the figure/flame anchors from the
+    masks already in dist/ and rewrite cuts.json, every other entry and
+    value preserved — so a change of binding never re-inpaints a texture."""
     cuts = json.loads((DIST / "cuts.json").read_text())
     figures = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["name"].startswith("fig")}
     flames = {c["name"]: load_dist_mask(c["name"]) for c in cuts if c["isFlame"]}
     parents = assign_flame_parents(flames, figures, load_flame_overrides())
-    anchors = flame_anchors(flames)
+    at = anchors({**figures, **flames})
     for c in cuts:
         if c["isFlame"]:
             c["parent"] = parents[c["name"]]
-            c["at"] = anchors[c["name"]]
+        if c["name"] in at:
+            c["at"] = at[c["name"]]
     (DIST / "cuts.json").write_text(json.dumps(cuts))
     return cuts
 
@@ -537,7 +558,7 @@ def print_flame_parents(cuts: list[dict]) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--fill", choices=("tile", "lama-ring"), default="lama-ring")
+    ap.add_argument("--fill", choices=("tile", "lama-ring", "ray"), default="ray")
     ap.add_argument("--manifest-only", action="store_true",
                     help="rewrite dist/cuts.json from the existing dist/ masks; no textures")
     args = ap.parse_args()
@@ -661,7 +682,8 @@ def main() -> None:
         load_flame_overrides())
     print("flame parents:")
     cuts = build_manifest(fig_z, len(flames), extras, parents,
-                          flame_anchors({f"flame{i}": f for i, f in enumerate(flames)}))
+                          flame_anchors({f"flame{i}": f for i, f in enumerate(flames)}),
+                          anchors({f"fig{i}": f for i, f in figures.items()}))
     print_flame_parents(cuts)
     alphas = {}
     for i, f in figures.items():
@@ -698,14 +720,20 @@ def main() -> None:
         # the ring is measured from the hole the fill actually owns (grown)
         grown = cv2.dilate(crowd_hole, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (CROWD_HOLE_GROW,) * 2))
         crowd_map = lama_ring(crowd_map, grown)
-    Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
 
     # backdrop: fill every owned region (grown a little) from row texture
     hole = backdrop_hole(list(figures.values()) + flames + [dove, arch_mask, crowd, floor])
     print("filling backdrop…")
     backdrop = synth_backdrop(plate, hole)
-    if fill_mode == "lama-ring":
+    if fill_mode in ("lama-ring", "ray"):
         backdrop = lama_ring(backdrop, hole)
+    if fill_mode == "ray":
+        # one wall on one plane: the band is the same pixels in both
+        import ray_wall
+        print("synthesizing the wall…")
+        backdrop = ray_wall.ray_wall(plate, backdrop, CROWD_ROWS)
+        crowd_map = backdrop
+    Image.fromarray(crowd_map).save(DIST / "map-crowd.jpg", quality=85)
     Image.fromarray(backdrop).save(DIST / "plate-backdrop.png", optimize=True)
 
     # QC images

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   flameKey,
   FLAME_LIFT,
+  HUDDLE,
   bindFlames,
   displaceLocal,
+  huddleShift,
   parseCuts,
   rectToUv,
   reliefDz,
@@ -43,6 +45,16 @@ describe("parseCuts", () => {
 
     expect(cuts[0].mask).toEqual({ file: "masks-cut-0.webp", channel: 1 });
     expect(cuts[1].mask).toBeUndefined();
+  });
+
+  it("carries a figure's anchor through, absent on legacy entries", () => {
+    const cuts = parseCuts([
+      { name: "fig5", z: 2.3, isFlame: 0, relief: 1, at: [0.2679, 0.658] },
+      { name: "fig1", z: 2.1, isFlame: 0, relief: 1 },
+    ]);
+
+    expect(cuts[0].at).toEqual([0.2679, 0.658]);
+    expect(cuts[1].at).toBeUndefined();
   });
 
   it("carries a flame's parent through, absent on legacy entries", () => {
@@ -200,5 +212,33 @@ describe("flameKey", () => {
 
   it("leaves non-flame cuts alone", () => {
     expect(flameKey(0.05, 0)).toBe(1);
+  });
+});
+
+describe("huddleShift", () => {
+  it("is nothing for a cut without an anchor, or one on the centre line", () => {
+    expect(huddleShift(undefined)).toBe(0);
+    expect(huddleShift([0.5, 0.7])).toBe(0);
+  });
+
+  it("slides a cut toward the centre from either side, in proportion to its offset", () => {
+    // a figure at u 0.1 moves right; one at u 0.9 moves left by the same amount
+    expect(huddleShift([0.1, 0.6])).toBeCloseTo(HUDDLE * 0.4, 12);
+    expect(huddleShift([0.9, 0.6])).toBeCloseTo(-HUDDLE * 0.4, 12);
+    // half the offset, half the shift
+    expect(huddleShift([0.3, 0.6])).toBeCloseTo(HUDDLE * 0.2, 12);
+  });
+
+  it("scales with the huddle strength, and a zero huddle leaves every cut put", () => {
+    expect(huddleShift([0.1, 0.6], 0.1)).toBeCloseTo(0.04, 12);
+    expect(huddleShift([0.1, 0.6], 0)).toBe(0);
+  });
+
+  it("closes a gap between neighbours, not just scales it", () => {
+    // two robes 0.15 apart on the plate: a rigid shift per figure brings
+    // them closer by HUDDLE times their spacing, whatever the gap was
+    const left = huddleShift([0.3, 0.6]);
+    const right = huddleShift([0.45, 0.6]);
+    expect(right - left).toBeCloseTo(-HUDDLE * 0.15, 12);
   });
 });

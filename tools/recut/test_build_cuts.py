@@ -11,7 +11,7 @@ import numpy as np
 
 import pytest
 
-from build_cuts import (CROWD_Z, FIG_Z, assign_flame_parents, backdrop_hole, band_alpha, build_manifest, flame_anchors,
+from build_cuts import (CROWD_Z, FIG_Z, anchors, assign_flame_parents, backdrop_hole, band_alpha, build_manifest, flame_anchors,
                         crowd_alpha, decontaminate, erode_feather, feather, figure_z, flame_parent,
                         merge_figures, ring_mask, synth_crowd_map)
 from dolly import BACKDROP_Z
@@ -456,3 +456,21 @@ def test_manifest_carries_each_flames_anchor():
     assert by_name["flame0"]["at"] == [0.21, 0.415]
     assert by_name["flame1"]["at"] == anchors["flame1"]
     assert "at" not in by_name["fig0"]
+
+
+def test_manifest_carries_each_figures_anchor():
+    # a figure's centroid in plate fractions: the runtime huddle slides the
+    # figure toward the centre line by a fraction of that offset
+    figures = {"fig0": np.zeros((100, 200), np.uint8), "fig3": np.zeros((100, 200), np.uint8)}
+    figures["fig0"][40:60, 10:30] = 1
+    figures["fig3"][20:80, 150:190] = 1
+
+    at = anchors(figures)
+    cuts = build_manifest(fig_z={0: 1.2, 3: 1.8}, flame_count=1, fig_at=at)
+
+    assert at["fig0"] == [pytest.approx(19.5 / 200, abs=1e-4), pytest.approx(49.5 / 100, abs=1e-4)]
+    by_name = {c["name"]: c for c in cuts}
+    assert by_name["fig0"]["at"] == at["fig0"]
+    assert by_name["fig3"]["at"] == at["fig3"]
+    assert "at" not in by_name["crowd"]
+    assert "at" not in by_name["flame0"]
