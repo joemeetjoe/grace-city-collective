@@ -896,7 +896,19 @@ function HouseChurchesTable({ lit }: { lit: boolean }) {
       data-house-churches-table=""
       className={`${ORNAMENT_COLUMN} lg:w-[clamp(150px,12vw,200px)]`}
     >
-      <HouseTable lit={lit} shown={shown} className={ORNAMENT_IN_COLUMN} />
+      {/* a phone lays the table on its side under the words (the column is
+          too tall a drawing there); from md it stands in its column */}
+      <HouseTable
+        lit={lit}
+        shown={shown}
+        across
+        className="w-full max-w-[300px] md:hidden"
+      />
+      <HouseTable
+        lit={lit}
+        shown={shown}
+        className={`hidden md:block ${ORNAMENT_IN_COLUMN}`}
+      />
     </div>
   );
 }
