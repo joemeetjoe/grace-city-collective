@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -417,6 +417,24 @@ describe("App stops below lg (#56)", () => {
     );
     fireEvent.mouseLeave(panel);
     expect(table.getAttribute("data-lit")).toBe("");
+  });
+
+  it("the visit stop's way in shows one step at a time (from lg up the whole rail)", () => {
+    belowLg();
+    const { container } = render(<App />);
+    const way = container.querySelector("#visit [data-way-in]")!;
+    expect(way.hasAttribute("data-single")).toBe(true);
+    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    expect(container.querySelector("#visit [data-way-traveller]")).toBeNull();
+    fireEvent.click(container.querySelector<HTMLButtonElement>("#visit [data-way-arrow='next']")!);
+    expect(way.getAttribute("data-step")).toBe("1");
+    expect(way.getAttribute("data-way-dir")).toBe("next");
+    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    cleanup();
+    vi.restoreAllMocks();
+    const { container: desktop } = render(<App />);
+    expect(desktop.querySelectorAll("#visit [data-way-step]").length).toBe(5);
+    expect(desktop.querySelector("#visit [data-way-in]")!.hasAttribute("data-single")).toBe(false);
   });
 
   it("under reduced motion the panels are shown and the ornaments rest", async () => {

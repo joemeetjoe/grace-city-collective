@@ -292,10 +292,13 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
 }
 
 /* The way in (src/components/WayIn.tsx): when the traveller arrives at a
-   step its words rise in, and on the last step the five homes are called on
-   one after the next (GatheringMark's tour). Both only where motion is
-   welcome: under reduced motion the words simply change and the homes rest
-   lit. In the components layer, so the path's own utilities win. */
+   step its words rise in; below lg, where the step stands alone between the
+   arrows, its emblem slides in from the side the reader is walking toward
+   (from the right going on, from the left going back); and on the last step
+   the five homes are called on one after the next (GatheringMark's tour).
+   All only where motion is welcome: under reduced motion the words and the
+   emblem simply change and the homes rest lit. In the components layer, so
+   the path's own utilities win. */
 @layer components {
   @media (prefers-reduced-motion: no-preference) {
     @keyframes way-in-rise {
@@ -306,6 +309,24 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     }
     .way-in-rise {
       animation: way-in-rise 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes way-in-slide-next {
+      from {
+        opacity: 0;
+        transform: translateX(28px);
+      }
+    }
+    @keyframes way-in-slide-back {
+      from {
+        opacity: 0;
+        transform: translateX(-28px);
+      }
+    }
+    .way-in-slide-next {
+      animation: way-in-slide-next 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .way-in-slide-back {
+      animation: way-in-slide-back 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes house-call {
       0%,
