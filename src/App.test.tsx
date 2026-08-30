@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -60,11 +60,11 @@ function stubFontSize(px: number) {
   });
 }
 
-function matchOnly(matching: string) {
+function matchOnly(...matching: string[]) {
   vi.spyOn(window, "matchMedia").mockImplementation(
     (query: string) =>
       ({
-        matches: query === matching,
+        matches: matching.includes(query),
         media: query,
         addEventListener: () => {},
         removeEventListener: () => {},
@@ -379,6 +379,53 @@ describe("App give sowing", () => {
     fireEvent.mouseLeave(panel);
     expect(field.getAttribute("data-lit")).toBeNull();
     expect(container.querySelectorAll("[data-sowing-mark]")).toHaveLength(1);
+  });
+});
+
+describe("App stops below lg (#56)", () => {
+  // jsdom has no IntersectionObserver, so every stop's panel reports its
+  // initial answer: settled on screen
+  it("the ornaments play as the stop settles on screen, a beat after they are in, whatever the pointer does", async () => {
+    belowLg();
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    const table = container.querySelector("[data-house-table]")!;
+    const life = container.querySelector("[data-shared-life]")!;
+    const field = container.querySelector("[data-sowing-mark]")!;
+    const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
+    expect(marks.length).toBeGreaterThan(1);
+    // the panel is shown, its ornament in place and at rest first
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    expect(table.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(table.getAttribute("data-lit")).toBeNull();
+    await waitFor(() => expect(table.getAttribute("data-lit")).toBe(""), {
+      timeout: 3000,
+    });
+    expect(life.getAttribute("data-lit")).toBe("");
+    expect(field.getAttribute("data-lit")).toBe("");
+    // the emblems light in turn, the first with the rest of the ornaments
+    expect(marks[0].getAttribute("data-lit")).toBe("");
+    expect(marks[marks.length - 1].getAttribute("data-lit")).toBeNull();
+    await waitFor(
+      () => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""),
+      { timeout: 3000 },
+    );
+    fireEvent.mouseLeave(panel);
+    expect(table.getAttribute("data-lit")).toBe("");
+  });
+
+  it("under reduced motion the panels are shown and the ornaments rest", async () => {
+    matchOnly(BELOW_LG_QUERY, REDUCED_MOTION_QUERY);
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    const table = container.querySelector("[data-house-table]")!;
+    expect(table.getAttribute("data-lit")).toBeNull();
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelector("#gatherings [data-gathering-mark]")!.getAttribute("data-lit")).toBeNull();
   });
 });
 
