@@ -136,7 +136,8 @@
     @apply bg-background text-foreground;
     }
   html {
-    @apply font-sans;
+    /* grayscale smoothing: cream on ink otherwise fattens a notch on iOS/macOS */
+    @apply font-sans antialiased;
     }
 }
 
@@ -147,13 +148,24 @@ html,
 body {
   background: var(--color-ink);
 }
+/* Nothing scrolls sideways: whatever runs past the viewport's right edge — a
+   panel's brackets waiting out past its corner, a child laid out wider than
+   the viewport — is clipped at the root rather than given a horizontal
+   scrollbar, or a zoomed-out layout viewport on a phone (#51). `clip`, not
+   `hidden`: the root is still no scroll container, so the scene's sticky
+   layers keep sticking to the viewport. tools/shots/mobile-check.mjs asserts
+   the page is never wider than the viewport. */
+#root {
+  overflow-x: clip;
+}
 /* Scrolling is smoothed and snapped by ScrollSmoother + ScrollTrigger
    (src/scroll), not CSS: a CSS snap turns every wheel notch into a full
    viewport jump. While the smoother drives, the native scrollbar goes — the
    position it would show is the wheel's, not the page's. Keyboard scrolling
    (space, page down, arrows) is still native and still works. Under reduced
-   motion the smoother is never created, so the attribute is never set and the
-   scrollbar stays. */
+   motion, and below lg (native scroll, src/scroll/useSmoothScroll.ts), the
+   smoother is never created, so the attribute is never set and the scrollbar
+   stays. */
 html[data-smooth-scroll] {
   scrollbar-width: none;
 }
@@ -183,7 +195,13 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     .rule-draw::before {
       transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-at, 0ms);
     }
-    [data-reveal="false"] > .rule-draw::before {
+    /* a Reveal that is itself the rule-draw item (a list revealed per item)
+       draws its own hairline, at its delay, ahead of its first child */
+    [data-reveal].rule-draw::before {
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+    [data-reveal="false"] > .rule-draw::before,
+    [data-reveal="false"].rule-draw::before {
       transform: scaleX(0);
     }
     /* SowingMark: a grain travels down from the tile it waits in
@@ -274,10 +292,13 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
 }
 
 /* The way in (src/components/WayIn.tsx): when the traveller arrives at a
-   step its words rise in, and on the last step the five homes are called on
-   one after the next (GatheringMark's tour). Both only where motion is
-   welcome: under reduced motion the words simply change and the homes rest
-   lit. In the components layer, so the path's own utilities win. */
+   step its words rise in; below lg, where the step stands alone between the
+   arrows, its emblem slides in from the side the reader is walking toward
+   (from the right going on, from the left going back); and on the last step
+   the five homes are called on one after the next (GatheringMark's tour).
+   All only where motion is welcome: under reduced motion the words and the
+   emblem simply change and the homes rest lit. In the components layer, so
+   the path's own utilities win. */
 @layer components {
   @media (prefers-reduced-motion: no-preference) {
     @keyframes way-in-rise {
@@ -288,6 +309,24 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
     }
     .way-in-rise {
       animation: way-in-rise 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes way-in-slide-next {
+      from {
+        opacity: 0;
+        transform: translateX(28px);
+      }
+    }
+    @keyframes way-in-slide-back {
+      from {
+        opacity: 0;
+        transform: translateX(-28px);
+      }
+    }
+    .way-in-slide-next {
+      animation: way-in-slide-next 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .way-in-slide-back {
+      animation: way-in-slide-back 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes house-call {
       0%,

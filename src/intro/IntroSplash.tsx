@@ -3,15 +3,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import GMark from "@/components/GMark";
 import { gsap } from "@/lib/gsap";
 import { introGateOpen } from "@/intro/gate";
-import { buildHandoff } from "@/intro/handoff";
+import { buildHandoff, navMark } from "@/intro/handoff";
 import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
 import { parallaxLayers } from "@/intro/restingFade";
 import { SPLASH_MARK_SIZE } from "@/intro/splashMark";
 import { removeStaticSplash } from "@/intro/staticSplashDom";
 import { createTrace, holdClockThroughStalls, type Trace } from "@/intro/trace";
 
-/** the nav's G mark, the traveller's destination */
-export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
 
 export type IntroSplashProps = {
   /** every parallax texture has arrived */
@@ -126,7 +124,7 @@ export default function IntroSplash({
       root,
       mark: root.querySelector<SVGSVGElement>("[data-g-mark]"),
       rule: root.querySelector<SVGPathElement>("[data-g-mark-rule]"),
-      nav: document.querySelector<SVGSVGElement>(NAV_MARK),
+      nav: navMark(),
       parallax: parallaxLayers(),
       onComplete: () => onDoneRef.current(),
     });

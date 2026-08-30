@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -7,6 +7,7 @@ import { sectionIds, site } from "@/content/site";
 import { HANDOFF_Z_INDEX } from "@/intro/handoff";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/intro/staticSplash";
+import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
@@ -59,17 +60,21 @@ function stubFontSize(px: number) {
   });
 }
 
-function preferReducedMotion() {
+function matchOnly(...matching: string[]) {
   vi.spyOn(window, "matchMedia").mockImplementation(
     (query: string) =>
       ({
-        matches: query === REDUCED_MOTION_QUERY,
+        matches: matching.includes(query),
         media: query,
         addEventListener: () => {},
         removeEventListener: () => {},
       }) as unknown as MediaQueryList,
   );
 }
+
+const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
+/** a phone or tablet: the viewport is below Tailwind's lg */
+const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
 beforeEach(() => {
   window.sessionStorage.clear();
@@ -116,6 +121,38 @@ describe("App intro policy", () => {
   });
 });
 
+describe("App hero lockup placement", () => {
+  it("from lg up it is pinned in the sticky chrome, and the hero carries none", () => {
+    const { container } = render(<App />);
+    const lockups = container.querySelectorAll("[data-hero-lockup]");
+    expect(lockups.length).toBe(1);
+    expect(lockups[0].closest("section")).toBeNull();
+    expect(lockups[0].parentElement!.classList.contains("sticky")).toBe(true);
+    expect(lockups[0].className).toMatch(/\babsolute\b/);
+  });
+
+  it("below lg it sits at the hero's foot, above the front canvas, and the frame border stays in the sticky chrome", () => {
+    belowLg();
+    const { container } = render(<App />);
+    const lockups = container.querySelectorAll("[data-hero-lockup]");
+    expect(lockups.length).toBe(1);
+    const lockup = lockups[0] as HTMLElement;
+    const hero = container.querySelector("#hero")!;
+    expect(hero.contains(lockup)).toBe(true);
+    // the hero's last child, pushed to its foot
+    expect(hero.lastElementChild).toBe(lockup);
+    expect(lockup.className).toMatch(/\bmt-auto\b/);
+    expect(lockup.classList.contains(STACK.copy)).toBe(true);
+    expect(lockup.querySelector("[data-stacked]")).not.toBeNull();
+    // nothing of it is left in the chrome; the frame is
+    const frame = container.querySelector("[data-scene-frame]")!;
+    expect(frame.parentElement!.classList.contains("sticky")).toBe(true);
+    expect(frame.parentElement!.querySelector("[data-hero-lockup]")).toBeNull();
+    // the hero clears the pinned lockup only where there is one
+    expect(hero.className).toMatch(/lg:pb-\[/);
+  });
+});
+
 describe("App hero seal", () => {
   it("is the stamp-replay button; the splash's seal is not", () => {
     const { container } = render(<App />);
@@ -135,16 +172,13 @@ describe("App hero seal", () => {
 });
 
 describe("App nav", () => {
-  it("the desktop nav carries the G mark, linked to the top; the seal stays in the mobile nav", () => {
+  it("the nav carries the G mark at both breakpoints, linked to the top, and no seal", () => {
     const { container } = render(<App />);
-    const mark = container.querySelector("nav [data-g-mark]")!;
-    expect(mark).not.toBeNull();
-    expect(mark.closest("[data-mobile-nav]")).toBeNull();
-    expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
-    const seals = Array.from(container.querySelectorAll("nav [data-seal]"));
-    expect(seals.length).toBeGreaterThan(0);
-    for (const seal of seals)
-      expect(seal.closest("[data-mobile-nav]")).not.toBeNull();
+    const marks = Array.from(container.querySelectorAll("nav [data-nav-mark] [data-g-mark]"));
+    expect(marks.length).toBe(2);
+    expect(marks.filter((m) => m.closest("[data-mobile-nav]")).length).toBe(1);
+    for (const mark of marks) expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
+    expect(container.querySelector("nav [data-seal]")).toBeNull();
   });
 
   it("the mobile nav sits in the same sticky nav as the desktop links", () => {
@@ -292,6 +326,23 @@ describe("App gatherings calendar", () => {
     // leaving one after entering the other does not put the lit one out
     fireEvent.mouseLeave(homes);
     expect(grid.getAttribute("data-lit")).toBe("feast");
+    // two drawings, one per layout: the desktop's column first, then the
+    // phone's month across, under the headline and before the gatherings
+    const drawings = panel.querySelectorAll("[data-gathering-calendar]");
+    expect(drawings).toHaveLength(2);
+    expect(drawings[0].getAttribute("data-across")).toBeNull();
+    expect(drawings[1].getAttribute("data-across")).toBe("");
+    const heading = panel.querySelector("h2")!;
+    expect(
+      heading.compareDocumentPosition(drawings[1]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      drawings[1].compareDocumentPosition(homes) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // on desktop the pointer lights the phone's month too, the same way
+    expect(drawings[1].getAttribute("data-lit")).toBe("feast");
   });
 });
 
@@ -330,7 +381,11 @@ describe("App shared life", () => {
     expect(
       kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(container.querySelectorAll("[data-shared-life]")).toHaveLength(1);
+    // two drawings, one per layout: the phone's two columns and the desktop's one
+    const drawings = container.querySelectorAll("[data-shared-life]");
+    expect(drawings).toHaveLength(2);
+    expect(drawings[0].getAttribute("data-columns")).toBe("2");
+    expect(drawings[1].getAttribute("data-columns")).toBe("1");
   });
 });
 
@@ -345,6 +400,79 @@ describe("App give sowing", () => {
     fireEvent.mouseLeave(panel);
     expect(field.getAttribute("data-lit")).toBeNull();
     expect(container.querySelectorAll("[data-sowing-mark]")).toHaveLength(1);
+  });
+});
+
+describe("App stops below lg (#56)", () => {
+  // jsdom has no IntersectionObserver, so every stop's panel reports its
+  // initial answer: settled on screen
+  it("the ornaments play as the stop settles on screen, a beat after they are in, whatever the pointer does", async () => {
+    belowLg();
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    const table = container.querySelector("[data-house-table]")!;
+    const life = container.querySelector("[data-shared-life]")!;
+    const field = container.querySelector("[data-sowing-mark]")!;
+    const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
+    expect(marks.length).toBeGreaterThan(1);
+    // the panel is shown, its ornament in place and at rest first
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    expect(table.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    expect(table.getAttribute("data-lit")).toBeNull();
+    await waitFor(() => expect(table.getAttribute("data-lit")).toBe(""), {
+      timeout: 3000,
+    });
+    expect(life.getAttribute("data-lit")).toBe("");
+    expect(field.getAttribute("data-lit")).toBe("");
+    // the emblems light in turn, the first with the rest of the ornaments,
+    // and the month across lights for whichever lit last
+    const month = container.querySelector(
+      "#gatherings [data-gathering-calendar][data-across]",
+    )!;
+    expect(marks[0].getAttribute("data-lit")).toBe("");
+    expect(marks[marks.length - 1].getAttribute("data-lit")).toBeNull();
+    expect(month.getAttribute("data-lit")).toBe(marks[0].getAttribute("data-gathering-mark"));
+    await waitFor(
+      () => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""),
+      { timeout: 3000 },
+    );
+    expect(month.getAttribute("data-lit")).toBe(
+      marks[marks.length - 1].getAttribute("data-gathering-mark"),
+    );
+    fireEvent.mouseLeave(panel);
+    expect(table.getAttribute("data-lit")).toBe("");
+  });
+
+  it("the visit stop's way in shows one step at a time (from lg up the whole rail)", () => {
+    belowLg();
+    const { container } = render(<App />);
+    const way = container.querySelector("#visit [data-way-in]")!;
+    expect(way.hasAttribute("data-single")).toBe(true);
+    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    expect(container.querySelector("#visit [data-way-traveller]")).toBeNull();
+    fireEvent.click(container.querySelector<HTMLButtonElement>("#visit [data-way-arrow='next']")!);
+    expect(way.getAttribute("data-step")).toBe("1");
+    expect(way.getAttribute("data-way-dir")).toBe("next");
+    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    cleanup();
+    vi.restoreAllMocks();
+    const { container: desktop } = render(<App />);
+    expect(desktop.querySelectorAll("#visit [data-way-step]").length).toBe(5);
+    expect(desktop.querySelector("#visit [data-way-in]")!.hasAttribute("data-single")).toBe(false);
+  });
+
+  it("under reduced motion the panels are shown and the ornaments rest", async () => {
+    matchOnly(BELOW_LG_QUERY, REDUCED_MOTION_QUERY);
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    const table = container.querySelector("[data-house-table]")!;
+    expect(table.getAttribute("data-lit")).toBeNull();
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
+    expect(container.querySelector("#gatherings [data-gathering-mark]")!.getAttribute("data-lit")).toBeNull();
   });
 });
 
@@ -390,6 +518,31 @@ describe("App page structure", () => {
       "Give",
       "Visit",
     ]);
+  });
+
+  it("the long-form lists reveal per item, the list itself plain (#58)", () => {
+    const { container } = render(<App />);
+    const longform = container.querySelector("[data-longform]")!;
+    const lists = [
+      ["#devotions ol", site.devotions.length],
+      ["#beliefs ul", site.beliefPosture.length],
+      ["#beliefs dl", site.beliefs.length],
+      ["#faq dl", site.faq.length],
+      ["#messages ol", site.messages.latest.length],
+    ] as const;
+    for (const [sel, n] of lists) {
+      const list = longform.querySelector(sel)!;
+      expect(list, sel).not.toBeNull();
+      // a whole-list reveal waits on a fraction of the whole: screens of blank ink on a phone
+      expect(list.hasAttribute("data-reveal"), sel).toBe(false);
+      const items = Array.from(list.children);
+      expect(items.length, sel).toBe(n);
+      for (const item of items)
+        expect(item.getAttribute("data-reveal"), sel).not.toBeNull();
+    }
+    // the hairline items keep their rule on the revealed element itself
+    for (const item of longform.querySelectorAll(".rule-draw"))
+      expect(item.hasAttribute("data-reveal")).toBe(true);
   });
 
   it("the long-form sections carry no screen label and sit after the scene", () => {

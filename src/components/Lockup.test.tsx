@@ -2,9 +2,12 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
+import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { gsap } from "@/lib/gsap";
 
-import Lockup from "./Lockup";
+import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
+import Lockup, { HERO_LOCKUP_SIZE, HERO_LOCKUP_STACKED_SIZE } from "./Lockup";
+import { STACKED_SCRIPT_EM, STACKED_SEAL_EM, sealPeriodShiftEm } from "./lockupMetrics";
 
 function stubFontSize(px: number) {
   const real = window.getComputedStyle.bind(window);
@@ -17,17 +20,21 @@ function stubFontSize(px: number) {
   });
 }
 
-function preferReducedMotion() {
+function matchOnly(matching: string) {
   vi.spyOn(window, "matchMedia").mockImplementation(
     (query: string) =>
       ({
-        matches: query === REDUCED_MOTION_QUERY,
+        matches: query === matching,
         media: query,
         addEventListener: () => {},
         removeEventListener: () => {},
       }) as unknown as MediaQueryList,
   );
 }
+
+const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
+/** a phone or tablet: the viewport is below Tailwind's lg */
+const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
 /** the timelines currently animating the seal's root: the stamp beats in flight */
 function beatsOn(seal: Element): gsap.core.Timeline[] {
@@ -102,6 +109,69 @@ describe("Lockup", () => {
     const { container } = render(<Lockup />);
     for (const part of ["seal", "wordmark", "script"]) {
       expect(container.querySelector(`[data-lockup="${part}"]`), part).not.toBeNull();
+    }
+  });
+
+  it("is one line from lg up, at the hero's one-line size", () => {
+    stubFontSize(108);
+    const root = render(<Lockup />).container.querySelector<HTMLElement>("[data-lockup='']")!;
+    expect(root.hasAttribute("data-stacked")).toBe(false);
+    expect(root.style.fontSize.replace(/\s/g, "")).toBe(HERO_LOCKUP_SIZE);
+    expect(root.className).toMatch(/lg:flex-nowrap/);
+  });
+});
+
+describe("Lockup below lg", () => {
+  it("stacks: the wordmark takes the first line, Collective and the seal wrap under it, always", () => {
+    belowLg();
+    // the stacked clamp's floor: the one-line rule would drop the script here
+    stubFontSize(34);
+    const { container } = render(<Lockup />);
+    const root = container.querySelector<HTMLElement>("[data-lockup='']")!;
+    expect(root.hasAttribute("data-stacked")).toBe(true);
+    expect(root.className).toMatch(/\bflex-wrap\b/);
+    expect(root.className).toMatch(/items-baseline/);
+    const wordmark = container.querySelector<HTMLElement>('[data-lockup="wordmark"]')!;
+    expect(wordmark.className).toMatch(/\bbasis-full\b/);
+    expect(wordmark.className).toMatch(/lg:basis-auto/);
+    const script = container.querySelector<HTMLElement>('[data-lockup="script"]')!;
+    expect(script).not.toBeNull();
+    expect(wordmark.nextElementSibling).toBe(script);
+    expect(script.compareDocumentPosition(container.querySelector('[data-lockup="seal"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("gives the script and the seal their stacked shares, the seal on the stacked tail line", () => {
+    belowLg();
+    stubFontSize(34);
+    const { container } = render(<Lockup />);
+    expect(container.querySelector<HTMLElement>('[data-lockup="script"]')!.style.height).toBe(`${STACKED_SCRIPT_EM}em`);
+    const seal = container.querySelector<HTMLElement>('[data-lockup="seal"]')!;
+    expect(seal.style.width).toBe(`${STACKED_SEAL_EM}em`);
+    const shift = sealPeriodShiftEm(COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX, {
+      scriptEm: STACKED_SCRIPT_EM,
+      sealEm: STACKED_SEAL_EM,
+    });
+    expect(seal.parentElement!.style.transform).toBe(`translateY(${shift}em)`);
+  });
+
+  it("defaults to the hero's stacked size, unless told a size", () => {
+    belowLg();
+    stubFontSize(34);
+    expect(
+      render(<Lockup />).container.querySelector<HTMLElement>("[data-lockup='']")!.style.fontSize.replace(/\s/g, ""),
+    ).toBe(HERO_LOCKUP_STACKED_SIZE);
+    cleanup();
+    expect(render(<Lockup size="20px" />).container.querySelector<HTMLElement>("[data-lockup='']")!.style.fontSize).toBe(
+      "20px",
+    );
+  });
+
+  it("keeps the same flip ids as the one-line lockup, so a handoff lands on it", () => {
+    belowLg();
+    stubFontSize(34);
+    const { container } = render(<Lockup />);
+    for (const part of ["wordmark", "script", "seal"]) {
+      expect(container.querySelector(`[data-flip-id="lockup-${part}"]`), part).not.toBeNull();
     }
   });
 });

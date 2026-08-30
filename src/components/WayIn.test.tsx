@@ -103,4 +103,66 @@ describe("WayIn", () => {
       );
     expect(firstLozenge(1) - firstLozenge(0)).toBe(RULE_STAGGER_MS + TRACE_STAGGER_MS);
   });
+
+  describe("single: the current step alone between the arrows (below lg)", () => {
+    it("renders only the current step's emblem and numeral, lit, with no rule and no traveller", () => {
+      const { container } = render(<Way steps={STEPS} single initial={2} />);
+      const way = container.querySelector("[data-way-in]")!;
+      expect(way.hasAttribute("data-single")).toBe(true);
+      expect(way.getAttribute("data-step")).toBe("2");
+      const ts = tabs(container);
+      expect(ts.length).toBe(1);
+      expect(ts[0].getAttribute("data-way-step")).toBe("2");
+      expect(ts[0].getAttribute("aria-current")).toBe("step");
+      expect(ts[0].textContent).toBe("III");
+      const marks = [...container.querySelectorAll("svg[data-gathering-mark]")];
+      expect(marks.map((m) => m.getAttribute("data-gathering-mark"))).toEqual(["table"]);
+      expect(marks[0].hasAttribute("data-lit")).toBe(true);
+      expect(container.querySelector("[data-way-rule]")).toBeNull();
+      expect(container.querySelector("[data-way-traveller]")).toBeNull();
+      expect(container.querySelector("ol")!.getAttribute("aria-label")).toBe("The way in");
+      // the one emblem traces in at once
+      expect(container.querySelector<SVGPathElement>("svg[data-gathering-mark] path")!.style.transitionDelay).toBe("0ms");
+    });
+
+    it("the arrows still step, and the tour runs on the last", () => {
+      const { container } = render(<Way steps={STEPS} single initial={3} />);
+      const next = container.querySelector<HTMLButtonElement>("[data-way-arrow='next']")!;
+      const back = container.querySelector<HTMLButtonElement>("[data-way-arrow='back']")!;
+      expect(back.disabled).toBe(false);
+      fireEvent.click(next);
+      expect(tabs(container).map((t) => t.getAttribute("data-way-step"))).toEqual(["4"]);
+      expect(container.querySelectorAll("path[data-called]").length).toBe(5);
+      expect(next.disabled).toBe(true);
+      fireEvent.click(back);
+      expect(tabs(container).map((t) => t.getAttribute("data-way-step"))).toEqual(["3"]);
+    });
+
+    it("slides the new step in from the side the traveller walks toward: next from the right, back from the left", () => {
+      const { container } = render(<Way steps={STEPS} single />);
+      const way = container.querySelector("[data-way-in]")!;
+      const next = container.querySelector<HTMLButtonElement>("[data-way-arrow='next']")!;
+      const back = container.querySelector<HTMLButtonElement>("[data-way-arrow='back']")!;
+      // at rest on the first step nothing has moved: the step simply draws in
+      expect(way.hasAttribute("data-way-dir")).toBe(false);
+      expect(tabs(container)[0].className).not.toMatch(/way-in-slide/);
+      fireEvent.click(next);
+      expect(way.getAttribute("data-way-dir")).toBe("next");
+      expect(tabs(container)[0].classList.contains("way-in-slide-next")).toBe(true);
+      fireEvent.click(next);
+      expect(way.getAttribute("data-way-dir")).toBe("next");
+      fireEvent.click(back);
+      expect(way.getAttribute("data-way-dir")).toBe("back");
+      expect(tabs(container)[0].classList.contains("way-in-slide-back")).toBe(true);
+      expect(tabs(container)[0].classList.contains("way-in-slide-next")).toBe(false);
+    });
+
+    it("the full rail never slides, and carries no direction", () => {
+      const { container } = render(<Way steps={STEPS} />);
+      fireEvent.click(container.querySelector<HTMLButtonElement>("[data-way-arrow='next']")!);
+      expect(container.querySelector("[data-way-in]")!.hasAttribute("data-way-dir")).toBe(false);
+      expect(tabs(container).some((t) => /way-in-slide/.test(t.className))).toBe(false);
+      expect(tabs(container).length).toBe(5);
+    });
+  });
 });

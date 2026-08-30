@@ -63,7 +63,7 @@ export function parseCuts(raw: unknown): Cut[] {
  * a rigid shift per figure closes it (a uniform x-scale would scale the gaps
  * along with everything else). A flame rides its parent's shift.
  */
-export const HUDDLE = 0.04;
+export const HUDDLE = 0.1;
 
 /**
  * A cut's huddle shift in plate widths: huddle * (0.5 - u) for a cut with

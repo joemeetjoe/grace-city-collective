@@ -43,9 +43,13 @@ export type RevealProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
  * A block whose children rise into place one after another — faded and set
  * down a little until the block scrolls into view, then up and in, each a
  * beat after the last. Children marked `rule-draw` have their top hairline
- * drawn left to right just ahead of their words. Watched once: the block
- * comes in the first time it is seen and rests there, unless `shown` drives
- * it. The motion itself is CSS (index.css, on `[data-reveal]`), only where
+ * drawn left to right just ahead of their words; so does the block itself
+ * when it is the `rule-draw` item, as each entry of a long list is. Watched
+ * once: the block comes in the first time it is seen and rests there, unless
+ * `shown` drives it — and never waits past about half a screen of itself,
+ * however tall (useInViewOnce caps `threshold` by the viewport), so a list
+ * is best revealed per item, each entry its own Reveal, rather than whole.
+ * The motion itself is CSS (index.css, on `[data-reveal]`), only where
  * motion is welcome: under reduced motion nothing is ever hidden. A direct
  * child's own transition utilities take precedence, so a child that needs
  * one (a link's underline) should be wrapped, not placed directly.

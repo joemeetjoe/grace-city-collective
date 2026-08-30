@@ -160,7 +160,7 @@ void main(){
   // the light thins as it spreads
   float across = exp(-q * q / (2.0 * sigma * sigma)) * pow(uTop / sigma, 0.3);
   float emerge = smoothstep(0.0, 0.12, s);
-  float fall = 1.0 - smoothstep(0.35, 0.9, s);
+  float fall = 1.0 - smoothstep(0.7, 1.2, s);
   float shimmer = 0.82 + 0.18 * sin(uTime * 0.37 + uPhase + s * 5.0);
   // the plane is deliberately larger than the plate: fade before its own edge
   vec2 e = smoothstep(vec2(-0.17), vec2(-0.06), vUv) * smoothstep(vec2(1.17), vec2(1.06), vUv);

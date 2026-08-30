@@ -18,6 +18,7 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
+import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
@@ -83,6 +84,12 @@ type Waypoint = {
   aim?: "dove";
   /** where in frame the aimed layer should sit (0 = bottom, 1 = top) */
   at?: number;
+  /**
+   * the same on a portrait frame, where the copy sits at the foot: the dove
+   * goes to the top fifth, above the panel, which also keeps the frame's top
+   * at the plate's edge rather than past it (clamped rows read as a smear)
+   */
+  atPortrait?: number;
 };
 
 export type PentecostParallaxProps = {
@@ -194,9 +201,9 @@ void main(){
   // Measured against the plate, not the oversized plane, so it stays put;
   // clamped before pow(): a negative base is NaN in GLSL
   vec2 cv = clamp(uv, 0.0, 1.0);
-  float spread = mix(0.055, 0.34, pow(1.0 - cv.y, 1.5));
+  float spread = mix(0.055, 0.42, pow(1.0 - cv.y, 1.5));
   float bx = (cv.x - 0.5) / spread;
-  float beam = exp(-bx * bx * 1.9) * smoothstep(0.26, 0.96, cv.y);
+  float beam = exp(-bx * bx * 1.9) * smoothstep(-0.2, 0.85, cv.y);
   float dv = distance(cv * vec2(1.0, 1.22), vec2(0.5, 0.965 * 1.22));
   float halo = exp(-dv * dv * 180.0);
   col += (beam * 0.22 + halo * 0.34) * uBeam * uBeamMax * vec3(0.98, 0.90, 0.72);
@@ -225,7 +232,7 @@ const WAYPOINTS: Waypoint[] = [
   { band: [0.30, 0.58], u: 0.0 },   // house churches — centre, under the beam
   { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
   { band: [0.36, 0.66], u: -0.03 }, // give — close on the faces, robes below
-  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7 }, // visit — the dove, with the copy under it
+  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7, atPortrait: 0.82 }, // visit — the dove, with the copy under it
 ];
 
 // lateral camera travel is what shears the figures apart and exposes the bare
@@ -597,10 +604,19 @@ export default function PentecostParallax({
         const fe = th * th * (3 - 2 * th);
 
         const tanA = Math.tan(((camera.fov * Math.PI) / 180) / 2);
+        // a portrait frame widens every band about its centre (portraitBand.ts)
+        // so the phone sees a gathering, not a slice two faces wide; a
+        // landscape frame passes 1, so the desktop framing cannot move
+        const pf = portraitFactor(camera.aspect);
         // the distance that makes the band fill the frame vertically — note it
         // never involves aspect, which is the whole point
         const solve = (wp: Waypoint) => {
-          const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((wp.band[1] - wp.band[0]) / 2) * IH / tanA));
+          // the dove stop keeps its authored band on a portrait frame: it
+          // already starts above the plate's top edge, and widened it would
+          // look a quarter of the frame past the plate — clamped rows
+          // streaking down from the top. Every other stop widens.
+          const band = widenBand(wp.band, wp.aim === "dove" ? 1 : pf);
+          const z = Math.max(baseZ * 0.12, Math.min(baseZ, ((band[1] - band[0]) / 2) * IH / tanA));
           const hh = z * tanA;
           let y: number;
           if (wp.aim === "dove" && doveLayer) {
@@ -608,9 +624,10 @@ export default function PentecostParallax({
             // to be solved against where its own plane actually is
             const zL = doveLayer.mesh.position.z;
             const yL = (0.5 - DOVE_V) * IH * ((baseZ - zL) / baseZ);
-            y = yL - (2 * (wp.at ?? 0.6) - 1) * hh / (z / (z - zL));
+            const at = pf > 1 && wp.atPortrait !== undefined ? wp.atPortrait : (wp.at ?? 0.6);
+            y = yL - (2 * at - 1) * hh / (z / (z - zL));
           } else {
-            y = (0.5 - (wp.band[0] + wp.band[1]) / 2) * IH;
+            y = (0.5 - (band[0] + band[1]) / 2) * IH;
           }
           return { y, z, x: (wp.u ?? 0) * IW };
         };

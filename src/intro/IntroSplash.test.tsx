@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import GMark from "@/components/GMark";
 import { gsap } from "@/lib/gsap";
-import IntroSplash, { NAV_MARK } from "./IntroSplash";
-import { buildHandoff } from "./handoff";
+import IntroSplash from "./IntroSplash";
+import { NAV_MARK, buildHandoff, navMark } from "./handoff";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "./staticSplash";
 import { TRACE_HOLD, createTrace, ruleReach } from "./trace";
@@ -42,6 +42,27 @@ function Stage() {
 }
 
 const splashRule = () => document.querySelector<SVGPathElement>("[data-intro-splash] [data-g-mark-rule]")!;
+
+describe("navMark", () => {
+  it("picks the nav mark that is laid out, whichever breakpoint's it is", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `
+      <a data-nav-mark="" data-which="phone"><svg data-g-mark=""></svg></a>
+      <a data-nav-mark="" data-which="xl"><svg data-g-mark=""></svg></a>`;
+    const rect = (w: number) =>
+      ({ x: 0, y: 0, width: w, height: w, top: 0, left: 0, right: w, bottom: w, toJSON: () => ({}) }) as DOMRect;
+    const marks = Array.from(root.querySelectorAll<SVGSVGElement>(NAV_MARK));
+    vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(0));
+    vi.spyOn(marks[1], "getBoundingClientRect").mockReturnValue(rect(40));
+    expect(navMark(root)?.parentElement?.dataset.which).toBe("xl");
+    vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(40));
+    vi.spyOn(marks[1], "getBoundingClientRect").mockReturnValue(rect(0));
+    expect(navMark(root)?.parentElement?.dataset.which).toBe("phone");
+    // neither laid out: no destination, so the handoff fades the mark in place
+    vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(0));
+    expect(navMark(root)).toBeNull();
+  });
+});
 
 afterEach(() => vi.restoreAllMocks());
 
