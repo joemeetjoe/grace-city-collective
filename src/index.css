@@ -136,7 +136,8 @@
     @apply bg-background text-foreground;
     }
   html {
-    @apply font-sans;
+    /* grayscale smoothing: cream on ink otherwise fattens a notch on iOS/macOS */
+    @apply font-sans antialiased;
     }
 }
 
