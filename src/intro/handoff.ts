@@ -29,11 +29,23 @@ export type HandoffContext = {
   onComplete: () => void;
 };
 
+/** the nav's G mark, the traveller's destination */
+export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
+
 /** whether an element takes up room on screen (not display: none) */
 function laidOut(el: Element | null): el is SVGSVGElement {
   if (!el) return false;
   const r = el.getBoundingClientRect();
   return r.width > 0 && r.height > 0;
+}
+
+/**
+ * The nav's mark at this breakpoint: the phone bar's and the xl corner's are
+ * both in the DOM, one of them display: none, so the laid-out one is the one
+ * the traveller can land on; null where neither is (the mark fades in place).
+ */
+export function navMark(root: ParentNode = document): SVGSVGElement | null {
+  return Array.from(root.querySelectorAll<SVGSVGElement>(NAV_MARK)).find(laidOut) ?? null;
 }
 
 /**

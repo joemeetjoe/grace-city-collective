@@ -135,16 +135,13 @@ describe("App hero seal", () => {
 });
 
 describe("App nav", () => {
-  it("the desktop nav carries the G mark, linked to the top; the seal stays in the mobile nav", () => {
+  it("the nav carries the G mark at both breakpoints, linked to the top, and no seal", () => {
     const { container } = render(<App />);
-    const mark = container.querySelector("nav [data-g-mark]")!;
-    expect(mark).not.toBeNull();
-    expect(mark.closest("[data-mobile-nav]")).toBeNull();
-    expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
-    const seals = Array.from(container.querySelectorAll("nav [data-seal]"));
-    expect(seals.length).toBeGreaterThan(0);
-    for (const seal of seals)
-      expect(seal.closest("[data-mobile-nav]")).not.toBeNull();
+    const marks = Array.from(container.querySelectorAll("nav [data-nav-mark] [data-g-mark]"));
+    expect(marks.length).toBe(2);
+    expect(marks.filter((m) => m.closest("[data-mobile-nav]")).length).toBe(1);
+    for (const mark of marks) expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
+    expect(container.querySelector("nav [data-seal]")).toBeNull();
   });
 
   it("the mobile nav sits in the same sticky nav as the desktop links", () => {
