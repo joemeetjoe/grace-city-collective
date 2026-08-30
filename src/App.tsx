@@ -866,14 +866,17 @@ function GatheringsCalendar({
 /**
  * The visit stop's way in (WayIn): five steps from a first hello to a house
  * church of one's own, drawn in with the panel's brackets; the reader walks
- * them by pointer, tap, or the diamond arrows.
+ * them by the diamond arrows. Below lg (`single`) the current step stands
+ * alone between the arrows, and the next slides in when one is pressed.
  */
 function TheWayIn({
   step,
   onStep,
+  single,
 }: {
   step: number;
   onStep: (step: number) => void;
+  single: boolean;
 }) {
   const site = useSite();
   const shown = useContext(PanelShownContext);
@@ -883,6 +886,7 @@ function TheWayIn({
       step={step}
       onStep={onStep}
       shown={shown}
+      single={single}
       className="pt-1"
     />
   );
@@ -1224,7 +1228,7 @@ function Scene({ section: s }: { section: SceneSection }) {
                 </div>
               </SmoothHeight>
             </div>
-            <TheWayIn step={way} onStep={setWay} />
+            <TheWayIn step={way} onStep={setWay} single={belowLg} />
           </PanelReveal>
         </Bracketed>
       </section>

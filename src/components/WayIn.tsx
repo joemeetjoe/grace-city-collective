@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 
 import GatheringMark, {
   type Emblem,
@@ -22,6 +22,14 @@ export type WayInProps = {
    * and draw in from the first step when it turns true
    */
   shown?: boolean;
+  /**
+   * whether only the current step stands between the arrows — the phone
+   * and tablet way (below lg), where five steps on a rule are cramped: no
+   * rule, no traveller, the step's emblem and numeral alone, and on an
+   * arrow press the next step's emblem slides in from the side the reader
+   * is walking toward
+   */
+  single?: boolean;
   className?: string;
 };
 
@@ -35,6 +43,9 @@ const NUMERALS = ["I", "II", "III", "IV", "V"] as const;
 
 /** the wait from one span of the rule drawing to the next, in ms (each takes MOVE's 700) */
 export const RULE_STAGGER_MS = 160;
+
+/** the way the traveller is walking, from the last step to this one */
+type Direction = "next" | "back";
 
 /** the traveller: a solid lozenge in the seal's red, in px, and the arrows' drawing box */
 const TRAVELLER_W = 10;
@@ -95,12 +106,23 @@ function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disa
  * the traveller appears on the first. Only the arrows move the traveller
  * — a step under the pointer stays put. The step itself is the caller's:
  * the visit stop keeps it, and sets the step's words above the rule.
+ *
+ * `single` (below lg) shows the current step alone between the arrows:
+ * the list holds only that step, remounted on each change, and it slides
+ * in from the right walking on and from the left walking back
+ * (way-in-slide-*, index.css, only where motion is welcome); there is no
+ * rule to draw, so the one emblem traces in at once and the arrows follow.
  */
-export default function WayIn({ steps, step, onStep, shown = true, className }: WayInProps) {
+export default function WayIn({ steps, step, onStep, shown = true, single = false, className }: WayInProps) {
   const count = steps.length;
   const last = count - 1;
-  // the emblems trace in after the rule has reached them
-  const traceAt = (i: number) => i * (RULE_STAGGER_MS + TRACE_STAGGER_MS);
+  // which way the traveller last walked, kept with the step it walked to so
+  // it holds through re-renders until the next step (state adjusted in render)
+  const [travel, setTravel] = useState<{ step: number; dir?: Direction }>({ step });
+  if (travel.step !== step) setTravel({ step, dir: step > travel.step ? "next" : "back" });
+  const dir = travel.step === step ? travel.dir : undefined;
+  // the emblems trace in after the rule has reached them; alone, at once
+  const traceAt = (i: number) => (single ? 0 : i * (RULE_STAGGER_MS + TRACE_STAGGER_MS));
   const railDone = traceAt(last) + TRACE_MS;
   const spanStyle = (i: number, drawn: boolean): CSSProperties => ({
     transitionDelay: shown ? `${i * RULE_STAGGER_MS}ms` : "0ms",
@@ -144,17 +166,24 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
     );
   };
   return (
-    <div data-way-in="" data-step={step} className={cn("flex w-full flex-col items-center", className)}>
+    <div
+      data-way-in=""
+      data-step={step}
+      data-single={single ? "" : undefined}
+      data-way-dir={single ? dir : undefined}
+      className={cn("flex w-full flex-col items-center", className)}
+    >
       {/* no gap on a phone: the arrows and the steps together are the panel's whole width at 375px */}
       <div className="flex w-full items-center md:gap-2">
         {arrow(true)}
         <ol aria-label="The way in" className="relative flex min-w-0 flex-1 items-start">
-          {steps.map((s, i) => {
+          {/* alone, the current step only, keyed by its index so each step mounts afresh and slides in */}
+          {(single ? [step] : steps.map((_, i) => i)).map((i) => {
             const on = i === step;
             const walked = i < step;
             return (
               <li
-                key={s.title}
+                key={single ? i : steps[i].title}
                 id={`way-in-step-${i}`}
                 aria-current={on ? "step" : undefined}
                 data-way-step={i}
@@ -163,32 +192,36 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
                 className={cn(
                   "relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-1 transition-colors duration-500",
                   on ? "text-seal" : walked ? "text-cream/80" : "text-cream/45",
+                  single && dir && `way-in-slide-${dir}`,
                 )}
               >
                 {/* the rule, in two halves about the emblem, so it runs on past a step
                     without crossing its lozenges; each half draws on from the left */}
-                <span
-                  aria-hidden
-                  data-way-rule=""
-                  className="pointer-events-none absolute inset-x-0 top-[18px] flex h-px items-center md:top-[22px]"
-                >
+                {!single && (
                   <span
-                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} mr-[14px] md:mr-[20px]`}
-                    style={spanStyle(2 * i, walked || on)}
-                  />
-                  <span
-                    className={`block h-px flex-1 origin-left bg-cream ${MOVE} ml-[14px] md:ml-[20px]`}
-                    style={spanStyle(2 * i + 1, walked)}
-                  />
-                </span>
+                    aria-hidden
+                    data-way-rule=""
+                    className="pointer-events-none absolute inset-x-0 top-[18px] flex h-px items-center md:top-[22px]"
+                  >
+                    <span
+                      className={`block h-px flex-1 origin-left bg-cream ${MOVE} mr-[14px] md:mr-[20px]`}
+                      style={spanStyle(2 * i, walked || on)}
+                    />
+                    <span
+                      className={`block h-px flex-1 origin-left bg-cream ${MOVE} ml-[14px] md:ml-[20px]`}
+                      style={spanStyle(2 * i + 1, walked)}
+                    />
+                  </span>
+                )}
                 <GatheringMark
                   mark={WAY_EMBLEMS[i % WAY_EMBLEMS.length]}
                   shown={shown}
                   delay={traceAt(i)}
                   lit={on}
                   tour={on && i === last}
-                  // 36px on a phone (the rule and its margins about the emblem scale with it), 44 from md
-                  className="relative h-9 w-9 md:h-11 md:w-11"
+                  // 36px on a phone (the rule and its margins about the emblem scale with it), 44 from
+                  // md; alone between the arrows, with the room, the drawing's own 44 throughout
+                  className={single ? "relative h-11 w-11" : "relative h-9 w-9 md:h-11 md:w-11"}
                 />
                 <span
                   className="text-[10px] tracking-[0.12em] md:text-[11px] [font-family:'Cormorant_Garamond',Georgia,serif]"
@@ -203,21 +236,23 @@ export default function WayIn({ steps, step, onStep, shown = true, className }: 
             );
           })}
           {/* the traveller: a solid lozenge on the rule that walks to the lit step */}
-          <span
-            aria-hidden
-            data-way-traveller=""
-            className={`pointer-events-none absolute top-[20px] left-0 flex h-0 items-center justify-center ${MOVE} md:top-[22px]`}
-            style={{ ...travellerStyle, width: `${100 / count}%` }}
-          >
-            <svg
-              width={TRAVELLER_W}
-              height={TRAVELLER_W / 2}
-              viewBox={`0 0 ${TRAVELLER_W} ${TRAVELLER_W / 2}`}
-              className="block text-seal"
+          {!single && (
+            <span
+              aria-hidden
+              data-way-traveller=""
+              className={`pointer-events-none absolute top-[20px] left-0 flex h-0 items-center justify-center ${MOVE} md:top-[22px]`}
+              style={{ ...travellerStyle, width: `${100 / count}%` }}
             >
-              <path d={lozengePath(TRAVELLER_W / 2, TRAVELLER_W / 4, TRAVELLER_W, TRAVELLER_W / 2)} fill="currentColor" stroke="currentColor" strokeWidth={1} />
-            </svg>
-          </span>
+              <svg
+                width={TRAVELLER_W}
+                height={TRAVELLER_W / 2}
+                viewBox={`0 0 ${TRAVELLER_W} ${TRAVELLER_W / 2}`}
+                className="block text-seal"
+              >
+                <path d={lozengePath(TRAVELLER_W / 2, TRAVELLER_W / 4, TRAVELLER_W, TRAVELLER_W / 2)} fill="currentColor" stroke="currentColor" strokeWidth={1} />
+              </svg>
+            </span>
+          )}
         </ol>
         {arrow(false)}
       </div>
