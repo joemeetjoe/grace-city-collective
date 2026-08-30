@@ -1,4 +1,4 @@
-import { BUTTON_CORNERS } from "@/components/glass";
+import { BUTTON_CORNERS, GLASS } from "@/components/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 
@@ -13,6 +13,14 @@ export const MARK_SIZE = 40;
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
+/** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens */
+const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;
+// over the scene the bar carries no backdrop of its own (App.tsx), and with
+// the words set on the scene below lg (#55) the captions scroll under the
+// corner — so the mark and Menu wear the desktop links' frosted glass (#60).
+// The sheet is solid ink; there the same controls stay bare.
+const glassSeat = `${seat} ${GLASS}`;
+const glassPill = `${pill} ${GLASS}`;
 
 export type MobileNavProps = {
   /** the section under the viewport's midpoint; its link in the sheet is marked current */
@@ -51,7 +59,7 @@ export default function MobileNav({
         href="#hero"
         data-nav-mark=""
         onClick={(e) => go(e, "hero")}
-        className="inline-flex rounded-sm text-cream"
+        className={glassSeat}
       >
         <GMark size={MARK_SIZE} ruled title={site.name} />
       </a>
@@ -60,7 +68,7 @@ export default function MobileNav({
         <Dialog.Trigger asChild>
           <button
             type="button"
-            className={`${pill} -mr-[22px] cursor-pointer text-cream/85 hover:text-cream`}
+            className={`${glassPill} cursor-pointer text-cream/85 hover:text-cream`}
           >
             {MENU_LABEL}
           </button>
@@ -79,7 +87,7 @@ export default function MobileNav({
               <a
                 href="#hero"
                 onClick={(e) => go(e, "hero")}
-                className="inline-flex rounded-sm text-cream"
+                className={seat}
               >
                 <GMark size={MARK_SIZE} ruled title={site.name} />
               </a>
@@ -87,7 +95,7 @@ export default function MobileNav({
                 <button
                   type="button"
                   aria-label={CLOSE_LABEL}
-                  className={`${pill} -mr-[22px] cursor-pointer text-cream/85 hover:text-cream`}
+                  className={`${pill} cursor-pointer text-cream/85 hover:text-cream`}
                 >
                   Close
                 </button>
