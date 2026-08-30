@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from "react";
 
+import { useBelowLg } from "@/layout/breakpoint";
 import { gsap, Observer, ScrollTrigger } from "@/lib/gsap";
 import { inScene, pageTarget, type PageDirection } from "@/scroll/paging";
 import { createSmoothScroll, isTouchOnly, settleSmoother, type SmoothScroll } from "@/scroll/smoother";
@@ -37,6 +38,26 @@ type Refs = {
   held: RefObject<HTMLElement | null>[];
 };
 
+export type ScrollMode = "native" | "paged";
+
+export type ScrollModeInputs = {
+  /** the visitor prefers reduced motion */
+  reducedMotion: boolean;
+  /** the viewport is narrower than Tailwind's lg (layout/breakpoint.ts) */
+  belowLg: boolean;
+};
+
+/**
+ * Whether the scene is paged at all. Pure. Native means nothing is created:
+ * CSS sticky holds the canvas and the window scrolls — under reduced motion,
+ * and below lg, where a section is as tall as its words and a swipe must move
+ * the page by the finger's own measure, not a whole section (#52). Paged is
+ * the desktop: the smoother (unless touch-only), the turns and the settle.
+ */
+export function scrollMode({ reducedMotion, belowLg }: ScrollModeInputs): ScrollMode {
+  return reducedMotion || belowLg ? "native" : "paged";
+}
+
 /** the scroll position the page turns write to: the smoother's when there is one, else the window's */
 function scrollSeat(smooth: SmoothScroll | null) {
   return smooth
@@ -53,20 +74,23 @@ function scrollSeat(smooth: SmoothScroll | null) {
  * long-form scrolls freely; coming back up, the scene takes the scroll again
  * at the last section's top. What gets past the hold (keys, a dragged
  * scrollbar, the tail of a re-entry) settles on the nearest section once it
- * rests. Under reduced motion nothing is created: native scroll, CSS sticky,
- * no paging. On touch-only devices the smoother is skipped (native momentum)
- * but the paging applies.
+ * rests. Under reduced motion, and below lg (scrollMode), nothing is created:
+ * native scroll, CSS sticky, no paging — the camera still scrubs by the
+ * scroll position, over the sections' own heights. On a touch-only desktop
+ * the smoother is skipped (native momentum) but the paging applies. A resize
+ * across lg tears the paging down or builds it, whole.
  *
  * The turns and the settles are one tween over a proxy, written to the scroll
  * each frame — not ScrollTrigger's snap: that one kills its tween on any wheel
  * event, prevented or not, and a swipe's tail keeps those coming.
  */
 export function useSmoothScroll({ wrapper, content, scene, held }: Refs, reducedMotion: boolean): void {
+  const belowLg = useBelowLg();
   useEffect(() => {
     const wrapperEl = wrapper.current;
     const contentEl = content.current;
     const sceneEl = scene.current;
-    if (reducedMotion || !wrapperEl || !contentEl || !sceneEl) return;
+    if (scrollMode({ reducedMotion, belowLg }) === "native" || !wrapperEl || !contentEl || !sceneEl) return;
 
     const smooth = createSmoothScroll(wrapperEl, contentEl, { reducedMotion, touch: isTouchOnly() });
     const seat = scrollSeat(smooth);
@@ -233,5 +257,5 @@ export function useSmoothScroll({ wrapper, content, scene, held }: Refs, reduced
       ctx.revert();
       smooth?.dispose();
     };
-  }, [wrapper, content, scene, held, reducedMotion]);
+  }, [wrapper, content, scene, held, reducedMotion, belowLg]);
 }

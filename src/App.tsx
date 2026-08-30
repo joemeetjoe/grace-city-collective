@@ -391,8 +391,9 @@ export default function App() {
           becomes its fixed viewport when the smoother is on (src/scroll) */}
       <div id="smooth-wrapper" ref={wrapperRef}>
         <div id="smooth-content" ref={contentRef}>
-          {/* the scene: a sticky canvas under six one-viewport sections, stacked
-          in one grid cell so the wrapper is exactly as tall as the sections.
+          {/* the scene: a sticky canvas under six sections (one viewport each
+          on desktop, as tall as their words below lg), stacked in one grid
+          cell so the wrapper is exactly as tall as the sections.
           A sticky child can never leave its container, so the canvas and the
           chrome scroll away with the last section like a final panel, and
           the long-form follows on plain ink. (No negative margins here: a
@@ -470,9 +471,10 @@ export default function App() {
               />
             </div>
 
-            {/* every scene section is exactly one viewport tall — one camera waypoint each;
-            min-w-0 with the grid's minmax(0,1fr) column: a section's min-content can
-            never widen the cell, and the sticky layers with it, past the viewport (#51) */}
+            {/* one camera waypoint per scene section: a viewport each on desktop,
+            the words' own height below lg (see Scene). min-w-0 with the grid's
+            minmax(0,1fr) column: a section's min-content can never widen the
+            cell, and the sticky layers with it, past the viewport (#51) */}
             <div className="relative col-start-1 row-start-1 min-w-0">
               <IntroPendingContext.Provider value={intro}>
                 {site.scene.map((s) => (
@@ -954,8 +956,12 @@ function Scene({ section: s }: { section: SceneSection }) {
   // the step of the way in the reader stands on (visit)
   const [way, setWay] = useState(0);
   // no z-index: a section must not form a stacking context, or its headline
-  // could never sit under the front canvas while its copy sits over it
-  const base = `relative flex min-h-[100svh] ${gutter}`;
+  // could never sit under the front canvas while its copy sits over it.
+  // On desktop a section is one viewport: one camera waypoint each, turned
+  // like pages. Below lg the scene scrolls natively (#52) and a section is as
+  // tall as its words; only the hero keeps the whole first frame, so the
+  // lockup at its foot stands alone before the next section's words arrive
+  const base = `relative flex ${s.id === "hero" ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter}`;
   // below lg the seal row sits over the top of every section and the lockup
   // over its foot; desktop keeps its unpadded frames
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
