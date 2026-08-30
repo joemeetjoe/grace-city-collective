@@ -2,12 +2,14 @@ import { BUTTON_CORNERS } from "@/components/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 
-import Seal from "@/components/Seal";
+import GMark from "@/components/GMark";
 import { site } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 export const MENU_LABEL = "Menu";
 export const CLOSE_LABEL = "Close menu";
+/** the mark's height: the same G as the xl corner's, so the intro's traveller lands on one size everywhere */
+export const MARK_SIZE = 40;
 
 const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
@@ -21,8 +23,8 @@ export type MobileNavProps = {
 };
 
 /**
- * The phone and tablet nav: the wax seal as a mark on the left, "Menu" on the
- * right, and a full-screen sheet on ink with every nav link plus Give and
+ * The phone and tablet nav: the G mark on the left, as the xl corner has it,
+ * "Menu" on the right, and a full-screen sheet on ink with every nav link plus Give and
  * Join Sunday. Escape, the Close button, and any link close it.
  */
 export default function MobileNav({
@@ -43,12 +45,15 @@ export default function MobileNav({
       data-mobile-nav=""
       className={cn("flex w-full items-center justify-between", className)}
     >
+      {/* the mark carries data-nav-mark: the intro's traveller lands on it, as
+          on the xl corner's (IntroSplash picks whichever is laid out) */}
       <a
         href="#hero"
+        data-nav-mark=""
         onClick={(e) => go(e, "hero")}
-        className="inline-flex rounded-full"
+        className="inline-flex rounded-sm text-cream"
       >
-        <Seal size={28} variant="static" title={site.name} />
+        <GMark size={MARK_SIZE} ruled title={site.name} />
       </a>
 
       <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -70,12 +75,13 @@ export default function MobileNav({
 
             {/* the same row as the resting nav, so the mark does not jump when the sheet opens */}
             <div className="flex items-center justify-between px-[calc(clamp(12px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(12px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
+              {/* no data-nav-mark here: the sheet is never open while the intro plays */}
               <a
                 href="#hero"
                 onClick={(e) => go(e, "hero")}
-                className="inline-flex rounded-full"
+                className="inline-flex rounded-sm text-cream"
               >
-                <Seal size={28} variant="static" title={site.name} />
+                <GMark size={MARK_SIZE} ruled title={site.name} />
               </a>
               <Dialog.Close asChild>
                 <button

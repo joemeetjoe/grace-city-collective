@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import MobileNav, { MENU_LABEL } from "./MobileNav";
+import MobileNav, { MARK_SIZE, MENU_LABEL } from "./MobileNav";
 import { site } from "@/content/site";
 
 afterEach(() => vi.restoreAllMocks());
@@ -12,9 +12,14 @@ function openSheet() {
 }
 
 describe("MobileNav", () => {
-  it("at rest shows the wax-seal mark and a Menu button, and no links", () => {
+  it("at rest shows the ruled G mark, named for the site, and a Menu button, and no links", () => {
     const { container } = render(<MobileNav />);
-    expect(container.querySelector('[data-mobile-nav] svg[role="img"]')).not.toBeNull();
+    const mark = container.querySelector('[data-mobile-nav] [data-g-mark][role="img"]') as SVGSVGElement;
+    expect(mark).not.toBeNull();
+    expect(mark.getAttribute("aria-label")).toBe(site.name);
+    expect(mark.querySelector("[data-g-mark-rule]")).not.toBeNull();
+    expect(mark.style.height).toBe(`${MARK_SIZE}px`);
+    expect(container.querySelector("[data-mobile-nav] [data-seal]")).toBeNull();
     expect(screen.getByRole("button", { name: MENU_LABEL })).not.toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(container.querySelectorAll("a[href^='#']").length).toBeLessThanOrEqual(1);
@@ -65,10 +70,19 @@ describe("MobileNav", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("the seal mark points back at the top", () => {
+  it("the bar's mark points back at the top and is the intro traveller's landing; the sheet's is not", () => {
     const onNavigate = vi.fn();
     const { container } = render(<MobileNav onNavigate={onNavigate} />);
-    fireEvent.click(container.querySelector("[data-mobile-nav] a[href='#hero']")!);
+    const link = container.querySelector("[data-mobile-nav] a[href='#hero']")!;
+    expect(link.hasAttribute("data-nav-mark")).toBe(true);
+    expect(link.querySelector("[data-g-mark]")).not.toBeNull();
+    fireEvent.click(link);
     expect(onNavigate).toHaveBeenCalledWith("hero");
+    const sheet = openSheet();
+    const sheetMark = sheet.querySelector("a[href='#hero'] [data-g-mark]") as SVGSVGElement;
+    expect(sheetMark.getAttribute("aria-label")).toBe(site.name);
+    expect(sheetMark.style.height).toBe(`${MARK_SIZE}px`);
+    expect(sheet.querySelector("[data-nav-mark]")).toBeNull();
+    expect(document.querySelectorAll("[data-nav-mark]").length).toBe(1);
   });
 });
