@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   ASCENT_END,
   ASCENT_START,
-  BOB,
   DOVE_Z_EPS,
   FLAME_COUNT,
   RING,
@@ -45,17 +44,15 @@ describe("ascentProgress", () => {
 });
 
 describe("flamePose", () => {
-  it("puts every flame exactly on its head at progress 0, whatever the time", () => {
+  it("puts every flame exactly on its head at progress 0", () => {
     for (const i of indices) {
-      for (const t of [0, 1.7, 42]) {
-        expect(flamePose(i, 0, t, { rest, dove })).toEqual(rest);
-      }
+      expect(flamePose(i, 0, { rest, dove })).toEqual(rest);
     }
   });
 
   it("gathers every flame into a loose ring beneath the dove at progress 1", () => {
     for (const i of indices) {
-      const p = flamePose(i, 1, 3, { rest, dove, bob: 0 });
+      const p = flamePose(i, 1, { rest, dove });
       expect(p.y).toBeLessThan(dove.y - RING.drop + RING.radius * RING.squash);
       expect(p.y).toBeGreaterThan(dove.y - RING.drop - RING.radius * RING.squash);
       expect(Math.abs(p.x - dove.x)).toBeLessThanOrEqual(RING.radius);
@@ -75,10 +72,10 @@ describe("flamePose", () => {
 
   it("never lets a flame's distance to its seat grow as progress increases", () => {
     for (const i of indices) {
-      const seat = flamePose(i, 1, 0, { rest, dove, bob: 0 });
+      const seat = flamePose(i, 1, { rest, dove });
       let last = Number.POSITIVE_INFINITY;
       for (let p = 0; p <= 1.0001; p += 0.005) {
-        const d = dist(flamePose(i, p, 0, { rest, dove, bob: 0 }), seat);
+        const d = dist(flamePose(i, p, { rest, dove }), seat);
         expect(d).toBeLessThanOrEqual(last + 1e-9);
         last = d;
       }
@@ -112,25 +109,21 @@ describe("flamePose", () => {
 
   it("sinks from the parent's plane to just in front of the dove's as it rises", () => {
     for (const i of indices) {
-      expect(flamePose(i, 1, 0, { rest, dove }).z).toBeCloseTo(dove.z + DOVE_Z_EPS, 9);
+      expect(flamePose(i, 1, { rest, dove }).z).toBeCloseTo(dove.z + DOVE_Z_EPS, 9);
       const { start, end } = flameTiming(i);
-      const mid = flamePose(i, (start + end) / 2, 0, { rest, dove }).z;
+      const mid = flamePose(i, (start + end) / 2, { rest, dove }).z;
       expect(mid).toBeLessThan(rest.z);
       expect(mid).toBeGreaterThan(dove.z + DOVE_Z_EPS);
     }
   });
 
-  it("bobs a lifted flame on y with a per-flame phase, and keeps x and z still", () => {
-    const at = (i: number, t: number) => flamePose(i, 1, t, { rest, dove });
-    const a = at(0, 0);
-    const b = at(0, 0.9);
-    expect(a.y).not.toBe(b.y);
-    expect(Math.abs(a.y - b.y)).toBeLessThanOrEqual(2 * BOB.amp);
-    expect(a.x).toBe(b.x);
-    expect(a.z).toBe(b.z);
-    // the phase is per flame: two flames at the same instant are not in step
-    const seat0 = flamePose(0, 1, 0, { rest, dove, bob: 0 });
-    const seat1 = flamePose(1, 1, 0, { rest, dove, bob: 0 });
-    expect(a.y - seat0.y).not.toBeCloseTo(at(1, 0).y - seat1.y, 6);
+  it("holds a lifted flame perfectly still: the pose is a function of progress alone (#63)", () => {
+    for (const i of indices) {
+      const seated = flamePose(i, 1, { rest, dove });
+      expect(flamePose(i, 1, { rest, dove })).toEqual(seated);
+      const { start, end } = flameTiming(i);
+      const mid = (start + end) / 2;
+      expect(flamePose(i, mid, { rest, dove })).toEqual(flamePose(i, mid, { rest, dove }));
+    }
   });
 });

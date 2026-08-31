@@ -142,7 +142,7 @@ void main(){
 }`;
 
 const FRAG = `
-uniform float uTime, uIntensity, uBeamMax, uAspect, uPhase, uGain, uWidth, uTop;
+uniform float uIntensity, uBeamMax, uAspect, uPhase, uGain, uWidth, uTop;
 #define RAY_LIGHT ${RAY_LIGHT.toFixed(2)}
 uniform vec2 uOrigin, uDir;
 varying vec2 vUv;
@@ -155,16 +155,16 @@ void main(){
   // negative base is undefined in GLSL — NaN would blacken the whole plane.
   // The wedge opens over the first third of the plate, where it is seen
   float t = clamp(s / 0.35, 0.0, 1.0);
-  float breath = 1.0 + 0.05 * sin(uTime * 0.21 + uPhase);
-  float sigma = mix(uTop, uWidth, pow(t, 0.7)) * breath;
+  float sigma = mix(uTop, uWidth, pow(t, 0.7));
   // the light thins as it spreads
   float across = exp(-q * q / (2.0 * sigma * sigma)) * pow(uTop / sigma, 0.3);
   float emerge = smoothstep(0.0, 0.12, s);
   float fall = 1.0 - smoothstep(0.7, 1.2, s);
-  float shimmer = 0.82 + 0.18 * sin(uTime * 0.37 + uPhase + s * 5.0);
   // the plane is deliberately larger than the plate: fade before its own edge
   vec2 e = smoothstep(vec2(-0.17), vec2(-0.06), vUv) * smoothstep(vec2(1.17), vec2(1.06), vUv);
-  float b = across * emerge * fall * shimmer * e.x * e.y * uGain;
+  // held at the old shimmer's mean (#63): the beam no longer breathes,
+  // so a frame at rest is repeatable and the render loop can stop
+  float b = across * emerge * fall * 0.82 * e.x * e.y * uGain;
   // additive: the colour is the contribution, so the overall alpha
   // (uIntensity * uBeamMax) multiplies it here rather than saturating at 1
   // multiplicative light needs more gain than the additive glow it replaces:
@@ -173,7 +173,6 @@ void main(){
 }`;
 
 export type RayFrame = {
-  time: number;
   intensity: number;
   glow: number;
   /** the live spread the cuts use: a plane sits at rest z × zScale */
@@ -211,7 +210,6 @@ export function createRayLayer(specs: RaySpec[], opts: RayLayerOptions): RayLaye
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         uFit: { value: opts.fit },
-        uTime: { value: 0 },
         uIntensity: { value: 0.3 },
         uBeamMax: { value: 1 },
         uAspect: { value: opts.plate.h / opts.plate.w },
@@ -249,11 +247,10 @@ export function createRayLayer(specs: RaySpec[], opts: RayLayerOptions): RayLaye
 
   return {
     meshes: rays.map((r) => r.mesh),
-    update({ time, intensity, glow, zScale, baseZ, cam }) {
+    update({ intensity, glow, zScale, baseZ, cam }) {
       // the dove, where it is this frame
       const dove = platePoint(opts.origin[0], opts.origin[1], RAY_FAR_Z * zScale, baseZ, opts.plate);
       for (const r of rays) {
-        r.mat.uniforms.uTime.value = time;
         r.mat.uniforms.uIntensity.value = intensity;
         r.mat.uniforms.uBeamMax.value = glow;
         // the same spread-and-rescale the cuts get, so the rays never pop

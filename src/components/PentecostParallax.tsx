@@ -101,7 +101,7 @@ export type PentecostParallaxProps = {
   beamGlow?: number;
   /** how many ray planes fan out from the dove (read once, when the scene builds) */
   rays?: number;
-  /** flame flicker */
+  /** the tongues' fire glow (held steady since #63) */
   flameDrift?: boolean;
   /** slow autonomous drift when the page is idle */
   idleDrift?: boolean;
@@ -165,7 +165,7 @@ const FRAG = `
 #define FLAME_GLOW ${glslVec3(FLAME_GLOW_HEX)}
 uniform sampler2D map, mask;
 uniform vec4 uMapRect, uMaskChannel;
-uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
+uniform float uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
 uniform vec2 uResolution;
 varying vec2 vUv;
 ${VIGNETTE_GLSL}
@@ -190,8 +190,9 @@ void main(){
   vec3 fire = mix(FLAME_EMBER, mix(FLAME_BODY, FLAME_GLOW, smoothstep(0.45, 0.8, lum)), smoothstep(0.12, 0.45, lum))
             * (0.25 + lum * 1.5);
   col = mix(col, fire, uIsFlame);
-  float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
-  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * FLAME_GLOW;
+  // the glow held at the old flicker's mean (#63): a still frame is a
+  // repeatable frame, which is what lets the render loop stop at rest
+  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 2.73 * FLAME_GLOW;
 
   // the light column as ILLUMINATION on every layer — the apostles' robes in
   // the beam are lit by it, which is what keeps their hatching legible at the
@@ -426,7 +427,6 @@ export default function PentecostParallax({
           uCamZ: { value: baseZ },
           uLayerZ: { value: 0 },
           uScale: { value: 1 },
-          uTime: { value: 0 },
           uBeam: { value: 0.3 },
           uBeamMax: { value: opts.current.beamGlow },
           uFlameDrift: { value: opts.current.flameDrift ? 1 : 0 },
@@ -674,9 +674,8 @@ export default function PentecostParallax({
 
         const all = backdropLayer ? [backdropLayer, ...layers] : layers;
         const beam = rayIntensity(sp / (WAYPOINTS.length - 1));
-        rayLayer?.update({ time: t, intensity: beam, glow: o.beamGlow, zScale: spread + ease * 0.35, baseZ, cam: camera.position });
+        rayLayer?.update({ intensity: beam, glow: o.beamGlow, zScale: spread + ease * 0.35, baseZ, cam: camera.position });
         for (const l of all) {
-          l.mat.uniforms.uTime.value = t;
           l.mat.uniforms.uBeam.value = beam;
           l.mat.uniforms.uBeamMax.value = o.beamGlow;
           l.mat.uniforms.uFlameDrift.value = o.flameDrift ? 1 : 0;
@@ -712,7 +711,7 @@ export default function PentecostParallax({
             const cx = (l.at[0] - 0.5) * IW * kn;
             const cy = (0.5 - l.at[1]) * IH * kn;
             const parentAt = l.parent !== undefined ? byName.get(l.parent)?.at : undefined;
-            const pose = flamePose(l.flame, flock.p, t, {
+            const pose = flamePose(l.flame, flock.p, {
               rest: { x: cx + huddleShift(parentAt) * IW * kn, y: cy, z: zn },
               dove: { x: 0, y: (0.5 - DOVE_V) * IH * kd, z: zd },
             });

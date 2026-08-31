@@ -41,9 +41,6 @@ export const DOVE_Z_EPS = 0.05;
  */
 export const RING = { radius: 3.6, drop: 1.6, squash: 0.25 };
 
-/** the idle bob: amplitude in world units, angular speed in rad/s */
-export const BOB = { amp: 0.06, omega: 1.4 };
-
 /** a deterministic 0…1 per index — golden-ratio hashing, well spread for small counts */
 const hash = (index: number, salt: number): number => {
   const x = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
@@ -91,27 +88,23 @@ export type FlamePoseOpts = {
   rest: Vec3;
   /** the dove's centre, this frame (world) */
   dove: Vec3;
-  /** bob amplitude in world units; defaults to BOB.amp, 0 stills it */
-  bob?: number;
 };
 
 /**
- * Where a flame's centre is at `progress` (0 hero … 1 gathered) and time `t`
- * (seconds). A straight lerp from the head to the seat, eased per flame, so
- * the distance left to travel only ever shrinks; z runs from the parent's
- * plane to just in front of the dove's. The bob scales with the fraction, so
- * at progress 0 the pose is the rest pose exactly.
+ * Where a flame's centre is at `progress` (0 hero … 1 gathered). A straight
+ * lerp from the head to the seat, eased per flame, so the distance left to
+ * travel only ever shrinks; z runs from the parent's plane to just in front
+ * of the dove's. A pure function of progress — no clock (#63): a scene at
+ * rest renders the same frame twice, which is what lets the render loop stop.
  */
-export function flamePose(index: number, progress: number, t: number, opts: FlamePoseOpts): Vec3 {
+export function flamePose(index: number, progress: number, opts: FlamePoseOpts): Vec3 {
   const f = flameFraction(index, progress);
   if (f === 0) return { ...opts.rest };
   const { rest, dove } = opts;
   const seat = ringSeat(index);
-  const amp = (opts.bob ?? BOB.amp) * f;
-  const phase = hash(index, 4) * Math.PI * 2;
   return {
     x: rest.x + (dove.x + seat.x - rest.x) * f,
-    y: rest.y + (dove.y + seat.y - rest.y) * f + amp * Math.sin(t * BOB.omega + phase),
+    y: rest.y + (dove.y + seat.y - rest.y) * f,
     z: rest.z + (dove.z + DOVE_Z_EPS - rest.z) * f,
   };
 }
