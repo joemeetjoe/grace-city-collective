@@ -178,6 +178,11 @@ void main(){
   // looking past the plate shows wall rather than a void
   // the mask is one channel of a packed texture; uMaskChannel picks it
   float m = mix(dot(texture2D(mask, uv), uMaskChannel) * edge, 1.0, uFlat);
+  // ~90% of a cut's plane is fully transparent (#65): bail before the colour
+  // fetch and the blend. Below half an 8-bit LSB the blended contribution
+  // quantises to nothing, so the soft edges are untouched; uFlat holds m at
+  // 1, so the backdrop never discards
+  if (m < 0.002) discard;
   // a cut's own color map may cover only its mapRect of the plate (the mask
   // is zero outside it, so nothing samples past the texture)
   vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
