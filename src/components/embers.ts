@@ -189,6 +189,15 @@ export function seedEmbers(count: number, seed = 1): EmberSeeds {
 export type EmberWindow = { cx: number; cy: number; halfW: number; halfH: number };
 
 /** `v` folded into [centre − half, centre + half): past the top comes back in at the bottom */
+/**
+ * The point-size ceiling in device px (#62): every sprite pixel is blended
+ * fill on top of the whole stack, so the near bokeh motes stop at 40 px —
+ * a quarter of the old 80 px worst-case area — and shrink with a short frame.
+ */
+export function emberMaxPx(heightPx: number): number {
+  return Math.min(40, heightPx * 0.06);
+}
+
 export function wrapInto(v: number, centre: number, half: number): number {
   const span = 2 * half;
   const d = v - centre + half;
@@ -387,7 +396,7 @@ export function createEmbers({
       uAspect: { value: camera.aspect },
       uMargin: { value: EMBER_MARGIN },
       uPxPerUnit: { value: 1 },
-      uMaxPx: { value: 64 },
+      uMaxPx: { value: 40 },
       uRefZ: { value: camera.position.z },
       uCam: { value: new THREE.Vector3() },
       uTint: { value: new THREE.Vector3(...EMBER_TINT) },
@@ -422,7 +431,7 @@ export function createEmbers({
       u.uAspect.value = camera.aspect;
       u.uRefZ.value = refZ;
       u.uPxPerUnit.value = heightPx / (2 * tan);
-      u.uMaxPx.value = Math.min(80, heightPx * 0.06);
+      u.uMaxPx.value = emberMaxPx(heightPx);
       (u.uCam.value as THREE.Vector3).copy(camera.position);
       u.uOpacity.value = emberOpacity(progress, sectionCount);
     },

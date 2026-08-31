@@ -299,13 +299,18 @@ export default function PentecostParallax({
     if (!canvas) return;
     const BASE = assetUrl(textureDir(tierRef.current));
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // no MSAA (#62): every layer is an alpha-blended full-coverage quad, so
+    // multisampling smooths nothing and doubles framebuffer bandwidth; low-power
+    // keeps dual-GPU laptops on the integrated GPU
+    const glFlags = { antialias: false, powerPreference: "low-power" } as const;
+    const dpr = Math.min(window.devicePixelRatio, tierRef.current.dprCap);
+    const renderer = new THREE.WebGLRenderer({ canvas, ...glFlags });
+    renderer.setPixelRatio(dpr);
     renderer.setClearColor(0x14100e, 1);
     // the front canvas clears to nothing: only its layers land over the page
     const front = frontRef.current?.current ?? null;
-    const frontRenderer = front ? new THREE.WebGLRenderer({ canvas: front, antialias: true, alpha: true }) : null;
-    frontRenderer?.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const frontRenderer = front ? new THREE.WebGLRenderer({ canvas: front, alpha: true, ...glFlags }) : null;
+    frontRenderer?.setPixelRatio(dpr);
     frontRenderer?.setClearColor(0x000000, 0);
     // without a front canvas every layer draws to the one canvas
     const sideOf = (side: CanvasSide): CanvasSide => (frontRenderer ? side : "back");

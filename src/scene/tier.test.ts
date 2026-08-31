@@ -27,7 +27,12 @@ describe("tierFor", () => {
   });
 
   it("the mobile tier is 1024 textures, a couple dozen embers, 2 ray planes", () => {
-    expect(TIERS.mobile).toEqual({ name: "mobile", textures: "1024", embers: 24, rays: 2 });
+    expect(TIERS.mobile).toMatchObject({ name: "mobile", textures: "1024", embers: 24, rays: 2 });
+  });
+
+  it("caps the render resolution: a DPR-3 phone rasterises at 1.5, a retina desktop at 2", () => {
+    expect(tierFor({ width: 393, dpr: 3, saveData: false }).dprCap).toBe(1.5);
+    expect(tierFor({ width: 1600, dpr: 2, saveData: false }).dprCap).toBe(2);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   advance,
   createEmberState,
   emberCount,
+  emberMaxPx,
   emberOpacity,
   emberPose,
   emberWindow,
@@ -19,6 +20,18 @@ import {
 } from "./embers";
 
 const desktop = { width: 1280, height: 720, dpr: 1, reducedMotion: false } as const;
+
+describe("emberMaxPx", () => {
+  it("the biggest mote stops at 40 device px however tall the frame (#62)", () => {
+    expect(emberMaxPx(2000)).toBe(40);
+    expect(emberMaxPx(982)).toBe(40);
+  });
+
+  it("a short frame scales its motes down with the height", () => {
+    expect(emberMaxPx(500)).toBe(30);
+    expect(emberMaxPx(500)).toBeLessThan(emberMaxPx(660));
+  });
+});
 
 describe("emberCount", () => {
   it("is nothing under reduced motion, whatever the viewport", () => {
