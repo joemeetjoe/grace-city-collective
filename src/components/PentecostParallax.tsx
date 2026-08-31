@@ -21,6 +21,7 @@ import { ascentProgress, flamePose } from "./flamePose";
 import { PACING, createFramePacer } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
+import { bakeUv, maskBounds, type MaskBounds } from "@/scene/maskBounds";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
@@ -75,6 +76,8 @@ type Layer = {
   flame?: number;
   /** a flame's parent cut, whose huddle shift it rides */
   parent?: string;
+  /** the cut's padded mask box (#69); a plane without one spans the plate */
+  bounds?: MaskBounds;
 };
 
 type Waypoint = {
@@ -418,9 +421,23 @@ export default function PentecostParallax({
       camera.updateProjectionMatrix();
     };
 
-    const geom = (z: number, fit = FIT, seg: [number, number] = [1, 1]) => {
+    const geom = (z: number, fit = FIT, seg: [number, number] = [1, 1], b?: MaskBounds) => {
       const k = (baseZ - z) / baseZ;
-      return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, seg[0], seg[1]);
+      if (!b) return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, seg[0], seg[1]);
+      // the plane covers only its cut's padded mask box (#69), placed in the
+      // same plate-centred local frame — so the relief shrink-toward-the-axis
+      // algebra, the huddle and the flame poses hold unchanged — with the uv
+      // baked so the vertex shader's (uv - 0.5) / uFit + 0.5 lands on the
+      // plate position each vertex actually covers
+      const [u0, v0, u1, v1] = b;
+      const g = new THREE.PlaneGeometry((u1 - u0) * IW * k, (v1 - v0) * IH * k, seg[0], seg[1]);
+      g.translate(((u0 + u1) / 2 - 0.5) * IW * k, (0.5 - (v0 + v1) / 2) * IH * k, 0);
+      const uv = g.attributes.uv as THREE.BufferAttribute;
+      for (let i = 0; i < uv.count; i++) {
+        const [bu, bv] = bakeUv(uv.getX(i), uv.getY(i), b, fit);
+        uv.setXY(i, bu, bv);
+      }
+      return g;
     };
 
     const material = (
@@ -519,13 +536,14 @@ export default function PentecostParallax({
           const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel, side);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
-          const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief)), mat);
+          const bounds = maskBounds(cut.name);
+          const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief), bounds), mat);
           mesh.name = `cut-${cut.name}`;
           mesh.position.z = cut.z;
           mesh.renderOrder = i + 1;
           scene.add(assignLayer(mesh, side));
           const flame = cut.isFlame ? flameOrdinal++ : undefined;
-          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame, parent: cut.parent };
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame, parent: cut.parent, bounds };
         });
       doveLayer = layers.find((l) => l.name === "dove");
       byName = new Map(layers.map((l) => [l.name, l]));
@@ -788,7 +806,7 @@ export default function PentecostParallax({
       const all = backdropLayer ? [backdropLayer, ...layers] : layers;
       for (const l of all) {
         l.mesh.geometry.dispose();
-        l.mesh.geometry = geom(l.z, l.fit ?? FIT, segmentsFor(l.relief));
+        l.mesh.geometry = geom(l.z, l.fit ?? FIT, segmentsFor(l.relief), l.bounds);
       }
       rayLayer?.resize();
     };
