@@ -27,6 +27,7 @@ import { getScrollTop } from "@/scroll/position";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
+import { SCROLL_DPR, createScrollDpr, movingDprFor } from "./scrollDpr";
 import { channelVector, maskRef } from "./textureManifest";
 import { VIGNETTE_GLSL } from "./vignette";
 
@@ -318,6 +319,10 @@ export default function PentecostParallax({
     // keeps dual-GPU laptops on the integrated GPU
     const glFlags = { antialias: false, powerPreference: "low-power" } as const;
     const dpr = Math.min(window.devicePixelRatio, tierRef.current.dprCap);
+    // the scroll's pixel ratio (#70): reduced while the scroll flies, the
+    // tier's cap again on the frame that settles
+    const scrollDpr = createScrollDpr({ sharp: dpr, moving: movingDprFor(dpr), ...SCROLL_DPR });
+    let liveDpr = dpr;
     const renderer = new THREE.WebGLRenderer({ canvas, ...glFlags });
     renderer.setPixelRatio(dpr);
     renderer.setClearColor(0x14100e, 1);
@@ -595,6 +600,7 @@ export default function PentecostParallax({
       // every chase converged, as of the last drawn frame
       let settled = false;
       let lastScroll = Number.NaN;
+      let drawnScroll = Number.NaN;
       // the embers' own clock: drawn time × the pacer's rate, so the drift
       // eases to a stop instead of freezing mid-air
       let emberT = 0;
@@ -615,6 +621,12 @@ export default function PentecostParallax({
         dirty = false;
         const dtRaw = t - lastT;
         lastT = t;
+        // px/s of the smoothed scroll, frame to drawn frame: a flying scroll
+        // renders lighter, the settling frame lands back at the sharp cap
+        const speed = Number.isFinite(drawnScroll) && dtRaw > 0 ? Math.abs(scrollY - drawnScroll) / dtRaw : 0;
+        drawnScroll = scrollY;
+        const d = scrollDpr.forSpeed(speed);
+        if (d !== liveDpr) applyPixelRatio(d);
         // clamped, so a sleep or a paused loop never lands as a leap of drift
         emberT += Math.min(0.1, dtRaw) * frame.emberRate;
         const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
@@ -797,6 +809,15 @@ export default function PentecostParallax({
         });
         observer.observe(canvas);
       }
+    };
+
+    const applyPixelRatio = (d: number) => {
+      liveDpr = d;
+      renderer.setPixelRatio(d);
+      frontRenderer?.setPixelRatio(d);
+      // resize() re-applies the ratio to both drawing buffers and refreshes
+      // the resolution the vignette samples
+      resize();
     };
 
     const onResize = () => {
