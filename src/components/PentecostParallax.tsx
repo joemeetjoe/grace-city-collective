@@ -18,6 +18,7 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
+import { PACING, createFramePacer } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
@@ -285,6 +286,8 @@ export default function PentecostParallax({
   const tierRef = useRef(tier);
   const onReadyRef = useRef(onReady);
   const onProgressRef = useRef(onProgress);
+  // lets the opts effect below wake a sleeping render loop (#68)
+  const wakeRef = useRef<() => void>(() => {});
   useEffect(() => {
     onReadyRef.current = onReady;
     onProgressRef.current = onProgress;
@@ -299,6 +302,7 @@ export default function PentecostParallax({
       layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
       embers,
     };
+    wakeRef.current();
   }, [layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax, embers]);
 
   useEffect(() => {
@@ -390,6 +394,14 @@ export default function PentecostParallax({
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let sections: HTMLElement[] = [];
     let sectionObserver: ResizeObserver | null = null;
+    // motion the tick cannot read arrives as a dirty mark (#68): a resize, a
+    // prop tween, a late texture, the tab coming back — each buys one frame,
+    // and the chases keep the loop hot until they converge again
+    let dirty = true;
+    let onScreen = true;
+    wakeRef.current = () => {
+      dirty = true;
+    };
     // reduced motion keeps the flames on their heads (the dolly is scroll-paced, so it stays)
     const reducedMotion = window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
@@ -554,17 +566,39 @@ export default function PentecostParallax({
       assignLayer(emberLayer.points, emberSide);
 
       const t0 = performance.now();
+      // frames on demand (#68): full rate under motion, the dust tick at
+      // rest, nothing at all once the dust has settled
+      const pacer = createFramePacer(PACING[tierRef.current.name]);
       // the camera chases its target through this state, so scroll jumps
       // (snap, fast flicks) arrive as a glide instead of a lurch
       const cam = { x: 0, y: 0, z: 0, init: false };
       // the flames' ascent progress, chased the same way (see flamePose)
       const flock = { p: 0 };
+      // every chase converged, as of the last drawn frame
+      let settled = false;
+      let lastScroll = Number.NaN;
+      // the embers' own clock: drawn time × the pacer's rate, so the drift
+      // eases to a stop instead of freezing mid-air
+      let emberT = 0;
       let lastT = 0;
       const tick = () => {
         if (!gate?.running) return;
         raf = requestAnimationFrame(tick);
         const o = opts.current;
-        const t = (performance.now() - t0) / 1000;
+        const now = performance.now();
+        const t = (now - t0) / 1000;
+        // is anything but the dust moving? — cheap reads only, no layout
+        const scrollY = getScrollTop();
+        const pointerLive = Math.abs(pointer.tx - pointer.x) > 1e-3 || Math.abs(pointer.ty - pointer.y) > 1e-3;
+        const moving = dirty || !settled || pointerLive || scrollY !== lastScroll || !!o.idleDrift;
+        lastScroll = scrollY;
+        const frame = pacer.frame(now, moving);
+        if (!frame.render) return;
+        dirty = false;
+        const dtRaw = t - lastT;
+        lastT = t;
+        // clamped, so a sleep or a paused loop never lands as a leap of drift
+        emberT += Math.min(0.1, dtRaw) * frame.emberRate;
         const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
 
         const spRaw = sectionProgress();
@@ -593,8 +627,7 @@ export default function PentecostParallax({
         const dy = Math.cos(t * 0.13) * 0.11 * idle;
         // critically-damped chase: framerate-independent, no overshoot — the
         // pointer and the camera share one rate so neither lags the other
-        const dt = Math.min(0.05, t - lastT);
-        lastT = t;
+        const dt = Math.min(0.05, dtRaw);
         const k = chase(CHASE, dt);
         pointer.x += (pointer.tx - pointer.x) * k;
         pointer.y += (pointer.ty - pointer.y) * k;
@@ -656,6 +689,10 @@ export default function PentecostParallax({
         // the flock rides the same damping, so a snap sends it gliding with
         // the camera instead of jumping ahead of it
         flock.p += (ascent - flock.p) * k;
+        // converged within a subpixel: with the scroll and pointer also
+        // still, the next frames are the pacer's to skip
+        settled = Math.abs(tx - cam.x) < 4e-4 && Math.abs(ty - cam.y) < 4e-4
+          && Math.abs(zc - cam.z) < 4e-4 && Math.abs(ascent - flock.p) < 1e-4;
         // the pointer (and the gyro, which writes the same target) orbits the
         // camera about the plate-plane point it looks at, so the near figures
         // swing across the arch while the plate holds still; the slide it
@@ -719,7 +756,7 @@ export default function PentecostParallax({
           }
         }
         // gl_PointSize is in device pixels, which is what the canvas buffer is sized in
-        emberLayer?.update({ t, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
+        emberLayer?.update({ t: emberT, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
         // one scene, one camera, two passes: the mask picks which canvas sees what
         renderPasses(scene, camera, passes);
       };
@@ -734,9 +771,12 @@ export default function PentecostParallax({
         stop: () => cancelAnimationFrame(raf),
       });
       if (typeof IntersectionObserver === "undefined") {
-        gate.setVisible(true);
+        gate.setVisible(!document.hidden);
       } else {
-        observer = new IntersectionObserver(([entry]) => gate?.setVisible(entry.isIntersecting));
+        observer = new IntersectionObserver(([entry]) => {
+          onScreen = entry.isIntersecting;
+          gate?.setVisible(onScreen && !document.hidden);
+        });
         observer.observe(canvas);
       }
     };
@@ -744,6 +784,7 @@ export default function PentecostParallax({
     const onResize = () => {
       resize();
       measure();
+      dirty = true;
       const all = backdropLayer ? [backdropLayer, ...layers] : layers;
       for (const l of all) {
         l.mesh.geometry.dispose();
@@ -760,6 +801,13 @@ export default function PentecostParallax({
       pointer.tx = Math.max(-1, Math.min(1, e.gamma / 32));
       pointer.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 32));
     };
+    // a hidden tab draws nothing at all (#68); rAF already throttles, the
+    // gate makes it explicit and marks a frame for the return
+    const onVisibility = () => {
+      if (!document.hidden) dirty = true;
+      gate?.setVisible(onScreen && !document.hidden);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("deviceorientation", onTilt);
@@ -779,10 +827,15 @@ export default function PentecostParallax({
     // once per effect run; a run torn down by StrictMode is disposed and never reports
     const reportReady = readyOnce(() => onReadyRef.current?.());
     manager.onLoad = () => {
-      if (!disposed) reportReady();
+      if (disposed) return;
+      dirty = true;
+      reportReady();
     };
     manager.onProgress = (_url, loaded, total) => {
-      if (!disposed) onProgressRef.current?.(loaded, total);
+      if (disposed) return;
+      // a texture that lands after the scene settles still gets painted
+      dirty = true;
+      onProgressRef.current?.(loaded, total);
     };
 
     return () => {
@@ -791,6 +844,7 @@ export default function PentecostParallax({
       observer?.disconnect();
       gate?.dispose();
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
