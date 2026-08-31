@@ -177,7 +177,9 @@ describe("displaceLocal", () => {
 describe("segmentsFor", () => {
   it("keeps flat cuts as single quads and subdivides relief cuts", () => {
     expect(segmentsFor(0)).toEqual([1, 1]);
-    expect(segmentsFor(1)).toEqual([96, 118]);
+    // half the old density on each axis (#67): the depth maps are smooth
+    // gradients, so a quarter of the vertices bow the figures identically
+    expect(segmentsFor(1)).toEqual([48, 59]);
   });
 });
 
