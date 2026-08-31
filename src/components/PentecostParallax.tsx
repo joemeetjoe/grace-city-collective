@@ -86,8 +86,13 @@ type Waypoint = {
   at?: number;
   /**
    * the same on a portrait frame, where the copy sits at the foot: the dove
-   * goes to the top fifth, above the panel, which also keeps the frame's top
-   * at the plate's edge rather than past it (clamped rows read as a smear)
+   * goes near the top, above the panel. The dove's plane is far nearer the
+   * camera than the plate (zL ≈ −4.8 against a distance of ≈ 6.3), so the
+   * camera must climb about twice as far as the dove appears to move, and a
+   * low value leaves the frame looking well above the plate's top edge — at
+   * 0.82 the frame's top cleared it by 16% of the frame, all of it smear.
+   * 0.88 leaves 5.5%, and the backdrop runs out into the ink over that (FRAG)
+   * rather than streaking. Higher still would tuck the dove under the seal row.
    */
   atPortrait?: number;
 };
@@ -210,6 +215,12 @@ void main(){
 
   col = col / (1.0 + col * 0.30);
   col = pow(col, vec3(1.12)) * vec3(1.05, 1.0, 0.92);
+  // the backdrop clamps rather than fading, so a frame that looks above the
+  // plate's top edge gets its top row of pixels stretched down it — vertical
+  // streaks with none of the engraving's hatch, which is the smear the dove
+  // stop shows on a portrait frame. Run the wall out into the ink instead:
+  // the room goes dark above the plate rather than smearing.
+  col = mix(col, uInk, uFlat * smoothstep(0.998, 1.020, uv.y));
   // the back canvas wears the vignette as a DOM gradient; a front layer has
   // only the page under it, so it takes the same ink here
   col = mix(col, uInk, vignetteAlpha(gl_FragCoord.xy, uResolution) * uVignette);
@@ -232,7 +243,7 @@ const WAYPOINTS: Waypoint[] = [
   { band: [0.30, 0.58], u: 0.0 },   // house churches — centre, under the beam
   { band: [0.28, 0.64], u: 0.05 },  // gatherings — heads and tongues of flame
   { band: [0.36, 0.66], u: -0.03 }, // give — close on the faces, robes below
-  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7, atPortrait: 0.82 }, // visit — the dove, with the copy under it
+  { band: [-0.02, 0.20], u: 0.0, aim: "dove", at: 0.7, atPortrait: 0.88 }, // visit — the dove, with the copy under it
 ];
 
 // lateral camera travel is what shears the figures apart and exposes the bare
