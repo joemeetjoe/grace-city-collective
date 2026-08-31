@@ -22,6 +22,7 @@ import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
+import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { channelVector, maskRef } from "./textureManifest";
@@ -383,6 +384,7 @@ export default function PentecostParallax({
     let observer: IntersectionObserver | null = null;
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let sections: HTMLElement[] = [];
+    let sectionObserver: ResizeObserver | null = null;
     // reduced motion keeps the flames on their heads (the dolly is scroll-paced, so it stays)
     const reducedMotion = window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
@@ -443,33 +445,26 @@ export default function PentecostParallax({
 
     /**
      * where we are in the scene's section stack: an index plus the fraction
-     * through it. Only the labelled scene sections count — the long-form
-     * below them scrolls past a scene that has already come to rest. Unclamped:
-     * the last section runs to `sections.length`, which is how the embers see
-     * the scene slide away; the camera clamps it to the last waypoint.
+     * through it (sectionRects.ts). Only the labelled scene sections count —
+     * the long-form below them scrolls past a scene that has already come to
+     * rest. The rects are measured outside the tick (#64): a layout read per
+     * frame stalled against ScrollSmoother's transform writes.
      */
-    const sectionProgress = () => {
-      if (!sections.length) return 0;
-      // the smoothed position: with ScrollSmoother the rects sit where it
-      // says, not where the native scrollbar is
-      const scrollY = getScrollTop();
-      const y = scrollY + window.innerHeight * 0.5;
-      for (let i = 0; i < sections.length; i++) {
-        const el = sections[i];
-        // document-relative, whatever the sections' offsetParent is
-        const top = el.getBoundingClientRect().top + scrollY;
-        if (y < top + el.offsetHeight || i === sections.length - 1) {
-          const t = Math.min(1, Math.max(0, (y - top) / el.offsetHeight));
-          return i + t;
-        }
-      }
-      return 0;
+    let sectionCache: SectionRect[] = [];
+    const measure = () => {
+      sectionCache = measureSections(sections, getScrollTop());
     };
+    const sectionProgress = () => sectionProgressAt(getScrollTop() + window.innerHeight * 0.5, sectionCache);
 
     const start = (cuts: Cut[]) => {
       if (disposed) return;
       sections = Array.from(document.querySelectorAll<HTMLElement>("section[data-screen-label]"));
       resize();
+      measure();
+      // a section whose box changes (a reveal opening, fonts arriving) moves
+      // every rect below it; watching the boxes keeps the cache honest
+      sectionObserver = new ResizeObserver(measure);
+      for (const el of sections) sectionObserver.observe(el);
 
       // a complete backdrop, on a much larger plane at the same registration, so
       // a cut that moves reveals wall instead of a hole
@@ -743,6 +738,7 @@ export default function PentecostParallax({
 
     const onResize = () => {
       resize();
+      measure();
       const all = backdropLayer ? [backdropLayer, ...layers] : layers;
       for (const l of all) {
         l.mesh.geometry.dispose();
@@ -786,6 +782,7 @@ export default function PentecostParallax({
 
     return () => {
       disposed = true;
+      sectionObserver?.disconnect();
       observer?.disconnect();
       gate?.dispose();
       cancelAnimationFrame(raf);
