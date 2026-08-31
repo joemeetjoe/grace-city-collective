@@ -431,11 +431,18 @@ export default function App() {
           A held layer is transformed, so it is a stacking context of its
           own: each carries one step of STACK (layerSplit.ts). */}
           <div ref={sceneRef} data-scene="" className="relative grid grid-cols-[minmax(0,1fr)]">
-            {/* sticky, not fixed: it stays put while the sections scroll over it */}
+            {/* sticky, not fixed: it stays put while the sections scroll over it.
+            lvh, not svh: on a phone the URL bar retracts as the reader scrolls
+            and the viewport grows from svh to lvh, so an svh canvas leaves a
+            strip of bare ink at the foot of the screen with the next stop's
+            card rolling up through it. lvh always covers; the overdraw hides
+            under the bar while it is shown. Not dvh: that resizes the canvas
+            all the way through the bar's transition, and onResize rebuilds
+            every layer's geometry (PentecostParallax.tsx) */}
             <div
               ref={parallaxRef}
               data-parallax=""
-              className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100svh] self-start overflow-hidden`}
+              className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
             >
               {fallback ? (
                 <StaticPoster onReady={() => setReady(true)} />
@@ -465,7 +472,7 @@ export default function App() {
               <div
                 ref={frontRef}
                 data-parallax-front=""
-                className={`pointer-events-none sticky top-0 ${STACK.front} col-start-1 row-start-1 h-[100svh] self-start overflow-hidden`}
+                className={`pointer-events-none sticky top-0 ${STACK.front} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
               >
                 <canvas
                   ref={frontCanvasRef}
@@ -478,10 +485,17 @@ export default function App() {
             {/* stationary chrome above the front canvas: the lockup in the
             bottom-left corner (lg and up; below, it rides at the hero's foot),
             and the frame border in the G mark's shape — rounded top-left and
-            bottom-right, square elsewhere */}
+            bottom-right, square elsewhere.
+            lvh, with the canvases and the held sections: the frame, the
+            lockup in its corner and the engraving behind them are one
+            composition and have to share one box. At svh the border closed
+            100px above the hero's foot on a phone and left the lockup
+            standing outside it; the cost is that the border's bottom edge
+            waits under the URL bar until the reader's first scroll retracts
+            it */}
             <div
               ref={frameRef}
-              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100svh] self-start`}
+              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100lvh] self-start`}
             >
               <HeroLockup at="chrome" />
               <div
@@ -1068,8 +1082,12 @@ function Scene({ section: s }: { section: SceneSection }) {
   // frame must not show the next stop, and the scene's sticky canvas leaves with
   // the last section, so a short last section would take the dove away before
   // the reader reached it
+  // a held section is lvh, the tallest the viewport ever gets on a phone: at
+  // svh the next stop's card sits inside the first frame the moment the URL
+  // bar retracts. The unheld sections keep svh — that is only a floor on a
+  // desktop viewport, where the three are the same number
   const holds = s.id === "hero" || s.id === "visit";
-  const base = `relative flex ${holds ? "min-h-[100svh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
+  const base = `relative flex ${holds ? "min-h-[100lvh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
   // below lg the seal row sits over the top of every section and the lockup
   // over its foot; desktop keeps its unpadded frames
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
