@@ -12,7 +12,6 @@ const base = process.env.BASE_PATH || '/'
 
 // The intro splash as static markup in index.html, on screen from the first
 // paint rather than once the bundle has mounted (src/intro/staticSplash.ts).
-// The site only: the editor has no intro.
 const staticSplash = (): Plugin => ({
   name: 'gcc:static-splash',
   transformIndexHtml: {
@@ -27,15 +26,6 @@ const staticSplash = (): Plugin => ({
 export default defineConfig({
   base,
   plugins: [react(), tailwindcss(), staticSplash()],
-  build: {
-    rolldownOptions: {
-      // two pages: the site, and the content editor at /admin.html
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
-        admin: path.resolve(__dirname, 'admin.html'),
-      },
-    },
-  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
