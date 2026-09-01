@@ -24,7 +24,7 @@ from transformers import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-PLATE = ROOT / "Parallax Scrolling Photo Layers" / "assets" / "dore-pentecost-dark-2048.jpg"
+PLATE = ROOT / "src" / "assets" / "dore-pentecost-dark-2048.jpg"
 OUT = Path(__file__).resolve().parent / "out"
 
 DINO = "IDEA-Research/grounding-dino-base"

@@ -18,7 +18,7 @@ from PIL import Image
 from transformers import Sam3Model, Sam3Processor
 
 ROOT = Path(__file__).resolve().parents[2]
-PLATE = ROOT / "Parallax Scrolling Photo Layers" / "assets" / "dore-pentecost-dark-2048.jpg"
+PLATE = ROOT / "src" / "assets" / "dore-pentecost-dark-2048.jpg"
 PROMPT = sys.argv[1] if len(sys.argv) > 1 else "person"
 OUT = Path(__file__).resolve().parent / f"out-{PROMPT.replace(' ', '_')}"
 THRESHOLD = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5

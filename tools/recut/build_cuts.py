@@ -70,7 +70,7 @@ from dolly import BACKDROP_Z
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-PLATE = ROOT / "Parallax Scrolling Photo Layers" / "assets" / "dore-pentecost-dark-2048.jpg"
+PLATE = ROOT / "src" / "assets" / "dore-pentecost-dark-2048.jpg"
 DIST = HERE / "dist"
 
 FEATHER_PX = 6          # soft edge width on every cut
