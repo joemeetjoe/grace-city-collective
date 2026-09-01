@@ -11,7 +11,7 @@ import CornerOrnaments, {
   FRAME_INSET,
 } from "@/components/CornerOrnaments";
 import DotRail from "@/components/DotRail";
-import { STACK } from "@/components/layerSplit";
+import { STACK } from "@/theme/layerSplit";
 import SiteNav from "@/components/SiteNav";
 import PentecostParallax from "@/components/PentecostParallax";
 import StaticPoster from "@/components/StaticPoster";

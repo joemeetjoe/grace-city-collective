@@ -1,4 +1,4 @@
-import { GLASS } from "@/components/glass";
+import { GLASS } from "@/theme/glass";
 import { cn } from "@/lib/utils";
 import type { SectionMarker } from "@/scroll/markers";
 

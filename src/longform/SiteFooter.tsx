@@ -1,5 +1,5 @@
 import { gutter, serif } from "@/app/styles";
-import { FOCUS_RING, LINK_SWEEP } from "@/components/interact";
+import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
 import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import { useSite } from "@/content/useSite";
 

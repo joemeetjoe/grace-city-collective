@@ -1,4 +1,4 @@
-import { FOCUS_RING } from "@/components/interact";
+import { FOCUS_RING } from "@/theme/interact";
 import type { NavItem } from "@/content/site";
 import { cn } from "@/lib/utils";
 

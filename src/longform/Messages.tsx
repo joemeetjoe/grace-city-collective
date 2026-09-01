@@ -1,5 +1,5 @@
 import { kickerCls, serif } from "@/app/styles";
-import { FOCUS_RING, LINK_SWEEP } from "@/components/interact";
+import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
 import SectionRule from "@/components/panel/SectionRule";
 import Reveal from "@/components/Reveal";
 import { useSite } from "@/content/useSite";

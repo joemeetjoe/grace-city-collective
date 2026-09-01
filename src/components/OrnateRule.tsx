@@ -1,6 +1,6 @@
 import type { CSSProperties, Ref } from "react";
 
-import { lozengeLength, lozengePath } from "@/components/lozenge";
+import { lozengeLength, lozengePath } from "@/theme/lozenge";
 import { cn } from "@/lib/utils";
 
 export type RuleEnds = "both" | "start" | "end";

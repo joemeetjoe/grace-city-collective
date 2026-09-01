@@ -2,7 +2,6 @@ import type * as THREE from "three";
 
 import type { TierName } from "@/device/tier";
 
-import type { Cut } from "./parallaxRelief";
 
 /**
  * The scene is drawn to two canvases from one scene graph and one camera,
@@ -83,7 +82,7 @@ const MOBILE_BACK: ReadonlySet<string> = new Set(["fig13", "fig5", "flame5", "fl
 export const EMBERS_SIDE: CanvasSide = "front";
 
 /** which canvas a cut draws to at a stop, on a tier */
-export function canvasFor(cut: Pick<Cut, "name">, stop = 0, tier: TierName = "desktop"): CanvasSide {
+export function canvasFor(cut: { name: string }, stop = 0, tier: TierName = "desktop"): CanvasSide {
   if (tier === "mobile" && MOBILE_BACK.has(cut.name)) return "back";
   return frontCutsAt(stop).has(cut.name) ? "front" : "back";
 }

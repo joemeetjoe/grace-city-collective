@@ -1,4 +1,4 @@
-import { STACK } from "@/components/layerSplit";
+import { STACK } from "@/theme/layerSplit";
 import Lockup from "@/components/Lockup";
 import { useBelowLg } from "@/layout/breakpoint";
 

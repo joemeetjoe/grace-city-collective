@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { lozengePath } from "@/components/lozenge";
+import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark as Mark } from "@/content/site";
 import { cn } from "@/lib/utils";
 

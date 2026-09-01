@@ -6,7 +6,7 @@ import {
   G_MARK_W as W,
   gMarkBox,
 } from "@/components/gMarkGeometry";
-import { lozengePath } from "@/components/lozenge";
+import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark } from "@/content/site";
 import { cn } from "@/lib/utils";
 

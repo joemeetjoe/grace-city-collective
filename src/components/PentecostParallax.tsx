@@ -10,7 +10,7 @@ import {
   renderPasses,
   type CanvasSide,
   type RenderPass,
-} from "@/components/layerSplit";
+} from "@/theme/layerSplit";
 import { readyOnce } from "@/components/parallaxLoading";
 import { glslVec3, tokens } from "@/theme/tokens";
 import { createRenderGate } from "@/components/renderGate";

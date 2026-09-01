@@ -1,4 +1,4 @@
-import { BUTTON_CORNERS, GLASS } from "@/components/glass";
+import { BUTTON_CORNERS, GLASS } from "@/theme/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 

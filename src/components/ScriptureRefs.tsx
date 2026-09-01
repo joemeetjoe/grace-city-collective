@@ -1,4 +1,4 @@
-import { lozengePath } from "@/components/lozenge";
+import { lozengePath } from "@/theme/lozenge";
 
 /** the small outer lozenge of an OrnateRule finial, in px */
 const W = 10;

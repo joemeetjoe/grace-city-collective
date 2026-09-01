@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
-import { STACK } from "@/components/layerSplit";
+import { STACK } from "@/theme/layerSplit";
 import { sectionIds, site } from "@/content/site";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/intro/staticSplash";

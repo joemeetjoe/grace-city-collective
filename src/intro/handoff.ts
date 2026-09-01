@@ -1,4 +1,4 @@
-import { STACK } from "@/components/layerSplit";
+import { STACK } from "@/theme/layerSplit";
 import { TRACE_FINISH_SECONDS } from "@/intro/trace";
 import { gsap } from "@/lib/gsap";
 

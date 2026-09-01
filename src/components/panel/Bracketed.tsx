@@ -1,8 +1,8 @@
 import { createContext } from "react";
 
 import CornerOrnaments from "@/components/CornerOrnaments";
-import { GLASS, GLASS_CORNERS } from "@/components/glass";
-import { STACK } from "@/components/layerSplit";
+import { GLASS, GLASS_CORNERS } from "@/theme/glass";
+import { STACK } from "@/theme/layerSplit";
 import { PLAY_MARGIN, type InViewOptions } from "@/components/useInView";
 
 // everything a scene section says sits between the canvases (layerSplit.ts),

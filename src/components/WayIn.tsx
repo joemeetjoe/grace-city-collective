@@ -5,8 +5,8 @@ import GatheringMark, {
   TRACE_MS,
   TRACE_STAGGER_MS,
 } from "@/components/GatheringMark";
-import { FOCUS_RING } from "@/components/interact";
-import { lozengePath } from "@/components/lozenge";
+import { FOCUS_RING } from "@/theme/interact";
+import { lozengePath } from "@/theme/lozenge";
 import type { Waymark } from "@/content/site";
 import { cn } from "@/lib/utils";
 
