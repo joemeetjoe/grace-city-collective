@@ -1,4 +1,4 @@
-import { snapTo, type SnapLayout } from "@/scroll/snap";
+import { snapTo, type SnapLayout } from "./snap";
 
 /** a wheel notch or swipe: forward is down the page */
 export type PageDirection = 1 | -1;

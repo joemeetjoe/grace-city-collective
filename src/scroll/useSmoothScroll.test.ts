@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { Observer, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
-import { installScrollDriver } from "@/scroll/position";
-import { SMOOTH_SCROLL_ATTR } from "@/scroll/smoother";
+import { installScrollDriver } from "./position";
+import { SMOOTH_SCROLL_ATTR } from "./smoother";
 
 import { scrollMode, useSmoothScroll } from "./useSmoothScroll";
 

@@ -3,7 +3,7 @@ import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { staticSplashTags } from './src/intro/staticSplash'
+import { staticSplashTags } from './src/features/intro/staticSplash'
 
 // https://vite.dev/config/
 // Served from `/` in dev and on a custom domain; the Pages workflow sets
@@ -11,7 +11,7 @@ import { staticSplashTags } from './src/intro/staticSplash'
 const base = process.env.BASE_PATH || '/'
 
 // The intro splash as static markup in index.html, on screen from the first
-// paint rather than once the bundle has mounted (src/intro/staticSplash.ts).
+// paint rather than once the bundle has mounted (src/features/intro/staticSplash.ts).
 const staticSplash = (): Plugin => ({
   name: 'gcc:static-splash',
   transformIndexHtml: {

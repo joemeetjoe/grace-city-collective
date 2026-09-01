@@ -1,5 +1,5 @@
-import { BUTTON_CORNERS } from "@/components/glass";
-import { BUTTON_LIFT, FOCUS_RING } from "@/components/interact";
+import { BUTTON_CORNERS } from "@/theme/glass";
+import { BUTTON_LIFT, FOCUS_RING } from "@/theme/interact";
 
 export const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
 export const gutter = "px-[clamp(20px,4.4vw,60px)]";
