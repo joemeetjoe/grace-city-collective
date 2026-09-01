@@ -14,7 +14,7 @@ const byName = (name: string) => cuts.find((c) => c.name === name)!;
  * Each cut's mask bounding box in plate fractions [u0, v0, u1, v1] — the
  * figures read off public/dore/1024/masks-cut-*.webp at a threshold of
  * 64/255, the flames off the 2048 tier's masks-flame-*.webp at 16/255
- * (.venv-recut/bin/python, PIL + numpy; tools/shots/mask-bboxes.json holds
+ * (measured with PIL + numpy in the dore-recut venv; tools/shots/mask-bboxes.json holds
  * the same numbers). Two cuts whose boxes are disjoint share no pixels.
  */
 const BBOX: Record<string, [number, number, number, number]> = {
