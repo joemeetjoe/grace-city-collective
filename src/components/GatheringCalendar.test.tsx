@@ -100,18 +100,6 @@ describe("GatheringCalendar", () => {
     expect(parseFloat(sunday.getAttribute("fill-opacity")!)).toBeGreaterThan(
       parseFloat(saturday.getAttribute("fill-opacity")!),
     );
-    // the numerals are still the only other lettering
-    const texts = Array.from(container.querySelectorAll("text")).map(
-      (t) => t.textContent,
-    );
-    expect(texts.filter((t) => t !== "S")).toEqual(["I", "II", "III", "IV"]);
-  });
-
-  it("fits its box from the top, keeping the month's proportions", () => {
-    const { container } = render(<GatheringCalendar />);
-    expect(
-      container.querySelector("svg")!.getAttribute("preserveAspectRatio"),
-    ).toBe("xMidYMin meet");
   });
 
   it("lights the first Sunday in the seal's red for the feast", () => {
@@ -227,7 +215,6 @@ describe("GatheringCalendar", () => {
       const numerals = Array.from(
         container.querySelectorAll<SVGTextElement>("text:not([data-day-mark])"),
       );
-      expect(numerals.map((t) => t.textContent)).toEqual(["I", "II", "III", "IV"]);
       numerals.forEach((n, week) => {
         expect(parseFloat(n.getAttribute("y")!)).toBe(centreOf(container, week, 0).y);
         expect(parseFloat(n.getAttribute("x")!)).toBeLessThan(

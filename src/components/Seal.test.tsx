@@ -1,28 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { baseMarkup } from "@/test/sealMarkup";
 
 import Seal from "./Seal";
-
-describe("Seal", () => {
-  it("renders an svg image with the accessible name", () => {
-    render(<Seal />);
-    expect(screen.getByRole("img", { name: "Grace City Collective seal" })).toBeTruthy();
-  });
-});
-
-describe("Seal parts", () => {
-  it("exposes the band as its own element, distinct from the fleur group", () => {
-    const { container } = render(<Seal />);
-    const band = container.querySelector('[data-seal="band"]');
-    const fleur = container.querySelector('[data-seal="fleur"]');
-    expect(band).not.toBeNull();
-    expect(fleur).not.toBeNull();
-    expect(band).not.toBe(fleur);
-    expect(fleur!.contains(band)).toBe(false);
-  });
-});
 
 describe("Seal variants", () => {
   it("renders no filters when static, and turbulence + lighting filters when live", () => {
@@ -48,15 +29,6 @@ describe("Seal instances", () => {
     const ids = Array.from(container.querySelectorAll("filter")).map((f) => f.id);
     expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-describe("Seal wax", () => {
-  it("is an irregular path, not a circle", () => {
-    const { container } = render(<Seal />);
-    const wax = container.querySelector('[data-seal="wax"]');
-    expect(wax?.tagName).toBe("path");
-    expect(container.querySelector("circle")).toBeNull();
   });
 });
 

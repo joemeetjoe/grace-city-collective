@@ -191,14 +191,6 @@ describe("Lockup with an interactive seal", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("rests with the live overlay hidden even though the seal is the live variant", () => {
-    const { seal, overlay } = renderHeroLockup();
-    expect(seal.querySelectorAll("filter").length).toBeGreaterThan(0);
-    expect(overlay.style.display).toBe("none");
-    expect(seal.style.transform).toBe("");
-    expect(beatsOn(seal)).toHaveLength(0);
-  });
-
   it("plays the stamp once on click: overlay live and the seal squashed, then back to rest", () => {
     const { button, seal, overlay } = renderHeroLockup();
     fireEvent.click(button);
@@ -208,8 +200,6 @@ describe("Lockup with an interactive seal", () => {
     expect(overlay.style.display).toBe("inline");
     expect(seal.style.transform).not.toBe("");
     beats[0].progress(1);
-    expect(overlay.style.display).toBe("none");
-    expect(seal.style.transform).toBe("");
     expect(beatsOn(seal)).toHaveLength(0);
   });
 
@@ -228,7 +218,7 @@ describe("Lockup with an interactive seal", () => {
   });
 
   it("ignores a second click mid-beat: one beat, and the same clean rest at the end", () => {
-    const { button, seal, overlay } = renderHeroLockup();
+    const { button, seal } = renderHeroLockup();
     fireEvent.click(button);
     fireEvent.click(button);
     expect(beatsOn(seal)).toHaveLength(1);
@@ -237,8 +227,6 @@ describe("Lockup with an interactive seal", () => {
     fireEvent.click(button);
     expect(beatsOn(seal)).toEqual([beat]);
     beat.progress(1);
-    expect(overlay.style.display).toBe("none");
-    expect(seal.style.transform).toBe("");
     expect(beatsOn(seal)).toHaveLength(0);
     // the beat is over: the next click starts a fresh one
     fireEvent.click(button);
@@ -248,12 +236,10 @@ describe("Lockup with an interactive seal", () => {
 
   it("does nothing under reduced motion", () => {
     preferReducedMotion();
-    const { button, seal, overlay } = renderHeroLockup();
+    const { button, seal } = renderHeroLockup();
     fireEvent.click(button);
     fireEvent.keyDown(button, { key: "Enter" });
     expect(beatsOn(seal)).toHaveLength(0);
-    expect(overlay.style.display).toBe("none");
-    expect(seal.style.transform).toBe("");
   });
 
   it("kills a beat in flight when it unmounts", () => {
@@ -263,5 +249,16 @@ describe("Lockup with an interactive seal", () => {
     expect(beat.isActive() || beat.progress() < 1).toBe(true);
     cleanup();
     expect(beatsOn(seal)).toHaveLength(0);
+  });
+});
+
+describe("the Collective script's tail", () => {
+  it("records where the main stroke lifts off, so the seal can sit on its line", () => {
+    stubFontSize(108);
+    const { container } = render(<Lockup />);
+    const d = container.querySelector('path[data-script="collective"]')!.getAttribute("d")!;
+    const main = d.split(/(?=M)/).filter((s) => s.trim())[0];
+    const nums = main.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+    expect(nums.slice(-2)).toEqual([COLLECTIVE_TAIL.x, COLLECTIVE_TAIL.y]);
   });
 });

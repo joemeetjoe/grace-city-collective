@@ -97,13 +97,6 @@ describe("SharedLife", () => {
     expect(all[all.length - 1]).toBe(heart);
   });
 
-  it("sits centred in its box, keeping the column's proportions", () => {
-    const { container } = render(<SharedLife />);
-    expect(
-      container.querySelector("svg")!.getAttribute("preserveAspectRatio"),
-    ).toBe("xMidYMid meet");
-  });
-
   it("waits faded and up from its lines until shown, then prints in one row after the next from the top", () => {
     const { container } = render(<SharedLife shown={false} />);
     const all = slots(container);

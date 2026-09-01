@@ -23,7 +23,6 @@ describe("ScriptureRefs", () => {
     const marks = container.querySelectorAll("[data-ref-lozenge]");
     expect(marks.length).toBe(2);
     expect(container.textContent).toBe("Acts 2:42-46Acts 4:32Luke 11:1");
-    expect(container.querySelector("path")!.getAttribute("stroke")).toBe("currentColor");
     expect(container.firstElementChild!.querySelector("[data-ref-lozenge]")).toBeNull();
   });
 

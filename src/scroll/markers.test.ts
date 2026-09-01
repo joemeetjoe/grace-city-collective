@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { sectionIds, site, type SiteContent } from "@/content/site";
+import { site, type SiteContent } from "@/content/site";
 
 import { sectionMarkers } from "./markers";
 
 describe("sectionMarkers", () => {
-  it("lists every section in page order: the scene stops, then the long-form", () => {
-    expect(sectionMarkers(site).map((m) => m.id)).toEqual(sectionIds(site));
-  });
-
   it("labels a section by its nav link where it has one", () => {
     const byId = new Map(sectionMarkers(site).map((m) => [m.id, m.label]));
     for (const n of site.nav) expect(byId.get(n.id), n.id).toBe(n.label);

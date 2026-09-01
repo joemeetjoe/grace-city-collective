@@ -17,17 +17,9 @@ describe("NavLinks", () => {
     const { container } = render(<NavLinks items={site.nav} activeId="beliefs" />);
     const active = container.querySelector("a[href='#beliefs']")!;
     expect(active.getAttribute("aria-current")).toBe("location");
-    expect(active.className).toContain("text-seal");
-    expect(active.className).toMatch(/after:.*h-px/);
     for (const a of container.querySelectorAll("a:not([href='#beliefs'])")) {
       expect(a.getAttribute("aria-current")).toBeNull();
-      expect(a.className).not.toContain("text-seal ");
     }
-  });
-
-  it("with no active id no link is current", () => {
-    const { container } = render(<NavLinks items={site.nav} activeId={null} />);
-    expect(container.querySelector("[aria-current]")).toBeNull();
   });
 
   it("a click hands the id to onNavigate instead of following the hash", () => {

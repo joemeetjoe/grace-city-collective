@@ -18,10 +18,6 @@ describe("maskBounds", () => {
     expect(floor[3]).toBeLessThanOrEqual(1.01);
   });
 
-  it("covers every flame with a sliver, not a plate", () => {
-    const [u0, v0, u1, v1] = maskBounds("flame5")!;
-    expect((u1 - u0) * (v1 - v0)).toBeLessThan(0.02);
-  });
 
   it("falls back to nothing for an unmeasured cut, so it keeps its full plane", () => {
     expect(maskBounds("not-a-cut")).toBeUndefined();

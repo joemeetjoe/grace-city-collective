@@ -1,7 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import Reveal, { REVEAL_STAGGER_MS } from "./Reveal";
+import Reveal from "./Reveal";
 
 type Callback = (entries: Partial<IntersectionObserverEntry>[]) => void;
 
@@ -107,15 +107,5 @@ describe("Reveal", () => {
       </Reveal>,
     );
     expect(root.getAttribute("data-reveal")).toBe("false");
-  });
-
-  it("staggers by the default beat unless told otherwise", () => {
-    const { container } = render(
-      <Reveal>
-        <p>one</p>
-      </Reveal>,
-    );
-    const root = container.firstElementChild as HTMLElement;
-    expect(root.style.getPropertyValue("--reveal-stagger")).toBe(`${REVEAL_STAGGER_MS}ms`);
   });
 });

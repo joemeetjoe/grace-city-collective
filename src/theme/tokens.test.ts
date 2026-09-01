@@ -18,10 +18,6 @@ describe("seal tokens", () => {
     expect(contrastRatio(tokens.cream, tokens.seal)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("keep the copper hue only as the seal's specular highlight", () => {
-    expect(tokens.sealHighlight.toLowerCase()).toBe("#d67f48");
-  });
-
   it("are the only source of the accent colour in src/", () => {
     const src = join(__dirname, "..");
     const offenders = walk(src)

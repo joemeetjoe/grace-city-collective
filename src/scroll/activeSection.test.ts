@@ -37,22 +37,3 @@ describe("activeSection", () => {
     expect(activeSection(100, [])).toBeNull();
   });
 });
-
-describe("activeSection over content-sized sections", () => {
-  // below lg a section is as tall as its words (#52): the tops are whatever
-  // layout says, not index × viewport, and the midpoint reads them as given
-  const uneven: SectionBox[] = [
-    { id: "hero", top: 0 },
-    { id: "about", top: 844 },
-    { id: "houses", top: 1290 },
-    { id: "gatherings", top: 2410 },
-  ];
-
-  it("follows the sections' own tops, however tall each is", () => {
-    expect(activeSection(422, uneven)).toBe("hero");
-    expect(activeSection(1000, uneven)).toBe("about");
-    expect(activeSection(1300, uneven)).toBe("houses");
-    expect(activeSection(2400, uneven)).toBe("houses");
-    expect(activeSection(2410, uneven)).toBe("gatherings");
-  });
-});

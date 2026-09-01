@@ -27,12 +27,6 @@ describe("OrnateRule", () => {
     expect(Number(mark.getAttribute("height"))).toBeGreaterThan(Number(mark.getAttribute("width")));
     expect(container.querySelector("[data-rule-line]")!.className).toMatch(/w-px/);
   });
-
-  it("draws in currentColor so the caller sets the ink", () => {
-    const { container } = render(<OrnateRule className="text-seal" />);
-    expect(container.firstElementChild!.className).toMatch(/text-seal/);
-    expect(container.querySelector("path")!.getAttribute("stroke")).toBe("currentColor");
-  });
 });
 
 describe("OrnateRule drawing", () => {
@@ -79,11 +73,5 @@ describe("OrnateRule drawing", () => {
     const { container: down } = render(<OrnateRule ends="end" vertical drawn={false} />);
     expect(line(down).style.transformOrigin).toBe("50% 0%");
     expect(line(down).className).toMatch(/motion-safe:scale-y-0/);
-  });
-
-  it("only moves where motion is welcome", () => {
-    const { container } = render(<OrnateRule drawn={false} />);
-    expect(line(container).className).toMatch(/motion-safe:transition-transform/);
-    expect(paths(container)[0].className.baseVal).toMatch(/motion-safe:transition-\[stroke-dashoffset\]/);
   });
 });

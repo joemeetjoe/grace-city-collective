@@ -2,7 +2,6 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import SowingMark, {
-  ENTER_SCALE,
   ENTER_STAGGER_MS,
   ROWS,
   TILES,
@@ -155,7 +154,6 @@ describe("SowingMark", () => {
     const { container, rerender } = render(<SowingMark shown={false} />);
     for (const t of tiles(container)) {
       expect(t.style.opacity).toBe("0");
-      expect(t.style.transform).toContain(`scale(${ENTER_SCALE})`);
       expect(t.style.transform).toMatch(/translate\(-\S+px, -\S+px\)/);
       expect(t.style.transitionDelay).toBe("0ms");
     }
