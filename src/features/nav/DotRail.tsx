@@ -19,7 +19,7 @@ export type DotRailProps = {
  * outside the smoother's content like the nav (a transformed ancestor would
  * pin it to the page). Hidden below the tablet breakpoint, where it would
  * compete with thumbs. Each dot is a piece of the nav's cascade
- * (src/intro/navReveal.ts), and the glass strip fades up with it.
+ * (src/features/intro/navReveal.ts), and the glass strip fades up with it.
  */
 export default function DotRail({
   markers,

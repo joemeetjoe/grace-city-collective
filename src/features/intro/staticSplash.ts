@@ -20,9 +20,9 @@ import {
   G_MARK_W,
   gMarkAspect,
   gMarkBox,
-} from "../marks/gMarkGeometry";
-import { tokens } from "../theme/tokens";
-import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
+} from "../../marks/gMarkGeometry";
+import { tokens } from "../../theme/tokens";
+import { REDUCED_MOTION_QUERY } from "../../device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 

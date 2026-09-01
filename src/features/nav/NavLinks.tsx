@@ -16,7 +16,7 @@ export type NavLinksProps = {
  * the seal colour and a hairline underline, and says so to assistive tech
  * with aria-current; on any other link the underline sweeps in from the
  * left under the pointer. Each link is a piece of the nav's cascade
- * (src/intro/navReveal.ts), and the row wears the glass that fades up with it.
+ * (src/features/intro/navReveal.ts), and the row wears the glass that fades up with it.
  */
 export default function NavLinks({
   items,

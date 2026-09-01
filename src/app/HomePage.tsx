@@ -7,14 +7,14 @@ import CornerOrnaments, {
 import { STACK } from "@/theme/layerSplit";
 import { PentecostParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
-import Beliefs from "@/longform/Beliefs";
-import Devotions from "@/longform/Devotions";
-import Faq from "@/longform/Faq";
-import Messages from "@/longform/Messages";
-import SiteFooter from "@/longform/SiteFooter";
+import Beliefs from "@/features/longform/Beliefs";
+import Devotions from "@/features/longform/Devotions";
+import Faq from "@/features/longform/Faq";
+import Messages from "@/features/longform/Messages";
+import SiteFooter from "@/features/longform/SiteFooter";
 import { IntroPendingContext, ReducedMotionContext } from "./contexts";
-import HeroLockup from "@/stops/HeroLockup";
-import Scene from "@/stops/Scene";
+import HeroLockup from "@/features/stops/HeroLockup";
+import Scene from "@/features/stops/Scene";
 import type { Tier } from "@/device/tier";
 
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */

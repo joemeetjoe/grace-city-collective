@@ -288,8 +288,8 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
 
 /* While the splash is up (App.tsx sets data-intro-pending on the root) the
    nav's pieces and the hero headline wait unseen, so the ink lifts on an
-   empty bar; the handoff's cascade (src/intro/navReveal.ts) and the
-   headline's rise (src/intro/heroRise.ts) bring them in. Unlayered, so
+   empty bar; the handoff's cascade (src/features/intro/navReveal.ts) and the
+   headline's rise (src/features/intro/heroRise.ts) bring them in. Unlayered, so
    they beat the elements' own utilities. */
 [data-intro-pending] [data-nav-reveal] {
   opacity: 0;

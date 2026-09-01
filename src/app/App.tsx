@@ -1,16 +1,16 @@
 import { useMemo } from "react";
 
-import DotRail from "@/nav/DotRail";
+import DotRail from "@/features/nav/DotRail";
 import { STACK } from "@/theme/layerSplit";
-import SiteNav from "@/nav/SiteNav";
+import SiteNav from "@/features/nav/SiteNav";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { jumpTo } from "./jump";
 import HomePage from "./HomePage";
 import { useSceneLayers } from "./useSceneLayers";
 import { useSceneLoading } from "./useSceneLoading";
-import IntroSplash from "@/intro/IntroSplash";
-import { useIntroGate } from "@/intro/useIntroGate";
+import IntroSplash from "@/features/intro/IntroSplash";
+import { useIntroGate } from "@/features/intro/useIntroGate";
 import { useDeviceProfile } from "@/device/useDeviceProfile";
 import { sectionMarkers } from "@/scroll/markers";
 import { useActiveSection } from "@/scroll/useActiveSection";

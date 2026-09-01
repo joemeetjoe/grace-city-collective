@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { STACK } from "@/theme/layerSplit";
 import { sectionIds, site } from "@/content/site";
-import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
-import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/intro/staticSplash";
+import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
+import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 

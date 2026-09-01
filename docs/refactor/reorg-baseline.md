@@ -60,11 +60,13 @@ src/
   ui/        # shared presentational primitives + generic hooks:
              #   Reveal, SmoothHeight, useInView*, useInTurn,
              #   CornerOrnaments, OrnateRule, panel/
-  nav/       # SiteNav, NavLinks, MobileNav, DotRail
-  stops/     # scene stops + their single-use widgets
-             #   (GatheringCalendar, HouseTable, SharedLife, WayIn)
-  longform/  # long-form sections + ScriptureRefs
-  intro/ scroll/ layout/ content/ lib/   # unchanged
+  features/  # the vertical slices, one folder per feature
+    nav/       # SiteNav, NavLinks, MobileNav, DotRail
+    stops/     # scene stops + their single-use widgets
+               #   (GatheringCalendar, HouseTable, SharedLife, WayIn)
+    longform/  # long-form sections + ScriptureRefs
+    intro/     # splash + intro choreography
+  scroll/ layout/ content/ lib/   # unchanged
 ```
 
 ## Layering rule
@@ -73,13 +75,13 @@ Dependencies point downward only:
 
 ```
 lib, theme  →  device  →  scroll, layout, content  →  engine, marks, ui
-            →  features (intro, stops, longform, nav)  →  app
+            →  features/ (intro, stops, longform, nav)  →  app
 ```
 
 - The engine is consumed only via `@/engine`; there are no other barrels.
 - Import convention: `@/` for cross-directory imports, `./` within a
   directory.
-- Exception: `vite.config.ts` loads `src/intro/staticSplash.ts` at
+- Exception: `vite.config.ts` loads `src/features/intro/staticSplash.ts` at
   config-load time, before the `@` alias exists — that graph (staticSplash,
   splashMark, introKeys, device/reducedMotion, marks/gMarkGeometry) keeps
   relative imports and stays Node-safe.

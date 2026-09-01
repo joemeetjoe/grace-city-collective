@@ -1,4 +1,4 @@
-import { gMarkAspect } from "../marks/gMarkGeometry";
+import { gMarkAspect } from "../../marks/gMarkGeometry";
 
 /** the mark's share of the shorter viewport side */
 export const SPLASH_MARK_FRACTION = 0.72;
