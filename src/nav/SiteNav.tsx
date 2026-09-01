@@ -4,8 +4,8 @@ import { GLASS, GLASS_CORNERS } from "@/theme/glass";
 import GMark from "@/marks/GMark";
 import { FOCUS_RING } from "@/theme/interact";
 import { STACK } from "@/theme/layerSplit";
-import MobileNav from "@/components/MobileNav";
-import NavLinks from "@/components/NavLinks";
+import MobileNav from "./MobileNav";
+import NavLinks from "./NavLinks";
 import { useSite } from "@/content/useSite";
 
 /**
