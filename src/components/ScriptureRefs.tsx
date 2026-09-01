@@ -20,6 +20,7 @@ function Divider() {
 }
 
 /** the separate passages of a refs string, as written in the content: one per `;` */
+// eslint-disable-next-line react-refresh/only-export-components
 export function splitRefs(refs: string): string[] {
   return refs
     .split(";")
