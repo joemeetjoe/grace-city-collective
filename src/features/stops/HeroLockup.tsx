@@ -21,8 +21,7 @@ export default function HeroLockup({ at }: { at: "chrome" | "foot" }) {
           : `relative ${STACK.copy} mt-auto flex justify-start`
       }
     >
-      {/* the seal is live so the stamp can replay on click, resting with its filters off */}
-      <Lockup sealVariant="live" interactiveSeal />
+      <Lockup />
     </div>
   );
 }

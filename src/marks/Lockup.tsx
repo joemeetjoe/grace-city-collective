@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import CollectiveScript from "./CollectiveScript";
-import Seal, { type SealProps } from "./Seal";
+import Seal from "./Seal";
 import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
 import {
   SCRIPT_EM,
@@ -12,7 +12,6 @@ import {
   sealPeriodShiftEm,
   showScript,
 } from "./lockupMetrics";
-import { STAMP_REPLAY_LABEL, useStampReplay } from "./useStampReplay";
 import { useBelowLg } from "@/layout/breakpoint";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +23,8 @@ export const HERO_LOCKUP_STACKED_SIZE = "clamp(34px,6.4vw,72px)";
 export type LockupProps = {
   /** font size of the wordmark; everything else scales from it. Defaults to the hero's, one-line or stacked */
   size?: string;
-  sealVariant?: SealProps["variant"];
   /** force the cursive line on regardless of measured size (the splash sizes itself so it always fits) */
   script?: boolean;
-  /** the seal is a button that replays the stamp beat (the hero easter egg) */
-  interactiveSeal?: boolean;
   className?: string;
   style?: CSSProperties;
 };
@@ -60,38 +56,19 @@ function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
  * height, the seal on the script's tail line — so a phone reads the whole
  * name rather than "Grace City." The layout is the same flex row wrapped,
  * so the parts keep their order and their shared baselines.
- *
- * Every instance carries the same `data-flip-id`s so GSAP Flip can carry one
- * instance's layout over to another (the splash hands off to the hero).
  */
 export default function Lockup({
   size,
-  sealVariant = "static",
   script: forceScript = false,
-  interactiveSeal = false,
   className,
   style,
 }: LockupProps) {
   const wordmarkRef = useRef<HTMLSpanElement>(null);
-  const sealRef = useRef<SVGSVGElement>(null);
   const stacked = useBelowLg();
   const scriptEm = stacked ? STACKED_SCRIPT_EM : SCRIPT_EM;
   const sealEm = stacked ? STACKED_SEAL_EM : SEAL_EM;
   const fontPx = useWordmarkFontSize(wordmarkRef);
   const script = forceScript || stacked || showScript(scriptHeightFor(fontPx, scriptEm));
-  const stamp = useStampReplay(sealRef);
-
-  const seal = (
-    <Seal
-      ref={sealRef}
-      data-lockup="seal"
-      data-flip-id="lockup-seal"
-      variant={sealVariant}
-      atRest={interactiveSeal}
-      size={`${sealEm}em`}
-      className="shrink-0"
-    />
-  );
 
   // the full stop: on the tail's line after "Collective", on the baseline after "Grace City"
   const sealShift = script ? sealPeriodShiftEm(COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX, { scriptEm, sealEm }) : 0;
@@ -99,7 +76,6 @@ export default function Lockup({
   return (
     <div
       data-lockup=""
-      data-flip-id="lockup"
       data-stacked={stacked ? "" : undefined}
       // below lg the wordmark takes the whole first line, so the script and the seal wrap under it
       className={cn(
@@ -110,7 +86,6 @@ export default function Lockup({
     >
       <span
         data-lockup="wordmark"
-        data-flip-id="lockup-wordmark"
         ref={wordmarkRef}
         className="basis-full [font-family:'Cormorant_Garamond',Georgia,serif] leading-[0.9] tracking-[-0.01em] whitespace-nowrap lg:basis-auto"
       >
@@ -119,26 +94,12 @@ export default function Lockup({
       {script && (
         <CollectiveScript
           data-lockup="script"
-          data-flip-id="lockup-script"
           className="shrink-0 translate-y-[0.03em]"
           style={{ height: `${scriptEm}em` }}
         />
       )}
-      {/* the transform lives on this wrapper, not the svg, so the stamp's own transform can be cleared freely */}
       <span className="inline-flex shrink-0 -ml-[0.09em]" style={{ transform: `translateY(${sealShift}em)` }}>
-        {interactiveSeal ? (
-          // the chrome layer is pointer-events-none; the button opts back in
-          <button
-            type="button"
-            aria-label={STAMP_REPLAY_LABEL}
-            className="pointer-events-auto inline-flex shrink-0 cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cream/60"
-            {...stamp}
-          >
-            {seal}
-          </button>
-        ) : (
-          seal
-        )}
+        <Seal data-lockup="seal" size={`${sealEm}em`} className="shrink-0" />
       </span>
     </div>
   );

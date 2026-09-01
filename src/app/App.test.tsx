@@ -172,14 +172,11 @@ describe("App frame height", () => {
 });
 
 describe("App hero seal", () => {
-  it("is the stamp-replay button; the splash's seal is not", () => {
+  it("renders plain: the seal is artwork, not a button, in the hero and the splash alike", () => {
     const { container } = render(<App />);
     const hero = container.querySelector("[data-hero-lockup]")!;
-    const button = hero.querySelector(
-      'button[aria-label="Replay the seal stamp"]',
-    )!;
-    expect(button).not.toBeNull();
-    expect(button.querySelector('[data-lockup="seal"]')).not.toBeNull();
+    expect(hero.querySelector('[data-lockup="seal"]')).not.toBeNull();
+    expect(hero.querySelector("button")).toBeNull();
     expect(container.querySelector("[data-intro-splash] button")).toBeNull();
   });
 });

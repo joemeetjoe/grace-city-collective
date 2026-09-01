@@ -6,9 +6,8 @@ export { COLLECTIVE_BASELINE, COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX };
 
 /**
  * "Collective" as a single hand-authored roundhand stroke. The path is drawn
- * as a stroke (never filled) so it can be revealed pen-style with DrawSVG.
- * It has three subpaths, in drawing order: the connected word, the t-bar,
- * and the i-dot.
+ * as a stroke (never filled), the way a pen would lay it down. It has three
+ * subpaths, in drawing order: the connected word, the t-bar, and the i-dot.
  *
  * Authored upright on a grid (ascender 200, x-height 70, baseline 250) and
  * sheared to a ~63° slant; every join reuses the previous curve's tangent so

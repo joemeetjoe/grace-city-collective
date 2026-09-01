@@ -1,27 +1,12 @@
-import { useEffect, useId, useRef, useState, type JSX, type Ref, type SVGProps } from "react";
+import { useId, type JSX, type Ref, type SVGProps } from "react";
 
-import { rasterOfLiveLook } from "./sealRaster";
 import { cssVar, mix, tokens, type Token } from "@/theme/tokens";
 
-import { BAND, DRIP, FIELD, FLEUR, WAX } from "./sealPaths";
+import { BAND, FIELD, FLEUR, WAX } from "./sealPaths";
 
 export type SealProps = {
   /** css size of the square mark, e.g. 28, "clamp(36px,6vw,86px)" */
   size?: number | string;
-  /**
-   * "static": filter-free, pre-flattened look for tiny sizes / after the stamp.
-   * "live": the static artwork plus a `data-seal="live"` overlay carrying every
-   * SVG filter (turbulence grain, diffuse/specular emboss, the pour's goo).
-   * Hide the overlay and what remains is exactly the static seal.
-   */
-  variant?: "live" | "static";
-  /**
-   * rest on a cached raster of the live look: the overlay mounts hidden
-   * (`display: none`) and an `<image>` of the seal with its overlay showing is
-   * painted under it, so nothing pays for a filter at rest but the wax still
-   * looks lit. A beat switches the real overlay on above the raster.
-   */
-  atRest?: boolean;
   className?: string;
   /** accessible name */
   title?: string;
@@ -48,13 +33,8 @@ const tone = {
   gloss: mix(tokens.sealHighlight, tokens.cream, 0.55),
 };
 
-/** the light sits top-left, as if the seal were lit by the flames */
-const LIGHT = { azimuth: 225, elevation: 48, x: 8, y: 2, z: 90 };
-
 export default function Seal({
   size = 28,
-  variant = "live",
-  atRest = false,
   className,
   title = "Grace City Collective seal",
   style,
@@ -62,33 +42,16 @@ export default function Seal({
   ...rest
 }: SealProps & { ref?: Ref<SVGSVGElement> }): JSX.Element {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const own = useRef<SVGSVGElement>(null);
-  const [raster, setRaster] = useState<string | null>(null);
-  const resting = variant === "live" && atRest;
-  useEffect(() => {
-    if (!resting || !own.current) return;
-    setRaster(rasterOfLiveLook(own.current));
-  }, [resting]);
-  const setRefs = (el: SVGSVGElement | null) => {
-    own.current = el;
-    if (typeof ref === "function") ref(el);
-    else if (ref) ref.current = el;
-  };
   const ids = {
     body: `${id}-body`,
     face: `${id}-face`,
     glow: `${id}-glow`,
     clip: `${id}-clip`,
-    wax: `${id}-wax`,
-    emboss: `${id}-emboss`,
-    goo: `${id}-goo`,
     impression: `${id}-impression`,
     fieldClip: `${id}-field`,
     dish: `${id}-dish`,
     reliefClip: `${id}-relief`,
-    dishBlur: `${id}-dish-blur`,
   };
-  const live = variant === "live";
 
   return (
     <svg
@@ -97,7 +60,7 @@ export default function Seal({
       aria-label={title}
       className={className}
       style={{ width: size, height: size, ...style }}
-      ref={setRefs}
+      ref={ref}
       {...rest}
     >
       <title>{title}</title>
@@ -209,145 +172,6 @@ export default function Seal({
           opacity="0.9"
         />
       </g>
-
-      {resting && raster && (
-        /* the lit look, cached: what the seal shows between beats */
-        <image data-seal="rest" href={raster} x="0" y="0" width={SEAL_VIEWBOX} height={SEAL_VIEWBOX} />
-      )}
-
-      {live && (
-        /* everything that costs a filter pass, painted over the static base */
-        <g data-seal="live" style={atRest ? { display: "none" } : undefined}>
-          <filter
-            id={ids.wax}
-            x="-8"
-            y="-8"
-            width="116"
-            height="116"
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="11" result="mottle" />
-            <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="5" result="grain" />
-            <feComposite in="mottle" in2="grain" operator="arithmetic" k2="0.75" k3="0.18" result="texture" />
-            <feGaussianBlur in="SourceAlpha" stdDeviation="2.4" result="bevel" />
-            <feComposite in="bevel" in2="texture" operator="arithmetic" k2="0.9" k3="0.025" result="bump" />
-            <feDiffuseLighting in="bump" surfaceScale="4" diffuseConstant="1" lightingColor="#fff" result="diff">
-              <feDistantLight azimuth={LIGHT.azimuth} elevation={LIGHT.elevation} />
-            </feDiffuseLighting>
-            <feComposite in="diff" in2="SourceGraphic" operator="arithmetic" k1="0.9" k3="0.18" result="lit" />
-            <feSpecularLighting
-              in="bump"
-              surfaceScale="5"
-              specularConstant="0.35"
-              specularExponent="48"
-              lightingColor={tokens.sealHighlight}
-              result="spec"
-            >
-              <fePointLight x={LIGHT.x} y={LIGHT.y} z={LIGHT.z} />
-            </feSpecularLighting>
-            <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn" />
-            <feComposite in="specIn" in2="lit" operator="arithmetic" k2="1" k3="1" result="shaded" />
-            <feComposite in="shaded" in2="SourceAlpha" operator="in" />
-          </filter>
-          <filter
-            id={ids.emboss}
-            x="-10"
-            y="-10"
-            width="120"
-            height="120"
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="3" seed="4" result="grain" />
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="bevel" />
-            <feComposite in="bevel" in2="grain" operator="arithmetic" k2="0.95" k3="0.03" result="bump" />
-            <feDiffuseLighting in="bump" surfaceScale="2.8" diffuseConstant="1" lightingColor="#fff" result="diff">
-              {/* lit from the far side: a raised bump lit this way reads as a recess */}
-              <feDistantLight azimuth={LIGHT.azimuth + 180} elevation={LIGHT.elevation} />
-            </feDiffuseLighting>
-            <feComposite in="diff" in2="SourceGraphic" operator="arithmetic" k1="0.9" k3="0.35" result="lit" />
-            <feSpecularLighting
-              in="bump"
-              surfaceScale="2.8"
-              specularConstant="0.7"
-              specularExponent="30"
-              lightingColor={tokens.sealHighlight}
-              result="spec"
-            >
-              <fePointLight x={100 - LIGHT.x} y={100 - LIGHT.y} z={LIGHT.z} />
-            </feSpecularLighting>
-            <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn" />
-            <feComposite in="specIn" in2="lit" operator="arithmetic" k2="1" k3="1" result="shaded" />
-            <feComposite in="shaded" in2="SourceAlpha" operator="in" result="relief" />
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="shadowBlur" />
-            <feOffset in="shadowBlur" dx="1" dy="1.1" result="shadowOffset" />
-            <feFlood floodColor={tokens.sealDeep} floodOpacity="0.6" result="shadowInk" />
-            <feComposite in="shadowInk" in2="shadowOffset" operator="in" result="shadow" />
-            <feMerge>
-              <feMergeNode in="shadow" />
-              <feMergeNode in="relief" />
-            </feMerge>
-          </filter>
-          {/* goo: blur then crush the alpha so a falling bead reads as one liquid */}
-          <filter
-            id={ids.goo}
-            x="-30"
-            y="-150"
-            width="160"
-            height="300"
-            filterUnits="userSpaceOnUse"
-            colorInterpolationFilters="sRGB"
-          >
-            <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur" />
-            <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-          </filter>
-
-          <filter id={ids.dishBlur} x="-10" y="-10" width="120" height="120" filterUnits="userSpaceOnUse">
-            <feGaussianBlur stdDeviation="1.4" />
-          </filter>
-
-          {/* the pour: a bead of wax that drops in and pools into the disc */}
-          <g data-seal="pour" filter={`url(#${ids.goo})`}>
-            <path data-seal="drip" d={DRIP} fill={`url(#${ids.body})`} visibility="hidden" />
-          </g>
-
-          {/* the wax under grain and flame light, and the flame's reflection */}
-          <g data-seal="grain">
-            <g filter={`url(#${ids.wax})`}>
-              <path d={WAX} fill={`url(#${ids.body})`} />
-              <path d={FIELD} fill={`url(#${ids.dish})`} fillOpacity="0.9" />
-            </g>
-            <g clipPath={`url(#${ids.fieldClip})`} filter={`url(#${ids.dishBlur})`}>
-              {[
-                [10, 0.2],
-                [5, 0.35],
-                [2, 0.5],
-              ].map(([w, o]) => (
-                <path key={w} d={FIELD} fill="none" stroke={c("sealDeep")} strokeWidth={w} strokeOpacity={o} transform="translate(2.2 2.4)" />
-              ))}
-              <path d={FIELD} fill="none" stroke={tone.edge} strokeWidth="2.4" strokeOpacity="0.4" transform="translate(-1.4 -1.5)" />
-            </g>
-            <g clipPath={`url(#${ids.clip})`}>
-              <ellipse
-                cx="31"
-                cy="26"
-                rx="24"
-                ry="13"
-                transform="rotate(-40 31 26)"
-                fill={`url(#${ids.glow})`}
-                opacity="0.9"
-              />
-            </g>
-          </g>
-
-          {/* the impression embossed: lit relief with its own shadow */}
-          <g data-seal="emboss" filter={`url(#${ids.emboss})`}>
-            <use href={`#${ids.impression}`} />
-          </g>
-        </g>
-      )}
     </svg>
   );
 }
