@@ -13,10 +13,8 @@ import CornerOrnaments, {
 import DotRail from "@/components/DotRail";
 import { STACK } from "@/theme/layerSplit";
 import SiteNav from "@/components/SiteNav";
-import PentecostParallax from "@/components/PentecostParallax";
-import StaticPoster from "@/components/StaticPoster";
+import { PentecostParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useInView } from "@/components/useInView";
-import { vignetteCss } from "@/components/vignette";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import Beliefs from "@/longform/Beliefs";

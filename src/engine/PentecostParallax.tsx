@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-import { createEmbers, emberCount, type EmberLayer } from "@/components/embers";
+import { createEmbers, emberCount, type EmberLayer } from "./embers";
 import {
   EMBERS_SIDE,
   assignLayer,
@@ -11,9 +11,9 @@ import {
   type CanvasSide,
   type RenderPass,
 } from "@/theme/layerSplit";
-import { readyOnce } from "@/components/parallaxLoading";
+import { readyOnce } from "./parallaxLoading";
 import { glslVec3, tokens } from "@/theme/tokens";
-import { createRenderGate } from "@/components/renderGate";
+import { createRenderGate } from "./renderGate";
 import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";

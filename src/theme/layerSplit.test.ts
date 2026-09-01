@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
 import { FRONT_CUTS_AT, STACK, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
-import { bindFlames, parseCuts } from "@/components/parallaxRelief";
+import { bindFlames, parseCuts } from "../engine/parallaxRelief";
 
 const cuts = parseCuts(JSON.parse(readFileSync(resolve(__dirname, "../../public/dore/2048/cuts.json"), "utf8")));
 const byName = (name: string) => cuts.find((c) => c.name === name)!;

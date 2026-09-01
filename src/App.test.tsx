@@ -36,7 +36,7 @@ vi.mock("@/scroll/useSmoothScroll", async (orig) => {
 });
 
 // WebGL does not exist in jsdom: stand in for the scene and report ready at once
-vi.mock("@/components/PentecostParallax", async () => {
+vi.mock("@/engine/PentecostParallax", async () => {
   const { useEffect } = await import("react");
   function ParallaxStub({ onReady }: { onReady?: () => void }) {
     useEffect(() => onReady?.(), [onReady]);
