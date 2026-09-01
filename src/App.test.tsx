@@ -152,6 +152,25 @@ describe("App hero lockup placement", () => {
   });
 });
 
+describe("App frame height", () => {
+  // dvh steps while a phone's URL bar animates; below lg the layer takes a
+  // measured px height so its transition can glide between the steps
+  it("below lg the frame layer wears a measured px height and a height transition", () => {
+    belowLg();
+    const { container } = render(<App />);
+    const layer = container.querySelector("[data-scene-frame]")!.parentElement!;
+    expect(layer.style.height).toBe(`${window.innerHeight}px`);
+    expect(layer.className).toMatch(/transition-\[height\]/);
+  });
+
+  it("from lg up the dvh class stands alone, unmeasured", () => {
+    const { container } = render(<App />);
+    const layer = container.querySelector("[data-scene-frame]")!.parentElement!;
+    expect(layer.style.height).toBe("");
+    expect(layer.className).toMatch(/h-\[100dvh\]/);
+  });
+});
+
 describe("App hero seal", () => {
   it("is the stamp-replay button; the splash's seal is not", () => {
     const { container } = render(<App />);

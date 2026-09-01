@@ -52,6 +52,7 @@ import { removeStaticSplash } from "@/intro/staticSplashDom";
 import { buildNavReveal, collectNavReveal } from "@/intro/navReveal";
 import { fadeParallaxFromInk } from "@/intro/restingFade";
 import { useBelowLg } from "@/layout/breakpoint";
+import { useViewportHeight } from "@/layout/viewportHeight";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
 import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
 import { jumpTo as scrollJumpTo } from "@/scroll/jump";
@@ -290,6 +291,10 @@ export default function App() {
   // takes an ink backdrop to stay legible
   const sceneInView = useInView(sceneRef, { initial: true });
 
+  // below lg the frame's dvh steps as the URL bar moves; a measured px
+  // height lets the layer's transition glide between the steps instead
+  const frameHeight = useViewportHeight(useBelowLg());
+
   // after a played intro, the nav unfurls from its mark and the hero headline
   // rises, the moment the splash's mark has landed: before the first paint
   // without the splash, so nothing flashes into place first. A session that
@@ -491,10 +496,14 @@ export default function App() {
             its bottom edge hung under the bar while it showed. dvh tracks
             the visible viewport through both states; resizing here is cheap
             (a border and the lockup, no canvas geometry), and on desktop
-            dvh and lvh agree */}
+            dvh and lvh agree. Browsers step dvh in coarse jumps while the
+            bar animates, so below lg the height is measured in px instead
+            (layout/viewportHeight.ts) and the transition glides between the
+            steps — dvh stands as the no-measure fallback */}
             <div
               ref={frameRef}
-              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100dvh] self-start`}
+              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100dvh] self-start motion-safe:transition-[height] motion-safe:duration-200 motion-safe:ease-out`}
+              style={frameHeight == null ? undefined : { height: `${frameHeight}px` }}
             >
               <HeroLockup at="chrome" />
               <div
