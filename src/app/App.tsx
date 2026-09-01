@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo } from "react";
 
 import CornerOrnaments, {
   FRAME_ARM,
@@ -14,7 +8,6 @@ import DotRail from "@/nav/DotRail";
 import { STACK } from "@/theme/layerSplit";
 import SiteNav from "@/nav/SiteNav";
 import { PentecostParallax, StaticPoster, vignetteCss } from "@/engine";
-import { useInView } from "@/ui/useInView";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import Beliefs from "@/longform/Beliefs";
@@ -24,18 +17,13 @@ import Messages from "@/longform/Messages";
 import SiteFooter from "@/longform/SiteFooter";
 import { IntroPendingContext, ReducedMotionContext } from "./contexts";
 import { jumpTo } from "./jump";
+import { useSceneLayers } from "./useSceneLayers";
+import { useSceneLoading } from "./useSceneLoading";
 import HeroLockup from "@/stops/HeroLockup";
 import Scene from "@/stops/Scene";
-import { HERO_HEADLINE, riseHeroHeadline } from "@/intro/heroRise";
 import IntroSplash from "@/intro/IntroSplash";
-import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
-import { removeStaticSplash } from "@/intro/staticSplashDom";
-import { buildNavReveal, collectNavReveal } from "@/intro/navReveal";
-import { fadeParallaxFromInk } from "@/intro/restingFade";
-import { useBelowLg } from "@/layout/breakpoint";
-import { useViewportHeight } from "@/layout/viewportHeight";
-import { detectWebgl, shouldUseStaticFallback } from "@/device/fallback";
-import { readSaveData, readTierInputs, tierFor } from "@/device/tier";
+import { useIntroGate } from "@/intro/useIntroGate";
+import { useDeviceProfile } from "@/device/useDeviceProfile";
 import { sectionMarkers } from "@/scroll/markers";
 import { useActiveSection } from "@/scroll/useActiveSection";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
@@ -45,77 +33,25 @@ const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
 
 export default function App() {
-  // decided once per mount: once per session, and never under reduced motion
-  const [policy] = useState(() => readPolicyInputs());
-  const [intro, setIntro] = useState(() => shouldPlayIntro(policy));
-  // the still poster stands in for the scene: no WebGL, reduced motion, or Save-Data
-  const [fallback] = useState(() =>
-    shouldUseStaticFallback({
-      webgl: detectWebgl(),
-      reducedMotion: policy.reducedMotion,
-      saveData: readSaveData(),
-    }),
-  );
-  const [tier] = useState(() => tierFor(readTierInputs()));
-  const [ready, setReady] = useState(false);
-  // the textures' share so far, for the splash's loading trace
-  const [progress, setProgress] = useState(0);
-  const parallaxRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const frontRef = useRef<HTMLDivElement>(null);
-  const frontCanvasRef = useRef<HTMLCanvasElement>(null);
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  // the smoother's sticky stand-ins — every sticky layer of the scene, so the
-  // front canvas and the frame ride with the back canvas; a stable list so
-  // the hook runs once
-  const [held] = useState(() => [parallaxRef, frontRef, frameRef]);
+  const {
+    parallaxRef,
+    frameRef,
+    frontRef,
+    frontCanvasRef,
+    sceneRef,
+    wrapperRef,
+    contentRef,
+    held,
+    sceneInView,
+    frameHeight,
+  } = useSceneLayers();
+  const { intro, reducedMotion, finishIntro } = useIntroGate(parallaxRef);
+  const { fallback, tier } = useDeviceProfile(reducedMotion);
+  const { ready, progress, markReady, reportProgress } = useSceneLoading();
   useSmoothScroll(
     { wrapper: wrapperRef, content: contentRef, scene: sceneRef, held },
-    policy.reducedMotion,
+    reducedMotion,
   );
-
-  // no splash for reduced motion: the page still opens from ink with a short fade
-  useEffect(() => {
-    if (!policy.reducedMotion) return;
-    const fade = fadeParallaxFromInk(parallaxRef.current);
-    return () => {
-      fade?.kill();
-    };
-  }, [policy.reducedMotion]);
-
-  // once the scene has scrolled away the nav sits over long-form text, so it
-  // takes an ink backdrop to stay legible
-  const sceneInView = useInView(sceneRef, { initial: true });
-
-  // below lg the frame's dvh steps as the URL bar moves; a measured px
-  // height lets the layer's transition glide between the steps instead
-  const frameHeight = useViewportHeight(useBelowLg());
-
-  // after a played intro, the nav unfurls from its mark and the hero headline
-  // rises, the moment the splash's mark has landed: before the first paint
-  // without the splash, so nothing flashes into place first. A session that
-  // skips the intro renders everything at rest
-  const played = useRef(intro);
-  useLayoutEffect(() => {
-    if (!played.current || intro) return;
-    const nav = buildNavReveal(collectNavReveal());
-    const hero = riseHeroHeadline(
-      document.querySelector<HTMLElement>(HERO_HEADLINE),
-    );
-    return () => {
-      nav.kill();
-      hero?.revert();
-    };
-  }, [intro]);
-
-  // index.html carries the splash as static markup from first paint; a
-  // session the intro does not play in drops it here (its own inline script
-  // already has, unless the two policies somehow disagreed)
-  useLayoutEffect(() => {
-    if (!intro) removeStaticSplash();
-  }, [intro]);
 
   const site = useSite();
   // which section is under the viewport's midpoint: one state, read by the
@@ -130,11 +66,7 @@ export default function App() {
       data-intro-pending={intro ? "" : undefined}
     >
       {intro && (
-        <IntroSplash
-          ready={ready}
-          progress={progress}
-          onDone={() => setIntro(false)}
-        />
+        <IntroSplash ready={ready} progress={progress} onDone={finishIntro} />
       )}
 
       {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
@@ -180,16 +112,14 @@ export default function App() {
               className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
             >
               {fallback ? (
-                <StaticPoster onReady={() => setReady(true)} />
+                <StaticPoster onReady={markReady} />
               ) : (
                 <PentecostParallax
                   layerSpread={1.25}
                   tier={tier}
                   frontCanvas={frontCanvasRef}
-                  onReady={() => setReady(true)}
-                  onProgress={(loaded, total) =>
-                    setProgress(total ? loaded / total : 0)
-                  }
+                  onReady={markReady}
+                  onProgress={reportProgress}
                 />
               )}
               {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}
@@ -256,7 +186,7 @@ export default function App() {
             cell, and the sticky layers with it, past the viewport (#51) */}
             <div className="relative col-start-1 row-start-1 min-w-0">
               <IntroPendingContext.Provider value={intro}>
-                <ReducedMotionContext.Provider value={policy.reducedMotion}>
+                <ReducedMotionContext.Provider value={reducedMotion}>
                   {site.scene.map((s) => (
                     <Scene key={s.id} section={s} />
                   ))}
