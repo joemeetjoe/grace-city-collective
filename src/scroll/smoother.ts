@@ -1,5 +1,5 @@
 import { gsap, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
-import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
+import { installScrollDriver, type ScrollDriver } from "./position";
 
 declare global {
   interface Window {

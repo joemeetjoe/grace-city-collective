@@ -1,9 +1,9 @@
 import { createContext } from "react";
 
-import CornerOrnaments from "../CornerOrnaments";
+import CornerOrnaments from "@/ui/CornerOrnaments";
 import { GLASS, GLASS_CORNERS } from "@/theme/glass";
 import { STACK } from "@/theme/layerSplit";
-import { PLAY_MARGIN, type InViewOptions } from "../useInView";
+import { PLAY_MARGIN, type InViewOptions } from "@/ui/useInView";
 
 // everything a scene section says sits between the canvases (layerSplit.ts),
 // so the nearest figures cross it: a panel rises from behind them and rests

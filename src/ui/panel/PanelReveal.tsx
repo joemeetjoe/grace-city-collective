@@ -1,6 +1,6 @@
 import { useContext } from "react";
 
-import Reveal from "../Reveal";
+import Reveal from "@/ui/Reveal";
 import { PanelShownContext } from "./Bracketed";
 
 /** a copy panel's words: they rise in with the panel's brackets and go back out with them */

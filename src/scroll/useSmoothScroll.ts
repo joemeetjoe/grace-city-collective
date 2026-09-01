@@ -2,10 +2,10 @@ import { useEffect, type RefObject } from "react";
 
 import { useBelowLg } from "@/layout/breakpoint";
 import { gsap, Observer, ScrollTrigger } from "@/lib/gsap";
-import { inScene, pageTarget, type PageDirection } from "@/scroll/paging";
-import { createSmoothScroll, isTouchOnly, settleSmoother, type SmoothScroll } from "@/scroll/smoother";
-import { documentTop, snapTo, type SnapLayout } from "@/scroll/snap";
-import { idleWheel, stepWheel, wheelPixels, type WheelGesture } from "@/scroll/wheelGesture";
+import { inScene, pageTarget, type PageDirection } from "./paging";
+import { createSmoothScroll, isTouchOnly, settleSmoother, type SmoothScroll } from "./smoother";
+import { documentTop, snapTo, type SnapLayout } from "./snap";
+import { idleWheel, stepWheel, wheelPixels, type WheelGesture } from "./wheelGesture";
 
 /** one page turn: a section to the next */
 export const PAGE_SECONDS = 0.8;

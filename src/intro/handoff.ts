@@ -1,5 +1,5 @@
 import { STACK } from "@/theme/layerSplit";
-import { TRACE_FINISH_SECONDS } from "@/intro/trace";
+import { TRACE_FINISH_SECONDS } from "./trace";
 import { gsap } from "@/lib/gsap";
 
 export const HANDOFF_SECONDS = 0.8;

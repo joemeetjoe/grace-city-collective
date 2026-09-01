@@ -4,8 +4,8 @@ import { IntroPendingContext } from "@/app/contexts";
 import { serif } from "@/app/styles";
 import Kicker from "@/ui/panel/Kicker";
 import type { SceneSection } from "@/content/site";
-import HeroLockup from "@/stops/HeroLockup";
-import { between, stopFrame } from "@/stops/tuck";
+import HeroLockup from "./HeroLockup";
+import { between, stopFrame } from "./tuck";
 
 /** the hero stop: the one headline over the scene, and the lockup at its foot below lg */
 export default function HeroStop({ section: s }: { section: SceneSection }) {

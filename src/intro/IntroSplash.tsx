@@ -2,13 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
-import { introGateOpen } from "@/intro/gate";
-import { buildHandoff, navMark } from "@/intro/handoff";
-import { listenForSkip, markIntroPlayed } from "@/intro/introPolicy";
-import { parallaxLayers } from "@/intro/restingFade";
-import { SPLASH_MARK_SIZE } from "@/intro/splashMark";
-import { removeStaticSplash } from "@/intro/staticSplashDom";
-import { createTrace, holdClockThroughStalls, type Trace } from "@/intro/trace";
+import { introGateOpen } from "./gate";
+import { buildHandoff, navMark } from "./handoff";
+import { listenForSkip, markIntroPlayed } from "./introPolicy";
+import { parallaxLayers } from "./restingFade";
+import { SPLASH_MARK_SIZE } from "./splashMark";
+import { removeStaticSplash } from "./staticSplashDom";
+import { createTrace, holdClockThroughStalls, type Trace } from "./trace";
 
 
 export type IntroSplashProps = {

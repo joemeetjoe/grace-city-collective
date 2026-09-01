@@ -8,8 +8,8 @@ import WayIn from "./WayIn";
 import { type SceneSection, wayIn } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { SEAL_BUTTON, serif } from "@/app/styles";
-import { PHONE_BODY, stopFrame } from "@/stops/tuck";
-import { useStopPanel } from "@/stops/useStopPanel";
+import { PHONE_BODY, stopFrame } from "./tuck";
+import { useStopPanel } from "./useStopPanel";
 
 /**
  * The visit stop's way in (WayIn): five steps from a first hello to a house

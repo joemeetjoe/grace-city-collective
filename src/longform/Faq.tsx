@@ -2,7 +2,7 @@ import { kickerCls, serif } from "@/app/styles";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "@/longform/section";
+import { LONGFORM_SECTION, longform } from "./section";
 
 export default function Faq() {
   const site = useSite();

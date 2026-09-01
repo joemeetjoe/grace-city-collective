@@ -7,8 +7,8 @@ import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import { type SceneSection } from "@/content/site";
 import { serif } from "@/app/styles";
-import { PHONE_BODY, TUCK, stopFrame } from "@/stops/tuck";
-import { useStopPanel } from "@/stops/useStopPanel";
+import { PHONE_BODY, TUCK, stopFrame } from "./tuck";
+import { useStopPanel } from "./useStopPanel";
 
 /**
  * Where a stop's column ornament sits (HouseChurchesTable, AboutSharedLife):

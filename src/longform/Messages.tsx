@@ -3,7 +3,7 @@ import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "@/longform/section";
+import { LONGFORM_SECTION, longform } from "./section";
 
 export default function Messages() {
   const site = useSite();

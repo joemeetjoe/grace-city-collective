@@ -1,9 +1,9 @@
 import type { SceneSection } from "@/content/site";
-import AboutHousesStop from "@/stops/AboutHousesStop";
-import GatheringsStop from "@/stops/GatheringsStop";
-import GiveStop from "@/stops/GiveStop";
-import HeroStop from "@/stops/HeroStop";
-import VisitStop from "@/stops/VisitStop";
+import AboutHousesStop from "./AboutHousesStop";
+import GatheringsStop from "./GatheringsStop";
+import GiveStop from "./GiveStop";
+import HeroStop from "./HeroStop";
+import VisitStop from "./VisitStop";
 
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */
 export default function Scene({ section }: { section: SceneSection }) {

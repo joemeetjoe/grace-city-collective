@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { activeSection } from "@/scroll/activeSection";
+import { activeSection } from "./activeSection";
 
 /** a section on the page, by id and element */
 export type WatchedSection = { id: string; el: HTMLElement };

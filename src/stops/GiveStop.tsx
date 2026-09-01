@@ -6,8 +6,8 @@ import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import type { SceneSection } from "@/content/site";
 import { SEAL_BUTTON, serif } from "@/app/styles";
-import { PHONE_BODY, TUCK, stopFrame } from "@/stops/tuck";
-import { useStopPanel } from "@/stops/useStopPanel";
+import { PHONE_BODY, TUCK, stopFrame } from "./tuck";
+import { useStopPanel } from "./useStopPanel";
 
 /**
  * The giving's ornament: a field sown and reaped in the G mark's box

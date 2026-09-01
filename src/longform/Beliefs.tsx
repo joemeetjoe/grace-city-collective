@@ -3,7 +3,7 @@ import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import ScriptureRefs from "./ScriptureRefs";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "@/longform/section";
+import { LONGFORM_SECTION, longform } from "./section";
 
 export default function Beliefs() {
   const site = useSite();

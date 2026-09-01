@@ -1,7 +1,7 @@
 import { useRef } from "react";
 
-import OrnateRule from "../OrnateRule";
-import { useInViewOnce } from "../useInViewOnce";
+import OrnateRule from "@/ui/OrnateRule";
+import { useInViewOnce } from "@/ui/useInViewOnce";
 
 /** the ornamented rule that opens each long-form section, centred, in the seal's red */
 const SEPARATOR =

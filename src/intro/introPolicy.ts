@@ -1,4 +1,4 @@
-import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
+import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
 
 export { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY };

@@ -40,3 +40,46 @@ notes from the app-split baseline still apply: mobile who-we-are /
 house-churches can spike past the gate when SharedLife rows are caught
 mid-print — eyeball before counting those as failures. Long-form shots are
 pixel-exact.
+
+## Final tree (#93)
+
+The batch dissolved `src/components/` into feature + engine modules:
+
+```
+src/
+  main.tsx  index.css  vite-env.d.ts  assets/ test/
+  app/       # composition root: App, contexts, jump, styles
+  engine/    # the Three.js renderer; index.ts is the repo's ONE barrel
+             #   (PentecostParallax, StaticPoster, vignetteCss)
+  device/    # Three-free capability policy: tier, preload, gyro, fallback,
+             #   maskBounds, textureManifest, reducedMotion
+  theme/     # design vocabulary, leaf layer: tokens, layerSplit, glass,
+             #   interact, lozenge
+  marks/     # brand-mark family: Seal, Lockup, CollectiveScript, GMark,
+             #   GatheringMark, SowingMark + their geometry/metrics
+  ui/        # shared presentational primitives + generic hooks:
+             #   Reveal, SmoothHeight, useInView*, useInTurn,
+             #   CornerOrnaments, OrnateRule, panel/
+  nav/       # SiteNav, NavLinks, MobileNav, DotRail
+  stops/     # scene stops + their single-use widgets
+             #   (GatheringCalendar, HouseTable, SharedLife, WayIn)
+  longform/  # long-form sections + ScriptureRefs
+  intro/ scroll/ layout/ content/ lib/   # unchanged
+```
+
+## Layering rule
+
+Dependencies point downward only:
+
+```
+lib, theme  →  device  →  scroll, layout, content  →  engine, marks, ui
+            →  features (intro, stops, longform, nav)  →  app
+```
+
+- The engine is consumed only via `@/engine`; there are no other barrels.
+- Import convention: `@/` for cross-directory imports, `./` within a
+  directory.
+- Exception: `vite.config.ts` loads `src/intro/staticSplash.ts` at
+  config-load time, before the `@` alias exists — that graph (staticSplash,
+  splashMark, introKeys, device/reducedMotion, marks/gMarkGeometry) keeps
+  relative imports and stays Node-safe.

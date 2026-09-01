@@ -1,4 +1,4 @@
-import { readScrollTop, type ScrollDriver } from "@/scroll/position";
+import { readScrollTop, type ScrollDriver } from "./position";
 
 /**
  * The in-page nav: scroll to `#id`, easing through the smoother when there is
