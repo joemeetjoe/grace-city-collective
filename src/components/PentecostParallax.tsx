@@ -409,7 +409,7 @@ export default function PentecostParallax({
     let onScreen = true;
     wakeRef.current = () => {
       dirty = true;
-    };
+    }; // upgraded inside start() to also re-arm a parked loop
     // reduced motion keeps the flames on their heads (the dolly is scroll-paced, so it stays)
     const reducedMotion = window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
@@ -604,6 +604,17 @@ export default function PentecostParallax({
       // eases to a stop instead of freezing mid-air
       let emberT = 0;
       let lastT = 0;
+      let parked = false;
+      // every input path routes here (wakeRef): mark a frame and, if the
+      // loop is parked, re-arm it
+      wakeRef.current = () => {
+        dirty = true;
+        if (parked && gate?.running) {
+          parked = false;
+          lastT = (performance.now() - t0) / 1000;
+          raf = requestAnimationFrame(tick);
+        }
+      };
       const tick = () => {
         if (!gate?.running) return;
         raf = requestAnimationFrame(tick);
@@ -615,7 +626,16 @@ export default function PentecostParallax({
         const pointerLive = Math.abs(pointer.tx - pointer.x) > 1e-3 || Math.abs(pointer.ty - pointer.y) > 1e-3;
         const moving = dirty || !settled || pointerLive || scrollMoved(scrollY, drawnScroll) || !!o.idleDrift;
         const frame = pacer.frame(now, moving);
-        if (!frame.render) return;
+        if (!frame.render) {
+          // fully asleep — the dust has stopped and nothing is moving: park
+          // the rAF outright (a scheduled no-op still wakes the process every
+          // frame) and let the wake sources below re-arm it
+          if (!moving && frame.emberRate === 0) {
+            parked = true;
+            cancelAnimationFrame(raf);
+          }
+          return;
+        }
         dirty = false;
         const dtRaw = t - lastT;
         lastT = t;
@@ -793,6 +813,7 @@ export default function PentecostParallax({
       gate = createRenderGate({
         start: () => {
           // a resumed loop must not treat the pause as one giant frame
+          parked = false;
           lastT = (performance.now() - t0) / 1000;
           raf = requestAnimationFrame(tick);
         },
@@ -832,22 +853,31 @@ export default function PentecostParallax({
     const onMove = (e: PointerEvent) => {
       pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.ty = (e.clientY / window.innerHeight) * 2 - 1;
+      wakeRef.current();
     };
     const onTilt = (e: DeviceOrientationEvent) => {
       if (e.gamma == null) return;
       pointer.tx = Math.max(-1, Math.min(1, e.gamma / 32));
       pointer.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 32));
+      wakeRef.current();
     };
+    // scroll intent in any form re-arms a parked loop; each is a cheap no-op
+    // while the loop runs
+    const onWake = () => wakeRef.current();
     // a hidden tab draws nothing at all (#68); rAF already throttles, the
     // gate makes it explicit and marks a frame for the return
     const onVisibility = () => {
-      if (!document.hidden) dirty = true;
       gate?.setVisible(onScreen && !document.hidden);
+      if (!document.hidden) wakeRef.current();
     };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("deviceorientation", onTilt);
+    window.addEventListener("wheel", onWake, { passive: true });
+    window.addEventListener("scroll", onWake, { passive: true });
+    window.addEventListener("touchstart", onWake, { passive: true });
+    window.addEventListener("keydown", onWake);
     // iOS only delivers those events after a permission prompt raised from a touch
     const disarmGyro = armGyroOnFirstTouch(window);
 
@@ -885,6 +915,10 @@ export default function PentecostParallax({
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
+      window.removeEventListener("wheel", onWake);
+      window.removeEventListener("scroll", onWake);
+      window.removeEventListener("touchstart", onWake);
+      window.removeEventListener("keydown", onWake);
       disarmGyro();
       for (const l of backdropLayer ? [backdropLayer, ...layers] : layers) {
         l.mesh.geometry.dispose();
