@@ -18,12 +18,16 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
+import { PACING, createFramePacer, scrollMoved } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
+import { bakeUv, maskBounds, type MaskBounds } from "@/scene/maskBounds";
 import { TIERS, textureDir, type Tier } from "@/scene/tier";
 import { getScrollTop } from "@/scroll/position";
+import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
+import { SCROLL_DPR, createScrollDpr, movingDprFor } from "./scrollDpr";
 import { channelVector, maskRef } from "./textureManifest";
 import { VIGNETTE_GLSL } from "./vignette";
 
@@ -73,6 +77,8 @@ type Layer = {
   flame?: number;
   /** a flame's parent cut, whose huddle shift it rides */
   parent?: string;
+  /** the cut's padded mask box (#69); a plane without one spans the plate */
+  bounds?: MaskBounds;
 };
 
 type Waypoint = {
@@ -106,7 +112,7 @@ export type PentecostParallaxProps = {
   beamGlow?: number;
   /** how many ray planes fan out from the dove (read once, when the scene builds) */
   rays?: number;
-  /** flame flicker */
+  /** the tongues' fire glow (held steady since #63) */
   flameDrift?: boolean;
   /** slow autonomous drift when the page is idle */
   idleDrift?: boolean;
@@ -170,7 +176,7 @@ const FRAG = `
 #define FLAME_GLOW ${glslVec3(FLAME_GLOW_HEX)}
 uniform sampler2D map, mask;
 uniform vec4 uMapRect, uMaskChannel;
-uniform float uTime, uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
+uniform float uBeam, uBeamMax, uFlameDrift, uIsFlame, uFlat, uVignette;
 uniform vec2 uResolution;
 varying vec2 vUv;
 ${VIGNETTE_GLSL}
@@ -182,6 +188,11 @@ void main(){
   // looking past the plate shows wall rather than a void
   // the mask is one channel of a packed texture; uMaskChannel picks it
   float m = mix(dot(texture2D(mask, uv), uMaskChannel) * edge, 1.0, uFlat);
+  // ~90% of a cut's plane is fully transparent (#65): bail before the colour
+  // fetch and the blend. Below half an 8-bit LSB the blended contribution
+  // quantises to nothing, so the soft edges are untouched; uFlat holds m at
+  // 1, so the backdrop never discards
+  if (m < 0.002) discard;
   // a cut's own color map may cover only its mapRect of the plate (the mask
   // is zero outside it, so nothing samples past the texture)
   vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
@@ -195,8 +206,9 @@ void main(){
   vec3 fire = mix(FLAME_EMBER, mix(FLAME_BODY, FLAME_GLOW, smoothstep(0.45, 0.8, lum)), smoothstep(0.12, 0.45, lum))
             * (0.25 + lum * 1.5);
   col = mix(col, fire, uIsFlame);
-  float flick = 0.65 + 0.35 * sin(uTime * 2.7 + uv.x * 26.0);
-  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 4.2 * flick * FLAME_GLOW;
+  // the glow held at the old flicker's mean (#63): a still frame is a
+  // repeatable frame, which is what lets the render loop stop at rest
+  col += uIsFlame * uFlameDrift * pow(max(lum - 0.46, 0.0), 1.4) * 2.73 * FLAME_GLOW;
 
   // the light column as ILLUMINATION on every layer — the apostles' robes in
   // the beam are lit by it, which is what keeps their hatching legible at the
@@ -289,6 +301,8 @@ export default function PentecostParallax({
   const tierRef = useRef(tier);
   const onReadyRef = useRef(onReady);
   const onProgressRef = useRef(onProgress);
+  // lets the opts effect below wake a sleeping render loop (#68)
+  const wakeRef = useRef<() => void>(() => {});
   useEffect(() => {
     onReadyRef.current = onReady;
     onProgressRef.current = onProgress;
@@ -303,6 +317,7 @@ export default function PentecostParallax({
       layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
       embers,
     };
+    wakeRef.current();
   }, [layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax, embers]);
 
   useEffect(() => {
@@ -310,13 +325,22 @@ export default function PentecostParallax({
     if (!canvas) return;
     const BASE = assetUrl(textureDir(tierRef.current));
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // no MSAA (#62): every layer is an alpha-blended full-coverage quad, so
+    // multisampling smooths nothing and doubles framebuffer bandwidth; low-power
+    // keeps dual-GPU laptops on the integrated GPU
+    const glFlags = { antialias: false, powerPreference: "low-power" } as const;
+    const dpr = Math.min(window.devicePixelRatio, tierRef.current.dprCap);
+    // the scroll's pixel ratio (#70): reduced while the scroll flies, the
+    // tier's cap again on the frame that settles
+    const scrollDpr = createScrollDpr({ sharp: dpr, moving: movingDprFor(dpr), ...SCROLL_DPR });
+    let liveDpr = dpr;
+    const renderer = new THREE.WebGLRenderer({ canvas, ...glFlags });
+    renderer.setPixelRatio(dpr);
     renderer.setClearColor(0x14100e, 1);
     // the front canvas clears to nothing: only its layers land over the page
     const front = frontRef.current?.current ?? null;
-    const frontRenderer = front ? new THREE.WebGLRenderer({ canvas: front, antialias: true, alpha: true }) : null;
-    frontRenderer?.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const frontRenderer = front ? new THREE.WebGLRenderer({ canvas: front, alpha: true, ...glFlags }) : null;
+    frontRenderer?.setPixelRatio(dpr);
     frontRenderer?.setClearColor(0x000000, 0);
     // without a front canvas every layer draws to the one canvas
     const sideOf = (side: CanvasSide): CanvasSide => (frontRenderer ? side : "back");
@@ -388,6 +412,15 @@ export default function PentecostParallax({
     let observer: IntersectionObserver | null = null;
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let sections: HTMLElement[] = [];
+    let sectionObserver: ResizeObserver | null = null;
+    // motion the tick cannot read arrives as a dirty mark (#68): a resize, a
+    // prop tween, a late texture, the tab coming back — each buys one frame,
+    // and the chases keep the loop hot until they converge again
+    let dirty = true;
+    let onScreen = true;
+    wakeRef.current = () => {
+      dirty = true;
+    }; // upgraded inside start() to also re-arm a parked loop
     // reduced motion keeps the flames on their heads (the dolly is scroll-paced, so it stays)
     const reducedMotion = window.matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false;
 
@@ -404,9 +437,23 @@ export default function PentecostParallax({
       camera.updateProjectionMatrix();
     };
 
-    const geom = (z: number, fit = FIT, seg: [number, number] = [1, 1]) => {
+    const geom = (z: number, fit = FIT, seg: [number, number] = [1, 1], b?: MaskBounds) => {
       const k = (baseZ - z) / baseZ;
-      return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, seg[0], seg[1]);
+      if (!b) return new THREE.PlaneGeometry((IW / fit) * k, (IH / fit) * k, seg[0], seg[1]);
+      // the plane covers only its cut's padded mask box (#69), placed in the
+      // same plate-centred local frame — so the relief shrink-toward-the-axis
+      // algebra, the huddle and the flame poses hold unchanged — with the uv
+      // baked so the vertex shader's (uv - 0.5) / uFit + 0.5 lands on the
+      // plate position each vertex actually covers
+      const [u0, v0, u1, v1] = b;
+      const g = new THREE.PlaneGeometry((u1 - u0) * IW * k, (v1 - v0) * IH * k, seg[0], seg[1]);
+      g.translate(((u0 + u1) / 2 - 0.5) * IW * k, (0.5 - (v0 + v1) / 2) * IH * k, 0);
+      const uv = g.attributes.uv as THREE.BufferAttribute;
+      for (let i = 0; i < uv.count; i++) {
+        const [bu, bv] = bakeUv(uv.getX(i), uv.getY(i), b, fit);
+        uv.setXY(i, bu, bv);
+      }
+      return g;
     };
 
     const material = (
@@ -432,7 +479,6 @@ export default function PentecostParallax({
           uCamZ: { value: baseZ },
           uLayerZ: { value: 0 },
           uScale: { value: 1 },
-          uTime: { value: 0 },
           uBeam: { value: 0.3 },
           uBeamMax: { value: opts.current.beamGlow },
           uFlameDrift: { value: opts.current.flameDrift ? 1 : 0 },
@@ -449,33 +495,26 @@ export default function PentecostParallax({
 
     /**
      * where we are in the scene's section stack: an index plus the fraction
-     * through it. Only the labelled scene sections count — the long-form
-     * below them scrolls past a scene that has already come to rest. Unclamped:
-     * the last section runs to `sections.length`, which is how the embers see
-     * the scene slide away; the camera clamps it to the last waypoint.
+     * through it (sectionRects.ts). Only the labelled scene sections count —
+     * the long-form below them scrolls past a scene that has already come to
+     * rest. The rects are measured outside the tick (#64): a layout read per
+     * frame stalled against ScrollSmoother's transform writes.
      */
-    const sectionProgress = () => {
-      if (!sections.length) return 0;
-      // the smoothed position: with ScrollSmoother the rects sit where it
-      // says, not where the native scrollbar is
-      const scrollY = getScrollTop();
-      const y = scrollY + window.innerHeight * 0.5;
-      for (let i = 0; i < sections.length; i++) {
-        const el = sections[i];
-        // document-relative, whatever the sections' offsetParent is
-        const top = el.getBoundingClientRect().top + scrollY;
-        if (y < top + el.offsetHeight || i === sections.length - 1) {
-          const t = Math.min(1, Math.max(0, (y - top) / el.offsetHeight));
-          return i + t;
-        }
-      }
-      return 0;
+    let sectionCache: SectionRect[] = [];
+    const measure = () => {
+      sectionCache = measureSections(sections, getScrollTop());
     };
+    const sectionProgress = () => sectionProgressAt(getScrollTop() + window.innerHeight * 0.5, sectionCache);
 
     const start = (cuts: Cut[]) => {
       if (disposed) return;
       sections = Array.from(document.querySelectorAll<HTMLElement>("section[data-screen-label]"));
       resize();
+      measure();
+      // a section whose box changes (a reveal opening, fonts arriving) moves
+      // every rect below it; watching the boxes keeps the cache honest
+      sectionObserver = new ResizeObserver(measure);
+      for (const el of sections) sectionObserver.observe(el);
 
       // a complete backdrop, on a much larger plane at the same registration, so
       // a cut that moves reveals wall instead of a hole
@@ -513,13 +552,14 @@ export default function PentecostParallax({
           const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel, side);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
-          const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief)), mat);
+          const bounds = maskBounds(cut.name);
+          const mesh = new THREE.Mesh(geom(cut.z, FIT, segmentsFor(cut.relief), bounds), mat);
           mesh.name = `cut-${cut.name}`;
           mesh.position.z = cut.z;
           mesh.renderOrder = i + 1;
           scene.add(assignLayer(mesh, side));
           const flame = cut.isFlame ? flameOrdinal++ : undefined;
-          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame, parent: cut.parent };
+          return { name: cut.name, z: cut.z, mesh, mat, isFlame: cut.isFlame, relief: cut.relief, i, side, at: cut.at, flame, parent: cut.parent, bounds };
         });
       doveLayer = layers.find((l) => l.name === "dove");
       byName = new Map(layers.map((l) => [l.name, l]));
@@ -560,17 +600,64 @@ export default function PentecostParallax({
       assignLayer(emberLayer.points, emberSide);
 
       const t0 = performance.now();
+      // frames on demand (#68): full rate under motion, the dust tick at
+      // rest, nothing at all once the dust has settled
+      const pacer = createFramePacer(PACING[tierRef.current.name]);
       // the camera chases its target through this state, so scroll jumps
       // (snap, fast flicks) arrive as a glide instead of a lurch
       const cam = { x: 0, y: 0, z: 0, init: false };
       // the flames' ascent progress, chased the same way (see flamePose)
       const flock = { p: 0 };
+      // every chase converged, as of the last drawn frame
+      let settled = false;
+      let drawnScroll = Number.NaN;
+      // the embers' own clock: drawn time × the pacer's rate, so the drift
+      // eases to a stop instead of freezing mid-air
+      let emberT = 0;
       let lastT = 0;
+      let parked = false;
+      // every input path routes here (wakeRef): mark a frame and, if the
+      // loop is parked, re-arm it
+      wakeRef.current = () => {
+        dirty = true;
+        if (parked && gate?.running) {
+          parked = false;
+          lastT = (performance.now() - t0) / 1000;
+          raf = requestAnimationFrame(tick);
+        }
+      };
       const tick = () => {
         if (!gate?.running) return;
         raf = requestAnimationFrame(tick);
         const o = opts.current;
-        const t = (performance.now() - t0) / 1000;
+        const now = performance.now();
+        const t = (now - t0) / 1000;
+        // is anything but the dust moving? — cheap reads only, no layout
+        const scrollY = getScrollTop();
+        const pointerLive = Math.abs(pointer.tx - pointer.x) > 1e-3 || Math.abs(pointer.ty - pointer.y) > 1e-3;
+        const moving = dirty || !settled || pointerLive || scrollMoved(scrollY, drawnScroll) || !!o.idleDrift;
+        const frame = pacer.frame(now, moving);
+        if (!frame.render) {
+          // fully asleep — the dust has stopped and nothing is moving: park
+          // the rAF outright (a scheduled no-op still wakes the process every
+          // frame) and let the wake sources below re-arm it
+          if (!moving && frame.emberRate === 0) {
+            parked = true;
+            cancelAnimationFrame(raf);
+          }
+          return;
+        }
+        dirty = false;
+        const dtRaw = t - lastT;
+        lastT = t;
+        // px/s of the smoothed scroll, frame to drawn frame: a flying scroll
+        // renders lighter, the settling frame lands back at the sharp cap
+        const speed = Number.isFinite(drawnScroll) && dtRaw > 0 ? Math.abs(scrollY - drawnScroll) / dtRaw : 0;
+        drawnScroll = scrollY;
+        const d = scrollDpr.forSpeed(speed);
+        if (d !== liveDpr) applyPixelRatio(d);
+        // clamped, so a sleep or a paused loop never lands as a leap of drift
+        emberT += Math.min(0.1, dtRaw) * frame.emberRate;
         const spread = Math.min(1.6, Math.max(0.2, o.layerSpread));
 
         const spRaw = sectionProgress();
@@ -599,8 +686,7 @@ export default function PentecostParallax({
         const dy = Math.cos(t * 0.13) * 0.11 * idle;
         // critically-damped chase: framerate-independent, no overshoot — the
         // pointer and the camera share one rate so neither lags the other
-        const dt = Math.min(0.05, t - lastT);
-        lastT = t;
+        const dt = Math.min(0.05, dtRaw);
         const k = chase(CHASE, dt);
         pointer.x += (pointer.tx - pointer.x) * k;
         pointer.y += (pointer.ty - pointer.y) * k;
@@ -662,6 +748,10 @@ export default function PentecostParallax({
         // the flock rides the same damping, so a snap sends it gliding with
         // the camera instead of jumping ahead of it
         flock.p += (ascent - flock.p) * k;
+        // converged within a subpixel: with the scroll and pointer also
+        // still, the next frames are the pacer's to skip
+        settled = Math.abs(tx - cam.x) < 4e-4 && Math.abs(ty - cam.y) < 4e-4
+          && Math.abs(zc - cam.z) < 4e-4 && Math.abs(ascent - flock.p) < 1e-4;
         // the pointer (and the gyro, which writes the same target) orbits the
         // camera about the plate-plane point it looks at, so the near figures
         // swing across the arch while the plate holds still; the slide it
@@ -680,9 +770,8 @@ export default function PentecostParallax({
 
         const all = backdropLayer ? [backdropLayer, ...layers] : layers;
         const beam = rayIntensity(sp / (WAYPOINTS.length - 1));
-        rayLayer?.update({ time: t, intensity: beam, glow: o.beamGlow, zScale: spread + ease * 0.35, baseZ, cam: camera.position });
+        rayLayer?.update({ intensity: beam, glow: o.beamGlow, zScale: spread + ease * 0.35, baseZ, cam: camera.position });
         for (const l of all) {
-          l.mat.uniforms.uTime.value = t;
           l.mat.uniforms.uBeam.value = beam;
           l.mat.uniforms.uBeamMax.value = o.beamGlow;
           l.mat.uniforms.uFlameDrift.value = o.flameDrift ? 1 : 0;
@@ -718,7 +807,7 @@ export default function PentecostParallax({
             const cx = (l.at[0] - 0.5) * IW * kn;
             const cy = (0.5 - l.at[1]) * IH * kn;
             const parentAt = l.parent !== undefined ? byName.get(l.parent)?.at : undefined;
-            const pose = flamePose(l.flame, flock.p, t, {
+            const pose = flamePose(l.flame, flock.p, {
               rest: { x: cx + huddleShift(parentAt) * IW * kn, y: cy, z: zn },
               dove: { x: 0, y: (0.5 - DOVE_V) * IH * kd, z: zd },
             });
@@ -726,7 +815,7 @@ export default function PentecostParallax({
           }
         }
         // gl_PointSize is in device pixels, which is what the canvas buffer is sized in
-        emberLayer?.update({ t, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
+        emberLayer?.update({ t: emberT, progress: spRaw, sectionCount: sections.length, heightPx: canvas.height, refZ: baseZ });
         // one scene, one camera, two passes: the mask picks which canvas sees what
         renderPasses(scene, camera, passes);
       };
@@ -735,40 +824,71 @@ export default function PentecostParallax({
       gate = createRenderGate({
         start: () => {
           // a resumed loop must not treat the pause as one giant frame
+          parked = false;
           lastT = (performance.now() - t0) / 1000;
           raf = requestAnimationFrame(tick);
         },
         stop: () => cancelAnimationFrame(raf),
       });
       if (typeof IntersectionObserver === "undefined") {
-        gate.setVisible(true);
+        gate.setVisible(!document.hidden);
       } else {
-        observer = new IntersectionObserver(([entry]) => gate?.setVisible(entry.isIntersecting));
+        observer = new IntersectionObserver(([entry]) => {
+          onScreen = entry.isIntersecting;
+          gate?.setVisible(onScreen && !document.hidden);
+        });
         observer.observe(canvas);
       }
     };
 
+    const applyPixelRatio = (d: number) => {
+      liveDpr = d;
+      renderer.setPixelRatio(d);
+      frontRenderer?.setPixelRatio(d);
+      // resize() re-applies the ratio to both drawing buffers and refreshes
+      // the resolution the vignette samples
+      resize();
+    };
+
     const onResize = () => {
       resize();
+      measure();
+      dirty = true;
       const all = backdropLayer ? [backdropLayer, ...layers] : layers;
       for (const l of all) {
         l.mesh.geometry.dispose();
-        l.mesh.geometry = geom(l.z, l.fit ?? FIT, segmentsFor(l.relief));
+        l.mesh.geometry = geom(l.z, l.fit ?? FIT, segmentsFor(l.relief), l.bounds);
       }
       rayLayer?.resize();
     };
     const onMove = (e: PointerEvent) => {
       pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.ty = (e.clientY / window.innerHeight) * 2 - 1;
+      wakeRef.current();
     };
     const onTilt = (e: DeviceOrientationEvent) => {
       if (e.gamma == null) return;
       pointer.tx = Math.max(-1, Math.min(1, e.gamma / 32));
       pointer.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 32));
+      wakeRef.current();
     };
+    // scroll intent in any form re-arms a parked loop; each is a cheap no-op
+    // while the loop runs
+    const onWake = () => wakeRef.current();
+    // a hidden tab draws nothing at all (#68); rAF already throttles, the
+    // gate makes it explicit and marks a frame for the return
+    const onVisibility = () => {
+      gate?.setVisible(onScreen && !document.hidden);
+      if (!document.hidden) wakeRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", onResize);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("deviceorientation", onTilt);
+    window.addEventListener("wheel", onWake, { passive: true });
+    window.addEventListener("scroll", onWake, { passive: true });
+    window.addEventListener("touchstart", onWake, { passive: true });
+    window.addEventListener("keydown", onWake);
     // iOS only delivers those events after a permission prompt raised from a touch
     const disarmGyro = armGyroOnFirstTouch(window);
 
@@ -785,20 +905,31 @@ export default function PentecostParallax({
     // once per effect run; a run torn down by StrictMode is disposed and never reports
     const reportReady = readyOnce(() => onReadyRef.current?.());
     manager.onLoad = () => {
-      if (!disposed) reportReady();
+      if (disposed) return;
+      dirty = true;
+      reportReady();
     };
     manager.onProgress = (_url, loaded, total) => {
-      if (!disposed) onProgressRef.current?.(loaded, total);
+      if (disposed) return;
+      // a texture that lands after the scene settles still gets painted
+      dirty = true;
+      onProgressRef.current?.(loaded, total);
     };
 
     return () => {
       disposed = true;
+      sectionObserver?.disconnect();
       observer?.disconnect();
       gate?.dispose();
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("deviceorientation", onTilt);
+      window.removeEventListener("wheel", onWake);
+      window.removeEventListener("scroll", onWake);
+      window.removeEventListener("touchstart", onWake);
+      window.removeEventListener("keydown", onWake);
       disarmGyro();
       for (const l of backdropLayer ? [backdropLayer, ...layers] : layers) {
         l.mesh.geometry.dispose();

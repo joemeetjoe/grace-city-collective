@@ -91,9 +91,16 @@ export function bindFlames(cuts: Cut[]): Cut[] {
   });
 }
 
-/** plane segments for a cut — relief needs vertices to displace, flat cuts don't */
+/**
+ * Plane segments for a cut — relief needs vertices to displace, flat cuts
+ * don't. Half the original density on each axis (#67): each vertex costs a
+ * dependent depth-texture fetch — the slowest vertex work on phones and
+ * integrated GPUs — and the depth maps are smooth gradients, so a quarter of
+ * the vertices bow the figures identically (screenshot-verified at the
+ * deep-dolly stops).
+ */
 export function segmentsFor(relief: number): [number, number] {
-  return relief ? [96, 118] : [1, 1];
+  return relief ? [48, 59] : [1, 1];
 }
 
 /** world-space displacement for one depth sample; 0.5 is the plate's rest plane */
