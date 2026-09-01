@@ -40,6 +40,18 @@ export type FrameDecision = {
   emberRate: number;
 };
 
+/**
+ * Whether the scroll has really moved since the last drawn frame. The
+ * smoother eases asymptotically and dithers by fractions of a pixel long
+ * after a gesture; a strict compare against the previous rAF's value kept
+ * the loop pinned at full rate. Measured against the last DRAWN frame, so
+ * oscillating jitter never accumulates, while a real crawl — however slow —
+ * crosses the half-device-pixel threshold and renders.
+ */
+export function scrollMoved(scrollY: number, drawnScrollY: number, epsPx = 0.25): boolean {
+  return Number.isFinite(drawnScrollY) && Math.abs(scrollY - drawnScrollY) > epsPx;
+}
+
 export function createFramePacer(cfg: PacerConfig) {
   const activeMs = 1000 / cfg.activeFps;
   const idleMs = 1000 / cfg.idleFps;

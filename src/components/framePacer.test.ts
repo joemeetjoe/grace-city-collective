@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createFramePacer } from "./framePacer";
+import { createFramePacer, scrollMoved } from "./framePacer";
 
 // the desktop pacing: 60fps under motion, a 20fps dust tick at rest,
 // the dust easing to a stop half a minute after the last input
@@ -68,5 +68,21 @@ describe("framePacer", () => {
       rate = next;
     }
     expect(rate).toBe(1);
+  });
+});
+
+describe("scrollMoved", () => {
+  it("ignores the smoother's sub-pixel jitter, so easing out never pins the loop", () => {
+    expect(scrollMoved(1000.05, 1000)).toBe(false);
+    expect(scrollMoved(999.9, 1000)).toBe(false);
+  });
+
+  it("sees any real movement against the last drawn frame, however slow the crawl", () => {
+    expect(scrollMoved(1000.3, 1000)).toBe(true);
+    expect(scrollMoved(996, 1000)).toBe(true);
+  });
+
+  it("treats the first frame (nothing drawn yet) as still", () => {
+    expect(scrollMoved(1000, Number.NaN)).toBe(false);
   });
 });

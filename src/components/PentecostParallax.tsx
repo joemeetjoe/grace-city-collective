@@ -18,7 +18,7 @@ import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
-import { PACING, createFramePacer } from "./framePacer";
+import { PACING, createFramePacer, scrollMoved } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/scene/gyro";
 import { bakeUv, maskBounds, type MaskBounds } from "@/scene/maskBounds";
@@ -599,7 +599,6 @@ export default function PentecostParallax({
       const flock = { p: 0 };
       // every chase converged, as of the last drawn frame
       let settled = false;
-      let lastScroll = Number.NaN;
       let drawnScroll = Number.NaN;
       // the embers' own clock: drawn time × the pacer's rate, so the drift
       // eases to a stop instead of freezing mid-air
@@ -614,8 +613,7 @@ export default function PentecostParallax({
         // is anything but the dust moving? — cheap reads only, no layout
         const scrollY = getScrollTop();
         const pointerLive = Math.abs(pointer.tx - pointer.x) > 1e-3 || Math.abs(pointer.ty - pointer.y) > 1e-3;
-        const moving = dirty || !settled || pointerLive || scrollY !== lastScroll || !!o.idleDrift;
-        lastScroll = scrollY;
+        const moving = dirty || !settled || pointerLive || scrollMoved(scrollY, drawnScroll) || !!o.idleDrift;
         const frame = pacer.frame(now, moving);
         if (!frame.render) return;
         dirty = false;
