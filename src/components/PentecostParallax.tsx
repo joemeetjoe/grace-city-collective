@@ -14,21 +14,21 @@ import {
 import { readyOnce } from "@/components/parallaxLoading";
 import { glslVec3, tokens } from "@/theme/tokens";
 import { createRenderGate } from "@/components/renderGate";
-import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
+import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
 import { PACING, createFramePacer, scrollMoved } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
-import { armGyroOnFirstTouch } from "@/scene/gyro";
-import { bakeUv, maskBounds, type MaskBounds } from "@/scene/maskBounds";
-import { TIERS, textureDir, type Tier } from "@/scene/tier";
+import { armGyroOnFirstTouch } from "@/device/gyro";
+import { bakeUv, maskBounds, type MaskBounds } from "@/device/maskBounds";
+import { TIERS, textureDir, type Tier } from "@/device/tier";
 import { getScrollTop } from "@/scroll/position";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { SCROLL_DPR, createScrollDpr, movingDprFor } from "./scrollDpr";
-import { channelVector, maskRef } from "./textureManifest";
+import { channelVector, maskRef } from "@/device/textureManifest";
 import { VIGNETTE_GLSL } from "./vignette";
 
 /**

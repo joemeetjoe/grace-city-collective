@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import GMark from "@/components/GMark";
 import { tokens } from "@/theme/tokens";
-import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "./introKeys";
+import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
+import { INTRO_PLAYED_KEY } from "./introKeys";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 import {
   STATIC_SPLASH_ATTR,

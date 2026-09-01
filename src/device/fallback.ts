@@ -1,5 +1,5 @@
-import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
-import { readSaveData } from "@/scene/tier";
+import { REDUCED_MOTION_QUERY } from "./reducedMotion";
+import { readSaveData } from "./tier";
 
 /**
  * When the WebGL scene stands down for the still poster: no WebGL context,

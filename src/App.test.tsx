@@ -11,8 +11,8 @@ import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
 const seams = vi.hoisted(() => ({ webgl: true }));
-vi.mock("@/scene/fallback", async (orig) => ({
-  ...(await orig<typeof import("@/scene/fallback")>()),
+vi.mock("@/device/fallback", async (orig) => ({
+  ...(await orig<typeof import("@/device/fallback")>()),
   detectWebgl: () => seams.webgl,
 }));
 

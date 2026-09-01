@@ -22,7 +22,8 @@ import {
   gMarkBox,
 } from "../components/gMarkGeometry";
 import { tokens } from "../theme/tokens";
-import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "./introKeys";
+import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
+import { INTRO_PLAYED_KEY } from "./introKeys";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 
 /** marks the static splash's root */

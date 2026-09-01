@@ -8,7 +8,8 @@
  * where uMaskChannel is channelVector(channel).
  */
 
-import type { Cut } from "./parallaxRelief";
+/** which channel of which packed texture holds a cut's mask */
+export type MaskRef = { file: string; channel: number };
 
 export type TierWidth = 2048 | 1024;
 
@@ -23,7 +24,7 @@ export type MaskSource = { url: string; channel: number };
  * A cut's mask texture and the channel it occupies. A legacy entry with no
  * mask reference is its own greyscale png, read from the red channel.
  */
-export function maskRef(cut: Pick<Cut, "name" | "mask">, base: string): MaskSource {
+export function maskRef(cut: { name: string; mask?: MaskRef }, base: string): MaskSource {
   if (cut.mask) return { url: `${base}/${cut.mask.file}`, channel: cut.mask.channel };
   return { url: `${base}/cut-${cut.name}.png`, channel: 0 };
 }

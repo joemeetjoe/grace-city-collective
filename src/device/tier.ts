@@ -4,7 +4,7 @@
  * from the viewport, the pixel density and the Save-Data hint.
  */
 
-import { tierDir } from "@/components/textureManifest";
+import { tierDir } from "./textureManifest";
 
 export type TierName = "mobile" | "desktop";
 

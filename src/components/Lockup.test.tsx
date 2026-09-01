@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { REDUCED_MOTION_QUERY } from "@/intro/introPolicy";
+import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { gsap } from "@/lib/gsap";
 

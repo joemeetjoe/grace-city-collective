@@ -5,8 +5,7 @@
  * test pins the algebra the GLSL must reproduce.
  */
 
-/** which channel of which packed texture holds a cut's mask */
-export type MaskRef = { file: string; channel: number };
+import type { MaskRef } from "@/device/textureManifest";
 
 export type Cut = {
   name: string;

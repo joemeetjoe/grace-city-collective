@@ -1,6 +1,6 @@
 import type * as THREE from "three";
 
-import type { TierName } from "@/scene/tier";
+import type { TierName } from "@/device/tier";
 
 import type { Cut } from "./parallaxRelief";
 
