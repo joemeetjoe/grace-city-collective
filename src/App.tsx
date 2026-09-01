@@ -349,7 +349,7 @@ export default function App() {
         className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
       >
         <nav
-          className={`pointer-events-auto absolute inset-x-[clamp(12px,2.4vw,26px)] top-[clamp(12px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
+          className={`pointer-events-auto absolute inset-x-[clamp(9px,2.4vw,26px)] top-[clamp(9px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
             sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
           }`}
         >
@@ -486,22 +486,21 @@ export default function App() {
             bottom-left corner (lg and up; below, it rides at the hero's foot),
             and the frame border in the G mark's shape — rounded top-left and
             bottom-right, square elsewhere.
-            lvh, with the canvases and the held sections: the frame, the
-            lockup in its corner and the engraving behind them are one
-            composition and have to share one box. At svh the border closed
-            100px above the hero's foot on a phone and left the lockup
-            standing outside it; the cost is that the border's bottom edge
-            waits under the URL bar until the reader's first scroll retracts
-            it */}
+            dvh, unlike the canvases: at svh the border closed 100px above
+            the hero's foot on a phone once the URL bar retracted, and at lvh
+            its bottom edge hung under the bar while it showed. dvh tracks
+            the visible viewport through both states; resizing here is cheap
+            (a border and the lockup, no canvas geometry), and on desktop
+            dvh and lvh agree */}
             <div
               ref={frameRef}
-              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100lvh] self-start`}
+              className={`pointer-events-none sticky top-0 ${STACK.copy} col-start-1 row-start-1 h-[100dvh] self-start`}
             >
               <HeroLockup at="chrome" />
               <div
                 aria-hidden
                 data-scene-frame=""
-                className={`absolute inset-[clamp(12px,2.4vw,26px)] border border-cream/35 ${FRAME_CORNERS}`}
+                className={`absolute inset-[clamp(9px,2.4vw,26px)] border border-cream/35 ${FRAME_CORNERS}`}
               />
               {/* not on a phone, where the lockup sits right in the bottom-left corner */}
               <CornerOrnaments

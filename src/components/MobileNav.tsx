@@ -69,7 +69,7 @@ export default function MobileNav({
             <Dialog.Title className="sr-only">{MENU_LABEL}</Dialog.Title>
 
             {/* the same row as the resting nav — Menu/Close on the left, the G at the right corner as the xl nav has it — so the mark does not jump when the sheet opens */}
-            <div className="flex items-center justify-between px-[calc(clamp(12px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(12px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
+            <div className="flex items-center justify-between px-[calc(clamp(9px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(9px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
               <Dialog.Close asChild>
                 <button
                   type="button"
