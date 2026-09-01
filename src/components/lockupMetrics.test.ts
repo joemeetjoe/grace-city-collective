@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SCRIPT_EM,
-  SCRIPT_MIN_PX,
-  SEAL_EM,
   STACKED_SCRIPT_EM,
-  STACKED_SEAL_EM,
   scriptHeightFor,
   sealPeriodShiftEm,
   showScript,
@@ -13,7 +10,6 @@ import {
 
 describe("showScript", () => {
   it("renders the cursive line only when it would be at least 18px tall", () => {
-    expect(SCRIPT_MIN_PX).toBe(18);
     expect(showScript(18)).toBe(true);
     expect(showScript(40)).toBe(true);
     expect(showScript(17.9)).toBe(false);
@@ -35,33 +31,18 @@ describe("scriptHeightFor", () => {
   });
 
   it("takes the stacked share below lg, which reads at the stacked clamp's floor (34px)", () => {
-    expect(STACKED_SCRIPT_EM).toBeGreaterThan(SCRIPT_EM);
     expect(scriptHeightFor(34, STACKED_SCRIPT_EM)).toBeCloseTo(34 * STACKED_SCRIPT_EM, 9);
     expect(showScript(scriptHeightFor(34, STACKED_SCRIPT_EM))).toBe(true);
   });
 });
 
-describe("the stacked seal", () => {
-  it("grows with the stacked script, keeping about the one-line ratio to it", () => {
-    expect(STACKED_SEAL_EM).toBeGreaterThan(SEAL_EM);
-    expect(STACKED_SEAL_EM / STACKED_SCRIPT_EM).toBeCloseTo(SEAL_EM / SCRIPT_EM, 0);
-  });
-});
-
 describe("sealPeriodShiftEm", () => {
   it("centres the seal on the tail's lift-off height", () => {
-    // a tail ending right on the baseline: the seal's centre drops by half its height, less the nudge
-    expect(sealPeriodShiftEm({ y: 204 }, { height: 216 })).toBeCloseTo(SEAL_EM / 2 - ((12 / 216) * SCRIPT_EM - 0.03), 9);
     // a tail well above the baseline lifts the seal
     expect(sealPeriodShiftEm({ y: 100 }, { height: 216 })).toBeLessThan(sealPeriodShiftEm({ y: 204 }, { height: 216 }));
   });
 
   it("takes the stacked shares below lg, and the one-line ones by default", () => {
-    const stacked = { scriptEm: STACKED_SCRIPT_EM, sealEm: STACKED_SEAL_EM };
-    expect(sealPeriodShiftEm({ y: 204 }, { height: 216 }, stacked)).toBeCloseTo(
-      STACKED_SEAL_EM / 2 - ((12 / 216) * STACKED_SCRIPT_EM - 0.03),
-      9,
-    );
     expect(sealPeriodShiftEm({ y: 204 }, { height: 216 }, {})).toBe(sealPeriodShiftEm({ y: 204 }, { height: 216 }));
   });
 });

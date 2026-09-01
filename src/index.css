@@ -173,6 +173,17 @@ html[data-smooth-scroll]::-webkit-scrollbar,
 html[data-smooth-scroll] body::-webkit-scrollbar {
   display: none;
 }
+/* Below lg the smoother never runs and scroll is native, but the scene is a
+   full-bleed composition there too — no scrollbar riding over the frame. */
+@media (max-width: 1023.98px) {
+  html {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+}
 /* ---- motion ------------------------------------------------------------ */
 
 /* Reveal (src/components/Reveal.tsx): a block's children rise into place one

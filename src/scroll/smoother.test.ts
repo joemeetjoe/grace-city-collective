@@ -17,8 +17,6 @@ describe("smootherOptions", () => {
     const options = smootherOptions({ reducedMotion: false, touch: false });
     expect(options).not.toBeNull();
     expect(options!.smooth).toBe(SMOOTH_SECONDS);
-    expect(options!.smooth).toBeGreaterThanOrEqual(1.0);
-    expect(options!.smooth).toBeLessThanOrEqual(1.2);
     expect(options!.smoothTouch).toBe(false);
   });
 

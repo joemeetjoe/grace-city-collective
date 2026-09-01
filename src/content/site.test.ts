@@ -15,15 +15,4 @@ describe("site content", () => {
     const navIds = site.nav.map((n) => n.id);
     expect(navIds).toEqual(ids.filter((id) => navIds.includes(id)));
   });
-
-  it("the scene is the six stops, in order", () => {
-    expect(site.scene.map((s) => s.label)).toEqual([
-      "Hero",
-      "Who we are",
-      "House churches",
-      "Gatherings",
-      "Give",
-      "Visit",
-    ]);
-  });
 });

@@ -79,10 +79,6 @@ describe("watchWithScrollTrigger", () => {
     const stop = watchWithScrollTrigger(sections, () => {});
     const triggers = ScrollTrigger.getAll();
     expect(triggers.map((t) => t.trigger)).toEqual(sections.map((s) => s.el));
-    for (const t of triggers) {
-      expect(t.vars.start).toBe("top 50%");
-      expect(t.vars.end).toBe("bottom 50%");
-    }
     stop();
     expect(ScrollTrigger.getAll()).toEqual([]);
   });

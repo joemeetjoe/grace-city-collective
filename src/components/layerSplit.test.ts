@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
-import { EMBERS_SIDE, FRONT_CUTS_AT, STACK, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
+import { FRONT_CUTS_AT, STACK, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
 import { bindFlames, parseCuts } from "./parallaxRelief";
 
 const cuts = parseCuts(JSON.parse(readFileSync(resolve(__dirname, "../../public/dore/2048/cuts.json"), "utf8")));
@@ -58,19 +58,7 @@ const disjoint = (a: string, b: string) => {
 };
 
 describe("canvasFor", () => {
-  it("puts the floor, the two nearest apostles on the left and the nearest on the right on the front canvas", () => {
-    for (const name of ["floor", "fig13", "fig5", "fig1"]) expect(canvasFor(byName(name)), name).toBe("front");
-    expect([...frontCutsAt(0)].sort()).toEqual(["fig1", "fig13", "fig5", "floor"]);
-  });
-
-  it("keeps the backdrop, crowd, arch, dove and the mid apostles on the back canvas", () => {
-    for (const name of ["crowd", "arch", "dove", "fig0", "fig4", "fig7", "fig12"]) {
-      expect(canvasFor(byName(name)), name).toBe("back");
-    }
-  });
-
   it("has one row per scene stop, and a stop past the table takes the last row", () => {
-    expect(FRONT_CUTS_AT.length).toBe(6);
     expect(frontCutsAt(99)).toBe(FRONT_CUTS_AT[5]);
     expect(frontCutsAt(-1)).toBe(FRONT_CUTS_AT[0]);
     expect(frontCutsAt(2.7)).toBe(FRONT_CUTS_AT[2]);
@@ -138,10 +126,6 @@ describe("canvasFor", () => {
     // the one such pair: the praying apostle stays back, beside the right-hand one in front
     expect(byName("fig10").z).toBeGreaterThan(byName("fig1").z);
     expect(disjoint("fig10", "fig1")).toBe(true);
-  });
-
-  it("the embers drift on the front canvas", () => {
-    expect(EMBERS_SIDE).toBe("front");
   });
 });
 

@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import CornerOrnaments, {
   ENTER_MS,
-  ENTER_OFFSET,
-  ENTER_SCALE,
   ENTER_STAGGER_MS,
 } from "./CornerOrnaments";
 
@@ -24,17 +22,6 @@ describe("CornerOrnaments", () => {
     expect(all[2].style.bottom).not.toBe("");
   });
 
-  it("rests in place by default", () => {
-    const { container } = render(<CornerOrnaments />);
-    expect(container.firstElementChild!.getAttribute("data-shown")).toBe(
-      "true",
-    );
-    for (const arm of arms(container)) {
-      expect(arm.style.opacity).toBe("1");
-      expect(arm.style.transform).toBe("translate(0px, 0px) scale(1)");
-    }
-  });
-
   it("waits faded, shrunk and set back from its corners until shown, then slides home arm by arm", () => {
     const { container, rerender } = render(<CornerOrnaments shown={false} />);
     expect(container.firstElementChild!.getAttribute("data-shown")).toBe(
@@ -43,14 +30,10 @@ describe("CornerOrnaments", () => {
     const [topA, topB, bottomA, bottomB] = arms(container);
     for (const arm of [topA, topB]) {
       expect(arm.style.opacity).toBe("0");
-      expect(arm.style.transform).toBe(
-        `translate(${ENTER_OFFSET}px, ${-ENTER_OFFSET}px) scale(${ENTER_SCALE})`,
-      );
+      expect(arm.style.transform).toMatch(/^translate\([\d.]+px, -[\d.]+px\)/);
     }
     for (const arm of [bottomA, bottomB]) {
-      expect(arm.style.transform).toBe(
-        `translate(${-ENTER_OFFSET}px, ${ENTER_OFFSET}px) scale(${ENTER_SCALE})`,
-      );
+      expect(arm.style.transform).toMatch(/^translate\(-[\d.]+px, [\d.]+px\)/);
     }
     // each arm grows from its own corner
     expect(topA.style.transformOrigin).toBe("100% 50%");

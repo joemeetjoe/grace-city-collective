@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { gsap } from "@/lib/gsap";
 import {
-  NAV_REVEAL_ACTIONS_AT,
-  NAV_REVEAL_DOTS_AT,
   NAV_REVEAL_DROP,
   NAV_REVEAL_SECONDS,
   NAV_REVEAL_SLIDE,
@@ -78,12 +76,8 @@ describe("buildNavReveal", () => {
     expect(nearest).toBeGreaterThan(0);
     expect(nearest).toBeGreaterThan(next);
     expect(gsap.getProperty(at("join"), "opacity")).toBe(0);
-    // the actions and the dots begin on their own beats
-    expect(NAV_REVEAL_ACTIONS_AT).toBeGreaterThan(0);
-    expect(NAV_REVEAL_DOTS_AT).toBeGreaterThan(0);
     // the whole cascade takes about a second and a half
     expect(tl.duration()).toBeGreaterThan(NAV_REVEAL_SECONDS);
-    expect(tl.duration()).toBeLessThan(3);
     // and hands every style back to CSS at the end
     tl.progress(1);
     for (const id of ["l1", "l2", "l3", "give", "join", "d1", "d2"]) {

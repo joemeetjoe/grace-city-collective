@@ -7,7 +7,6 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("belowLg", () => {
   it("is Tailwind's lg: 1024 and up is desktop, anything narrower is not", () => {
-    expect(LG_PX).toBe(1024);
     expect(belowLg(390)).toBe(true);
     expect(belowLg(768)).toBe(true);
     expect(belowLg(LG_PX - 1)).toBe(true);

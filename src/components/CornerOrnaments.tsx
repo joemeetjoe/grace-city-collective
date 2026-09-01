@@ -18,7 +18,7 @@ export type CornerOrnamentsProps = {
 
 /** the scene frame's brackets: inside the cream line, long arms */
 export const FRAME_ARM = "clamp(72px,9vw,150px)";
-export const FRAME_INSET = "calc(clamp(12px,2.4vw,26px) + 12px)";
+export const FRAME_INSET = "calc(clamp(9px,2.4vw,26px) + 12px)";
 
 /** a copy block's brackets: at the block's padding edge, shorter arms */
 export const COPY_ARM = "clamp(44px,5.5vw,90px)";
