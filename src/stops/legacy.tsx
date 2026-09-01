@@ -4,21 +4,17 @@ import GatheringCalendar from "@/components/GatheringCalendar";
 import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
 import SharedLife from "@/components/SharedLife";
-import SowingMark from "@/components/SowingMark";
 import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";
 import PanelReveal from "@/components/panel/PanelReveal";
 import { REVEAL_STAGGER_MS } from "@/components/Reveal";
-import SmoothHeight from "@/components/SmoothHeight";
-import WayIn from "@/components/WayIn";
 import {
   GATHERING_MARKS,
   type GatheringMark as Mark,
   type SceneSection,
-  wayIn,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
-import { SEAL_BUTTON, serif } from "@/app/styles";
+import { serif } from "@/app/styles";
 import { PHONE_BODY, TUCK, stopFrame } from "@/stops/tuck";
 import { useStopPanel } from "@/stops/useStopPanel";
 
@@ -87,35 +83,6 @@ function GatheringsCalendar({
 }
 
 /**
- * The visit stop's way in (WayIn): five steps from a first hello to a house
- * church of one's own, drawn in with the panel's brackets; the reader walks
- * them by the diamond arrows. Below lg (`single`) the current step stands
- * alone between the arrows, and the next slides in when one is pressed.
- */
-function TheWayIn({
-  step,
-  onStep,
-  single,
-}: {
-  step: number;
-  onStep: (step: number) => void;
-  single: boolean;
-}) {
-  const site = useSite();
-  const shown = useContext(PanelShownContext);
-  return (
-    <WayIn
-      steps={wayIn(site)}
-      step={step}
-      onStep={onStep}
-      shown={shown}
-      single={single}
-      className="pt-1"
-    />
-  );
-}
-
-/**
  * Where a stop's column ornament sits (HouseChurchesTable, AboutSharedLife):
  * from md up in a column on the right of the words past a divider, the
  * drawing absolutely placed inside so it fills the column's height (set by
@@ -160,32 +127,6 @@ function HouseChurchesTable({ lit }: { lit: boolean }) {
 }
 
 /**
- * The giving's ornament: a field sown and reaped in the G mark's box
- * (SowingMark), standing in the band the give panel pads on its left to keep
- * its words centred under the hood (TUCK). It cascades in with the panel's
- * brackets and the harvest fills while the reader is over the panel. Below
- * lg there is no band: the field stands at the head of the panel over the
- * words, a size that keeps its tiles the calendar's, and fills while the
- * stop is settled on screen (Scene).
- */
-function GiveSowing({ lit }: { lit: boolean }) {
-  const shown = useContext(PanelShownContext);
-  return (
-    <div
-      data-give-sowing=""
-      // on desktop it starts at the glass's padding and runs the width of
-      // the house table's column (HouseChurchesTable), wider than the give
-      // tuck alone: the words set narrower than the room the tuck leaves
-      // them, so the field can borrow the slack and keep tiles the
-      // calendar's size
-      className="relative w-[clamp(120px,32vw,150px)] lg:absolute lg:top-1/2 lg:left-[clamp(18px,2.6vw,32px)] lg:w-[clamp(140px,11.5vw,200px)] lg:-translate-y-1/2"
-    >
-      <SowingMark lit={lit} shown={shown} className="w-full" />
-    </div>
-  );
-}
-
-/**
  * The who-we-are's ornament: an order of service that huddles into a life
  * shared (SharedLife), on the right of the panel past a divider, in the
  * column its tuck clears for the two near apostles — never narrower than
@@ -220,9 +161,9 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
 }
 
 /**
- * The stops not yet migrated to their own components (#79–#81): the
- * gatherings, visit, give and about/house-churches branches of the old
- * Scene, moved verbatim. The dispatcher (Scene.tsx) falls through to this
+ * The stops not yet migrated to their own components (#79, #81): the
+ * gatherings and about/house-churches branches of the old Scene, moved
+ * verbatim. The dispatcher (Scene.tsx) falls through to this
  * until each stop moves out.
  */
 export default function LegacyStop({ section: s }: { section: SceneSection }) {
@@ -232,10 +173,6 @@ export default function LegacyStop({ section: s }: { section: SceneSection }) {
   // whether the reader is over the house churches' panel, seating its table,
   // or the who-we-are's, huddling its program
   const [over, setOver] = useState(false);
-  // whether the pointer is over the giving, filling the field beside its words
-  const [giving, setGiving] = useState(false);
-  // the step of the way in the reader stands on (visit)
-  const [way, setWay] = useState(0);
   const { panel, belowLg, playing, inTurn } = useStopPanel(
     site.gatherings.length,
   );
@@ -312,110 +249,6 @@ export default function LegacyStop({ section: s }: { section: SceneSection }) {
               })}
             </PanelReveal>
           </div>
-        </Bracketed>
-      </section>
-    );
-  }
-  if (s.id === "visit") {
-    const steps = wayIn(site);
-    const at = steps[Math.min(way, steps.length - 1)];
-    // the dove hangs in the upper third of the visit frame; the panel sits
-    // under it, and fills the frame's width up to a reading measure. Its
-    // headline and body are the current step's, and rise in each time the
-    // traveller lands; the way in itself stands at the panel's foot
-    return (
-      <section
-        id={s.id}
-        data-screen-label={s.label}
-        className={`${base} ${clear} flex-col items-center justify-end text-center lg:pt-[clamp(104px,13vh,140px)] lg:pb-[clamp(120px,17vh,170px)]`}
-      >
-        {/* the panel keeps clear of the lockup at the frame's foot, so it sets
-            a size down from the give stop's and tighter still on a short viewport */}
-        <Bracketed
-          {...panel}
-          className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
-        >
-          {/* the kicker stands at the panel's left, its rule drawn from there; the rest is centred */}
-          <Kicker className="self-start text-left">{s.kicker}</Kicker>
-          <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
-            {/* the words' height eases from one step to the next, so the glass
-                grows and shrinks with them instead of jumping */}
-            {/* wrapped, so the reveal's own transition stays on the wrapper
-                and the height's on the block (Reveal) */}
-            <div className="w-full">
-              <SmoothHeight className="w-full">
-                <div
-                  key={way}
-                  data-way-words=""
-                  aria-live="polite"
-                  className="way-in-rise flex flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
-                >
-                  <h2
-                    className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
-                  >
-                    {at?.title}
-                  </h2>
-                  <p className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}>
-                    {at?.body}
-                  </p>
-                  {/* the call to write sits under the first step's words, and goes with them */}
-                  {way === 0 && s.cta && (
-                    <a
-                      href={s.cta.href}
-                      className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
-                    >
-                      {s.cta.label}
-                    </a>
-                  )}
-                </div>
-              </SmoothHeight>
-            </div>
-            <TheWayIn step={way} onStep={setWay} single={belowLg} />
-          </PanelReveal>
-        </Bracketed>
-      </section>
-    );
-  }
-  if (s.id === "give") {
-    return (
-      <section
-        id={s.id}
-        data-screen-label={s.label}
-        className={`${base} flex-col items-center text-center justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}
-      >
-        <Bracketed
-          {...panel}
-          className={`flex flex-col items-center gap-5 md:gap-[26px] ${TUCK[s.id] ?? ""}`}
-          onMouseEnter={s.id === "give" ? () => setGiving(true) : undefined}
-          onMouseLeave={s.id === "give" ? () => setGiving(false) : undefined}
-        >
-          {s.id === "give" && (
-            <GiveSowing lit={belowLg ? playing : giving} />
-          )}
-          <Kicker centred>{s.kicker}</Kicker>
-          <PanelReveal className="flex flex-col items-center gap-5 md:gap-[26px]">
-            <h2
-              className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[56px] ${serif}`}
-            >
-              {s.heading}
-            </h2>
-            {s.body.map((p) => (
-              <p
-                key={p}
-                className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}
-              >
-                {p}
-              </p>
-            ))}
-            {s.cta && (
-              <a
-                href={s.cta.href}
-                className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
-              >
-                {s.cta.label}
-              </a>
-            )}
-          </PanelReveal>
         </Bracketed>
       </section>
     );
