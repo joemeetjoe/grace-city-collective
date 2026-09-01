@@ -89,11 +89,12 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
 }
 
 /**
- * The stops not yet migrated to their own components (#81): the
- * about/house-churches branch of the old Scene, moved verbatim. The
- * dispatcher (Scene.tsx) falls through to this until each stop moves out.
+ * The about and house-churches stops, one component: they share the
+ * words-beside-ornament layout, the pointer-over lighting and the tuck
+ * wiring; the per-stop differences (side placement, heading sizes, which
+ * ornament) are the conditionals below.
  */
-export default function LegacyStop({ section: s }: { section: SceneSection }) {
+export default function AboutHousesStop({ section: s }: { section: SceneSection }) {
   // whether the reader is over the house churches' panel, seating its table,
   // or the who-we-are's, huddling its program
   const [over, setOver] = useState(false);
