@@ -1,5 +1,4 @@
 import {
-  createContext,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -18,11 +17,17 @@ import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
 import SharedLife from "@/components/SharedLife";
 import SowingMark from "@/components/SowingMark";
-import { GLASS, GLASS_CORNERS } from "@/components/glass";
 import { FOCUS_RING, LINK_SWEEP } from "@/components/interact";
 import { STACK } from "@/components/layerSplit";
 import Lockup from "@/components/Lockup";
-import OrnateRule from "@/components/OrnateRule";
+import Bracketed, {
+  PANEL_SHOWN_BELOW_LG,
+  PANEL_SHOWN_DESKTOP,
+  PanelShownContext,
+} from "@/components/panel/Bracketed";
+import Kicker from "@/components/panel/Kicker";
+import PanelReveal from "@/components/panel/PanelReveal";
+import SectionRule from "@/components/panel/SectionRule";
 import ScriptureRefs from "@/components/ScriptureRefs";
 import SiteNav from "@/components/SiteNav";
 import SmoothHeight from "@/components/SmoothHeight";
@@ -31,8 +36,7 @@ import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
 import WayIn from "@/components/WayIn";
 import { useInTurn } from "@/components/useInTurn";
-import { PLAY_MARGIN, useInView, type InViewOptions } from "@/components/useInView";
-import { useInViewOnce } from "@/components/useInViewOnce";
+import { useInView } from "@/components/useInView";
 import { vignetteCss } from "@/components/vignette";
 import {
   GATHERING_MARKS,
@@ -70,34 +74,6 @@ const PHONE_BODY = "max-lg:text-[14.5px] max-lg:leading-[1.6] max-lg:font-[380]"
 // with an edge tucked behind one, its words placed clear
 const between = `relative ${STACK.between}`;
 
-/** the ornamented rule that opens each long-form section, centred, in the seal's red */
-const SEPARATOR =
-  "mx-auto mb-[clamp(40px,6vh,72px)] w-[clamp(160px,24vw,320px)] text-seal";
-
-/** how far outside a copy panel's edge its brackets sit */
-const PANEL_BRACKET_OUT = "-10px";
-
-/** how much of a copy panel must be on screen before its brackets come in */
-const PANEL_ENTER_THRESHOLD = 0.45;
-
-/**
- * When a stop's panel is shown, as `useInView` watches it. On desktop, once
- * most of it is on screen (its section is a viewport, so that is the turn of
- * the page). Below lg the sections are as tall as their words (#52), so the
- * next stop's panel can stand on screen before its own turn: there it is
- * shown while it is settled in the play band — enter and leave, so it fills
- * as it arrives and empties again once well past. Both start shown, so the
- * words are up until the observer says otherwise.
- */
-const PANEL_SHOWN_DESKTOP: InViewOptions = {
-  threshold: PANEL_ENTER_THRESHOLD,
-  initial: true,
-};
-const PANEL_SHOWN_BELOW_LG: InViewOptions = {
-  rootMargin: PLAY_MARGIN,
-  initial: true,
-};
-
 /**
  * On a phone a stop's ornament plays the pointer's part a beat after its
  * rows have printed in (useInTurn), so its rest state — the program, the
@@ -107,12 +83,6 @@ const PANEL_SHOWN_BELOW_LG: InViewOptions = {
  */
 const ORNAMENT_LIT_AT_MS = 1200;
 const EMBLEM_LIT_STEP_MS = 400;
-
-/** whether the copy panel around a component is shown, for ornaments that come in with its brackets */
-const PanelShownContext = createContext(true);
-
-/** how much of a long-form section's opening rule must be on screen before it draws */
-const RULE_DRAW_THRESHOLD = 0.5;
 
 /**
  * Where each stop's panel tucks behind the nearest figures (the front cuts
@@ -150,68 +120,6 @@ const TUCK: Partial<Record<string, string>> = {
     "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:[--tuck:clamp(120px,calc(58.8vw_-_63.6vh_-_60px),420px)] lg:pb-[clamp(40px,calc(30vh_-_200px),120px)] 2xl:max-w-[1200px]",
   give: "lg:translate-x-[clamp(120px,9.4vw,160px)] lg:px-[clamp(120px,9.4vw,160px)]",
 };
-
-/**
- * A scene stop's copy block: a panel of frosted glass, so the words read
- * over the brightest parts of the plate while the engraving still shows
- * through, with the frame's brackets just outside its edges. The whole panel
- * — glass, brackets and words — sits under the front canvas, so the nearest
- * figures cross it: it scrolls in from behind them, and at rest an edge of
- * the glass tucks behind one while the words sit clear (the glass blurs only
- * the back canvas, so a figure over it stays sharp). Nothing inside may
- * carry a step of STACK: the panel is a stacking context of its own.
- */
-function Bracketed({
-  ref,
-  shown,
-  className = "",
-  onMouseEnter,
-  onMouseLeave,
-  children,
-}: {
-  /** the panel, for the stop to watch (Scene) */
-  ref: React.RefObject<HTMLDivElement | null>;
-  /**
-   * whether the panel is shown: its brackets slide home and its words rise,
-   * and reset when it is not, so every turn of the page brings them in again
-   */
-  shown: boolean;
-  className?: string;
-  /** for a panel lit as a whole while the reader is over it */
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      ref={ref}
-      data-copy-panel=""
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      className={`${between} ${GLASS} p-[clamp(18px,2.6vw,32px)] ${GLASS_CORNERS} ${className}`}
-    >
-      <CornerOrnaments inset={PANEL_BRACKET_OUT} shown={shown} />
-      <PanelShownContext.Provider value={shown}>
-        {children}
-      </PanelShownContext.Provider>
-    </div>
-  );
-}
-
-/** the ornamented rule that opens a long-form section, drawn the first time it is seen */
-function SectionRule() {
-  const ref = useRef<HTMLSpanElement>(null);
-  const drawn = useInViewOnce(ref, RULE_DRAW_THRESHOLD);
-  return <OrnateRule ref={ref} drawn={drawn} className={SEPARATOR} />;
-}
-
-/** a copy panel's words: they rise in with the panel's brackets and go back out with them */
-function PanelReveal(
-  props: Omit<React.ComponentProps<typeof Reveal>, "shown">,
-) {
-  const shown = useContext(PanelShownContext);
-  return <Reveal shown={shown} {...props} />;
-}
 
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */
 const FRAME_CORNERS =
@@ -686,49 +594,6 @@ export default function App() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-/** how long a kicker's rule takes to draw, in ms, and how long after its panel's brackets start */
-const KICKER_RULE_MS = 900;
-const KICKER_RULE_AT_MS = 300;
-
-/**
- * A section's kicker with the hairline rule under it, both between the
- * canvases like the rest of a section's words. The rule draws out — from
- * the left, or from the middle when centred — when the panel around it is
- * shown, or as `drawn` says.
- */
-function Kicker({
-  children,
-  className = "",
-  centred = false,
-  drawn,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  centred?: boolean;
-  /** when to draw the rule; by default, with the panel's brackets */
-  drawn?: boolean;
-}) {
-  const shown = useContext(PanelShownContext);
-  const on = drawn ?? shown;
-  return (
-    <div
-      className={`flex flex-col gap-3 ${centred ? "items-center" : ""} ${className}`}
-    >
-      <p className={`${between} text-balance ${kickerCls}`}>{children}</p>
-      <hr
-        aria-hidden
-        data-kicker-rule=""
-        data-drawn={on ? "true" : "false"}
-        className={`${between} h-px w-12 border-0 bg-cream/30 motion-safe:transition-transform motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)] ${centred ? "origin-center" : "origin-left"} ${on ? "" : "motion-safe:scale-x-0"}`}
-        style={{
-          transitionDuration: `${KICKER_RULE_MS}ms`,
-          transitionDelay: `${KICKER_RULE_AT_MS}ms`,
-        }}
-      />
     </div>
   );
 }
