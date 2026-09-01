@@ -17,7 +17,6 @@ import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
 import SharedLife from "@/components/SharedLife";
 import SowingMark from "@/components/SowingMark";
-import { FOCUS_RING, LINK_SWEEP } from "@/components/interact";
 import { STACK } from "@/components/layerSplit";
 import Lockup from "@/components/Lockup";
 import Bracketed, {
@@ -27,12 +26,10 @@ import Bracketed, {
 } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";
 import PanelReveal from "@/components/panel/PanelReveal";
-import SectionRule from "@/components/panel/SectionRule";
-import ScriptureRefs from "@/components/ScriptureRefs";
 import SiteNav from "@/components/SiteNav";
 import SmoothHeight from "@/components/SmoothHeight";
 import PentecostParallax from "@/components/PentecostParallax";
-import Reveal, { REVEAL_STAGGER_MS } from "@/components/Reveal";
+import { REVEAL_STAGGER_MS } from "@/components/Reveal";
 import StaticPoster from "@/components/StaticPoster";
 import WayIn from "@/components/WayIn";
 import { useInTurn } from "@/components/useInTurn";
@@ -43,13 +40,17 @@ import {
   type GatheringMark as Mark,
   type SceneSection,
   sectionIds,
-  type SiteContent,
   wayIn,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
+import Beliefs from "@/longform/Beliefs";
+import Devotions from "@/longform/Devotions";
+import Faq from "@/longform/Faq";
+import Messages from "@/longform/Messages";
+import SiteFooter from "@/longform/SiteFooter";
 import { IntroPendingContext, ReducedMotionContext } from "@/app/contexts";
 import { jumpTo } from "@/app/jump";
-import { SEAL_BUTTON, gutter, kickerCls, serif } from "@/app/styles";
+import { SEAL_BUTTON, gutter, serif } from "@/app/styles";
 import { HERO_HEADLINE, riseHeroHeadline } from "@/intro/heroRise";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
@@ -124,10 +125,6 @@ const TUCK: Partial<Record<string, string>> = {
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */
 const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
-
-function longform(site: SiteContent, id: string) {
-  return site.longform.find((s) => s.id === id)!;
-}
 
 export default function App() {
   // decided once per mount: once per session, and never under reduced motion
@@ -208,11 +205,6 @@ export default function App() {
   const ids = useMemo(() => sectionIds(site), [site]);
   const markers = useMemo(() => sectionMarkers(site), [site]);
   const activeId = useActiveSection(ids);
-  const devotions = longform(site, "devotions");
-  const beliefs = longform(site, "beliefs");
-  const faq = longform(site, "faq");
-  const messages = longform(site, "messages");
-  const { contact } = site;
 
   return (
     <div
@@ -357,240 +349,11 @@ export default function App() {
 
           {/* long-form: ordinary scrolling on ink, no waypoints */}
           <div data-longform="" className="relative z-10 bg-ink">
-            <section
-              id={devotions.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
-            >
-              <SectionRule />
-              <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
-                <Reveal
-                  as="header"
-                  className="flex max-w-[640px] flex-col gap-5"
-                >
-                  <p className={kickerCls}>{devotions.kicker}</p>
-                  <h2
-                    className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
-                  >
-                    {devotions.heading}
-                  </h2>
-                  <p className="text-lg leading-relaxed text-pretty text-cream/75">
-                    {site.devotionsIntro}
-                  </p>
-                </Reveal>
-                {/* revealed per item, so the list comes in as it is reached however tall it runs */}
-                <ol className="grid gap-x-10 gap-y-9 [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
-                  {site.devotions.map((d, i) => (
-                    <Reveal
-                      as="li"
-                      key={d.title}
-                      className="rule-draw flex flex-col gap-3 pt-5"
-                    >
-                      <p className="text-xs uppercase tracking-[0.16em] text-seal">
-                        {String(i + 1).padStart(2, "0")} ·{" "}
-                        <ScriptureRefs refs={d.refs} />
-                      </p>
-                      <h3 className={`text-[28px] leading-[1.12] ${serif}`}>
-                        {d.title}
-                      </h3>
-                      <p className="text-base leading-relaxed text-cream/70">
-                        {d.body}
-                      </p>
-                    </Reveal>
-                  ))}
-                </ol>
-              </div>
-            </section>
-
-            <section
-              id={beliefs.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
-            >
-              <SectionRule />
-              <div className="mx-auto flex max-w-[1080px] flex-col gap-12">
-                <Reveal
-                  as="header"
-                  className="flex max-w-[720px] flex-col gap-5"
-                >
-                  <p className={kickerCls}>{beliefs.kicker}</p>
-                  <h2
-                    className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
-                  >
-                    {beliefs.heading}
-                  </h2>
-                </Reveal>
-                <ul className="grid gap-8 md:grid-cols-3">
-                  {site.beliefPosture.map((p) => (
-                    <Reveal
-                      as="li"
-                      key={p.ref}
-                      className="rule-draw flex flex-col gap-3 pt-5"
-                    >
-                      <p className={`text-[22px] leading-snug ${serif}`}>
-                        {p.line}
-                      </p>
-                      <p className="text-sm leading-relaxed text-cream/60">
-                        “{p.quote}”
-                      </p>
-                      <p className="text-xs uppercase tracking-[0.16em] text-seal">
-                        {p.ref}
-                      </p>
-                    </Reveal>
-                  ))}
-                </ul>
-                <dl className="grid gap-x-10 gap-y-10 md:grid-cols-2">
-                  {site.beliefs.map((b) => (
-                    <Reveal key={b.title} className="flex flex-col gap-3">
-                      <dt className={`text-[28px] leading-[1.12] ${serif}`}>
-                        {b.title}
-                      </dt>
-                      <dd className="text-base leading-relaxed text-cream/70">
-                        {b.body}
-                      </dd>
-                      <dd className="text-xs uppercase tracking-[0.16em] text-seal">
-                        <ScriptureRefs refs={b.refs} />
-                      </dd>
-                    </Reveal>
-                  ))}
-                </dl>
-              </div>
-            </section>
-
-            <section
-              id={faq.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
-            >
-              <SectionRule />
-              <div className="mx-auto flex max-w-[1080px] flex-col gap-10 md:flex-row md:gap-16">
-                <Reveal as="header" className="flex flex-col gap-5 md:w-1/3">
-                  <p className={kickerCls}>{faq.kicker}</p>
-                  <h2
-                    className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
-                  >
-                    {faq.heading}
-                  </h2>
-                </Reveal>
-                <dl className="flex flex-1 flex-col">
-                  {site.faq.map((q) => (
-                    <Reveal
-                      key={q.question}
-                      className="rule-draw flex flex-col gap-3 py-6"
-                    >
-                      <dt className={`text-[26px] leading-[1.15] ${serif}`}>
-                        {q.question}
-                      </dt>
-                      <dd className="text-base leading-relaxed text-cream/70">
-                        {q.answer}
-                      </dd>
-                    </Reveal>
-                  ))}
-                </dl>
-              </div>
-            </section>
-
-            <section
-              id={messages.id}
-              className={`scroll-mt-24 ${gutter} py-[clamp(56px,9vh,140px)] md:py-[clamp(80px,12vh,140px)]`}
-            >
-              <SectionRule />
-              <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
-                <Reveal as="header" className="flex flex-col gap-5">
-                  <p className={kickerCls}>{messages.kicker}</p>
-                  <h2
-                    className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
-                  >
-                    <span className="block text-[11px] uppercase tracking-[0.28em] text-cream/50 font-sans mb-3">
-                      Current series
-                    </span>
-                    {site.messages.series}
-                  </h2>
-                </Reveal>
-                <ol className="grid gap-x-10 gap-y-8 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-                  {site.messages.latest.map((m) => (
-                    <Reveal
-                      as="li"
-                      key={m.href}
-                      className="rule-draw flex flex-col gap-3 pt-5"
-                    >
-                      <p className="text-xs uppercase tracking-[0.16em] text-seal">
-                        {m.date} · {m.passage}
-                      </p>
-                      <h3 className={`text-[26px] leading-[1.15] ${serif}`}>
-                        <a
-                          href={m.href}
-                          className={`${LINK_SWEEP} ${FOCUS_RING} rounded-sm hover:text-cream/80`}
-                        >
-                          {m.title}
-                        </a>
-                      </h3>
-                      <p className="text-sm text-cream/60">{m.speaker}</p>
-                    </Reveal>
-                  ))}
-                </ol>
-                <Reveal className="flex">
-                  <p className="text-[11px] uppercase tracking-[0.22em]">
-                    <a
-                      href={site.messages.all.href}
-                      className={`${LINK_SWEEP} ${FOCUS_RING} rounded-sm text-cream/70 hover:text-cream`}
-                    >
-                      {site.messages.all.label}
-                    </a>
-                  </p>
-                </Reveal>
-              </div>
-            </section>
-
-            <footer
-              className={`${gutter} border-t border-cream/15 py-[clamp(48px,8vh,80px)]`}
-            >
-              <Reveal
-                stagger={REVEAL_STAGGER_MS * 2}
-                className="mx-auto grid max-w-[1080px] gap-10 text-sm text-cream/70 md:grid-cols-3"
-              >
-                <div className="flex flex-col gap-2">
-                  <p className={`text-[22px] text-cream ${serif}`}>
-                    {site.name}
-                  </p>
-                  <p>
-                    {contact.address.street} {contact.address.suite}
-                    <br />
-                    {contact.address.city}
-                  </p>
-                  <p>Sunday Worship Gathering · {contact.sunday}</p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <a
-                    href={`mailto:${contact.email}`}
-                    className={`${LINK_SWEEP} ${FOCUS_RING} self-start rounded-sm hover:text-cream`}
-                  >
-                    {contact.email}
-                  </a>
-                  <p>{contact.pastor.name}, pastor</p>
-                  <a
-                    href={`mailto:${contact.pastor.email}`}
-                    className={`${LINK_SWEEP} ${FOCUS_RING} self-start rounded-sm hover:text-cream`}
-                  >
-                    {contact.pastor.email}
-                  </a>
-                </div>
-                <div className="flex flex-col gap-2 md:items-end">
-                  <p className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] uppercase tracking-[0.22em]">
-                    <span className="text-cream/45">{site.footer.follow}</span>
-                    {site.socials.map((s) => (
-                      <a
-                        key={s.href}
-                        href={s.href}
-                        className={`${LINK_SWEEP} ${FOCUS_RING} rounded-sm hover:text-cream`}
-                      >
-                        {s.label}
-                      </a>
-                    ))}
-                  </p>
-                  <p className="text-xs text-cream/45">
-                    © {site.footer.copyright}
-                  </p>
-                </div>
-              </Reveal>
-            </footer>
+            <Devotions />
+            <Beliefs />
+            <Faq />
+            <Messages />
+            <SiteFooter />
           </div>
         </div>
       </div>
