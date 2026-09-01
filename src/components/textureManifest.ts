@@ -1,7 +1,7 @@
 /**
  * Where the scene's textures live and how a cut's mask is read out of them.
  *
- * tools/recut/pack_textures.py writes one tier per plate width under
+ * The dore-recut project's pack_textures.py writes one tier per plate width under
  * public/dore/<width>/, each with its own cuts.json. Masks there are packed
  * four to a lossless RGBA WebP and referenced as { file, channel }; the
  * fragment shader reads the channel with dot(texture2D(mask, uv), uMaskChannel),

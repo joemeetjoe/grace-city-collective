@@ -96,10 +96,11 @@ service, shows the actual number after the first week.
 
 ## Recut toolchain
 
-The Doré layers in `public/dore/` are produced by the Python scripts in
-`tools/recut` (SAM segmentation, depth baking, SDXL inpainting of occluded
-figures). They expect a `.venv-recut` virtualenv and write scratch output to
-`tools/recut/out-*`, both gitignored. `tools/shots/cdp-shot.mjs` takes
+The Doré layers in `public/dore/` are produced by the standalone
+[dore-recut](https://github.com/joemeetjoe/dore-recut) project (formerly
+`tools/recut` here; SAM segmentation, depth baking, SDXL inpainting of
+occluded figures). Regenerate there and copy its `out/dore/{2048,1024}`
+into `public/dore/`. `tools/shots/cdp-shot.mjs` takes
 headless-Chrome screenshots of the scene at scroll waypoints, and
 `tools/shots/mobile-check.mjs` is the standing mobile guard: it loads the
 built site at the four phone/tablet sizes (375×667, 390×844, 430×932 at

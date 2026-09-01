@@ -48,7 +48,7 @@ export function tierFor({ width, dpr, saveData }: TierInputs): Tier {
 
 /**
  * The `public/` directory a tier's textures live in (relative; pass through
- * `assetUrl`): the 2048 or 1024 set written by tools/recut/pack_textures.py.
+ * `assetUrl`): the 2048 or 1024 set written by dore-recut's pack_textures.py.
  */
 export function textureDir(tier: Tier): string {
   return tierDir(tier.textures === "1024" ? 1024 : 2048);

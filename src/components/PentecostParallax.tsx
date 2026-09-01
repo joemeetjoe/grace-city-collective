@@ -36,7 +36,7 @@ import { VIGNETTE_GLSL } from "./vignette";
  * reassembled in three.js. Scroll drives a camera that visits one waypoint per
  * <section data-screen-label> on the page.
  *
- * Assets expected in /public/dore/<tier>/ (tools/recut/pack_textures.py):
+ * Assets expected in /public/dore/<tier>/ (dore-recut pack_textures.py):
  *   plate.webp           the engraving (2048x2519 in the desktop tier)
  *   plate-backdrop.webp  the plate with every cutout inpainted back in
  *   cuts.json            [{ name, z, isFlame, relief?, parent?, at?, mask }] — a
