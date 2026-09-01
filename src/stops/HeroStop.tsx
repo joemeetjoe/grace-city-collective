@@ -2,7 +2,7 @@ import { useContext } from "react";
 
 import { IntroPendingContext } from "@/app/contexts";
 import { serif } from "@/app/styles";
-import Kicker from "@/components/panel/Kicker";
+import Kicker from "@/ui/panel/Kicker";
 import type { SceneSection } from "@/content/site";
 import HeroLockup from "@/stops/HeroLockup";
 import { between, stopFrame } from "@/stops/tuck";

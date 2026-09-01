@@ -9,12 +9,12 @@ import {
 import CornerOrnaments, {
   FRAME_ARM,
   FRAME_INSET,
-} from "@/components/CornerOrnaments";
+} from "@/ui/CornerOrnaments";
 import DotRail from "@/nav/DotRail";
 import { STACK } from "@/theme/layerSplit";
 import SiteNav from "@/nav/SiteNav";
 import { PentecostParallax, StaticPoster, vignetteCss } from "@/engine";
-import { useInView } from "@/components/useInView";
+import { useInView } from "@/ui/useInView";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import Beliefs from "@/longform/Beliefs";

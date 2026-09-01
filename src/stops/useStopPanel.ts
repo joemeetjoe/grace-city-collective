@@ -4,9 +4,9 @@ import { ReducedMotionContext } from "@/app/contexts";
 import {
   PANEL_SHOWN_BELOW_LG,
   PANEL_SHOWN_DESKTOP,
-} from "@/components/panel/Bracketed";
-import { useInTurn } from "@/components/useInTurn";
-import { useInView } from "@/components/useInView";
+} from "@/ui/panel/Bracketed";
+import { useInTurn } from "@/ui/useInTurn";
+import { useInView } from "@/ui/useInView";
 import { useBelowLg } from "@/layout/breakpoint";
 
 /**

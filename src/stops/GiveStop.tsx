@@ -1,9 +1,9 @@
 import { useContext, useState } from "react";
 
 import SowingMark from "@/marks/SowingMark";
-import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
-import Kicker from "@/components/panel/Kicker";
-import PanelReveal from "@/components/panel/PanelReveal";
+import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
+import Kicker from "@/ui/panel/Kicker";
+import PanelReveal from "@/ui/panel/PanelReveal";
 import type { SceneSection } from "@/content/site";
 import { SEAL_BUTTON, serif } from "@/app/styles";
 import { PHONE_BODY, TUCK, stopFrame } from "@/stops/tuck";

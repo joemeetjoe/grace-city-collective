@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import OrnateRule from "@/components/OrnateRule";
+import OrnateRule from "./OrnateRule";
 import { cn } from "@/lib/utils";
 
 export type CornerOrnamentsProps = {

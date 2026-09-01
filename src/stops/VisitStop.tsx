@@ -1,9 +1,9 @@
 import { useContext, useState } from "react";
 
-import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
-import Kicker from "@/components/panel/Kicker";
-import PanelReveal from "@/components/panel/PanelReveal";
-import SmoothHeight from "@/components/SmoothHeight";
+import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
+import Kicker from "@/ui/panel/Kicker";
+import PanelReveal from "@/ui/panel/PanelReveal";
+import SmoothHeight from "@/ui/SmoothHeight";
 import WayIn from "./WayIn";
 import { type SceneSection, wayIn } from "@/content/site";
 import { useSite } from "@/content/useSite";

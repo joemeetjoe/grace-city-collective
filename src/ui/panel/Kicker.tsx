@@ -1,7 +1,7 @@
 import { useContext } from "react";
 
 import { kickerCls } from "@/app/styles";
-import { between, PanelShownContext } from "@/components/panel/Bracketed";
+import { between, PanelShownContext } from "./Bracketed";
 
 /** how long a kicker's rule takes to draw, in ms, and how long after its panel's brackets start */
 const KICKER_RULE_MS = 900;

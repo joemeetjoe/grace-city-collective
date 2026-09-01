@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { useInViewOnce } from "@/components/useInViewOnce";
+import { useInViewOnce } from "./useInViewOnce";
 
 /** how long a child takes to rise, in ms, and the wait between one child and the next */
 export const REVEAL_MS = 1100;

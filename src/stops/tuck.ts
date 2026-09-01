@@ -1,6 +1,6 @@
 import { gutter } from "@/app/styles";
 // one definition of the between-canvases step, kept with the panel that wears it
-import { between } from "@/components/panel/Bracketed";
+import { between } from "@/ui/panel/Bracketed";
 
 export { between };
 

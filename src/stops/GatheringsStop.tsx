@@ -2,10 +2,10 @@ import { useContext, useState } from "react";
 
 import GatheringCalendar from "./GatheringCalendar";
 import GatheringMark from "@/marks/GatheringMark";
-import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
-import Kicker from "@/components/panel/Kicker";
-import PanelReveal from "@/components/panel/PanelReveal";
-import { REVEAL_STAGGER_MS } from "@/components/Reveal";
+import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
+import Kicker from "@/ui/panel/Kicker";
+import PanelReveal from "@/ui/panel/PanelReveal";
+import { REVEAL_STAGGER_MS } from "@/ui/Reveal";
 import {
   GATHERING_MARKS,
   type GatheringMark as Mark,
