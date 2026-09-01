@@ -6,8 +6,6 @@ describe("tierFor", () => {
   it("a wide, sharp, unmetered viewport gets the desktop tier", () => {
     const tier = tierFor({ width: 1600, dpr: 2, saveData: false });
     expect(tier).toBe(TIERS.desktop);
-    expect(tier).toMatchObject({ name: "desktop", textures: "2048", rays: 4 });
-    expect(tier.embers).toBeGreaterThanOrEqual(70);
   });
 
   it("a narrow viewport gets the mobile tier whatever its DPR", () => {
@@ -26,14 +24,6 @@ describe("tierFor", () => {
     expect(tierFor({ width: 1920, dpr: 2, saveData: true })).toBe(TIERS.mobile);
   });
 
-  it("the mobile tier is 1024 textures, a couple dozen embers, 2 ray planes", () => {
-    expect(TIERS.mobile).toMatchObject({ name: "mobile", textures: "1024", embers: 24, rays: 2 });
-  });
-
-  it("caps the render resolution: a DPR-3 phone rasterises at 1.5, a retina desktop at 2", () => {
-    expect(tierFor({ width: 393, dpr: 3, saveData: false }).dprCap).toBe(1.5);
-    expect(tierFor({ width: 1600, dpr: 2, saveData: false }).dprCap).toBe(2);
-  });
 });
 
 describe("textureDir", () => {

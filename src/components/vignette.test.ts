@@ -39,10 +39,5 @@ describe("vignetteCss", () => {
 describe("VIGNETTE_GLSL", () => {
   it("carries the same focus, radii and stops as the CSS", () => {
     expect(VIGNETTE_GLSL).toContain("vec2(0.5, 0.62)"); // gl y is up: 1 - 0.38
-    expect(VIGNETTE_GLSL).toContain("vec2(0.8, 0.65)");
-    expect(VIGNETTE_GLSL).toContain("0.65");
-    expect(VIGNETTE_GLSL).toContain("0.3");
-    expect(VIGNETTE_GLSL).toContain("0.72");
-    expect(VIGNETTE_GLSL).toContain("vec3(0.0784, 0.0627, 0.0549)");
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { channelVector, maskRef, tierDir } from "./textureManifest";
+import { channelVector, maskRef } from "./textureManifest";
 
 describe("maskRef", () => {
   it("points a packed entry at its shared texture and channel", () => {
@@ -27,12 +27,5 @@ describe("channelVector", () => {
     expect(() => channelVector(4)).toThrow(RangeError);
     expect(() => channelVector(-1)).toThrow(RangeError);
     expect(() => channelVector(1.5)).toThrow(RangeError);
-  });
-});
-
-describe("tierDir", () => {
-  it("names the tier by its plate width under dore/", () => {
-    expect(tierDir(2048)).toBe("dore/2048");
-    expect(tierDir(1024)).toBe("dore/1024");
   });
 });

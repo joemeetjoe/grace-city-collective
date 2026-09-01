@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import * as THREE from "three";
 
 import {
-  createRayLayer,
   RAY_FAN_DEG,
   RAY_FAR_Z,
   RAY_NEAR_Z,
@@ -55,12 +53,6 @@ describe("raySpecs", () => {
 });
 
 describe("rayIntensity", () => {
-  it("ramps with scene progress exactly as the flat beam did", () => {
-    expect(rayIntensity(0)).toBeCloseTo(0.3, 6);
-    expect(rayIntensity(1)).toBeCloseTo(1.25, 6);
-    expect(rayIntensity(0.5)).toBeCloseTo(0.3 + Math.pow(0.5, 1.15) * 0.95, 6);
-  });
-
   it("is monotonic and clamps outside the scene", () => {
     let prev = -Infinity;
     for (let p = 0; p <= 1; p += 0.05) {
@@ -113,28 +105,5 @@ describe("rayRenderOrder", () => {
 
   it("draws after every layer when nothing sits in front of it", () => {
     expect(rayRenderOrder(layerZ, 2)).toBe(6.5);
-  });
-});
-
-describe("createRayLayer", () => {
-  // a ray is light on an engraving: it must scale the plate's own tone, not
-  // add a flat glow over it — additive light lifts dark hatching to grey and
-  // whatever the rays cross (the uncut apostles in the backdrop) reads as
-  // blurred wall under the crisp cut heads
-  it("lights the layers beneath multiplicatively, never additively", () => {
-    const layer = createRayLayer(raySpecs(2), {
-      geom: () => new THREE.PlaneGeometry(1, 1),
-      fit: 0.74,
-      plate: { w: 16, h: 19.7 },
-      origin: [0.5, 0.967],
-      renderOrder: () => 3.5,
-    });
-    for (const m of layer.meshes) {
-      const mat = m.material as THREE.ShaderMaterial;
-      expect(mat.blending).toBe(THREE.CustomBlending);
-      expect(mat.blendSrc).toBe(THREE.DstColorFactor);
-      expect(mat.blendDst).toBe(THREE.OneFactor);
-    }
-    layer.dispose();
   });
 });

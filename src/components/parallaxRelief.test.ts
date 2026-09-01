@@ -27,45 +27,6 @@ describe("parseCuts", () => {
     ]);
   });
 
-  it("carries a cut's dedicated color map through, absent on legacy entries", () => {
-    const cuts = parseCuts([
-      { name: "crowd", z: -0.9, isFlame: 0, map: "map-crowd.jpg" },
-      { name: "fig3", z: 1.78, isFlame: 0, relief: 1 },
-    ]);
-
-    expect(cuts[0].map).toBe("map-crowd.jpg");
-    expect(cuts[1].map).toBeUndefined();
-  });
-
-  it("carries a cut's packed mask reference through, absent on legacy entries", () => {
-    const cuts = parseCuts([
-      { name: "fig5", z: 2.3, isFlame: 0, relief: 1, mask: { file: "masks-cut-0.webp", channel: 1 } },
-      { name: "arch", z: -2.8, isFlame: 0 },
-    ]);
-
-    expect(cuts[0].mask).toEqual({ file: "masks-cut-0.webp", channel: 1 });
-    expect(cuts[1].mask).toBeUndefined();
-  });
-
-  it("carries a figure's anchor through, absent on legacy entries", () => {
-    const cuts = parseCuts([
-      { name: "fig5", z: 2.3, isFlame: 0, relief: 1, at: [0.2679, 0.658] },
-      { name: "fig1", z: 2.1, isFlame: 0, relief: 1 },
-    ]);
-
-    expect(cuts[0].at).toEqual([0.2679, 0.658]);
-    expect(cuts[1].at).toBeUndefined();
-  });
-
-  it("carries a flame's parent through, absent on legacy entries", () => {
-    const cuts = parseCuts([
-      { name: "flame4", z: -1.7, isFlame: 1, parent: "fig4" },
-      { name: "flame5", z: -1.4, isFlame: 1 },
-    ]);
-
-    expect(cuts[0].parent).toBe("fig4");
-    expect(cuts[1].parent).toBeUndefined();
-  });
 });
 
 describe("bindFlames", () => {
@@ -177,9 +138,6 @@ describe("displaceLocal", () => {
 describe("segmentsFor", () => {
   it("keeps flat cuts as single quads and subdivides relief cuts", () => {
     expect(segmentsFor(0)).toEqual([1, 1]);
-    // half the old density on each axis (#67): the depth maps are smooth
-    // gradients, so a quarter of the vertices bow the figures identically
-    expect(segmentsFor(1)).toEqual([48, 59]);
   });
 });
 

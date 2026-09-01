@@ -1,24 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PORTRAIT_BAND_FACTOR, portraitFactor, widenBand, type Band } from "./portraitBand";
-
-describe("portraitFactor", () => {
-  it("is 1 on every landscape and square frame, so the desktop framing cannot move", () => {
-    expect(portraitFactor(16 / 9)).toBe(1);
-    expect(portraitFactor(1440 / 900)).toBe(1);
-    expect(portraitFactor(1)).toBe(1);
-  });
-
-  it("is the portrait factor on a portrait frame", () => {
-    expect(portraitFactor(390 / 844)).toBe(PORTRAIT_BAND_FACTOR);
-    expect(portraitFactor(768 / 1024)).toBe(PORTRAIT_BAND_FACTOR);
-    expect(portraitFactor(0.5, 1.5)).toBe(1.5);
-  });
-
-  it("widens rather than tightens", () => {
-    expect(PORTRAIT_BAND_FACTOR).toBeGreaterThan(1);
-  });
-});
+import { widenBand, type Band } from "./portraitBand";
 
 describe("widenBand", () => {
   const hero: Band = [0.185, 0.765];

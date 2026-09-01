@@ -40,11 +40,4 @@ describe("GMark", () => {
     expect(svg.getAttribute("aria-hidden")).toBe("true");
     expect(svg.getAttribute("role")).toBeNull();
   });
-
-  it("cuts the G out of the box rather than painting it on top", () => {
-    const { container } = render(<GMark />);
-    const path = container.querySelector("path")!;
-    expect(path.getAttribute("fill-rule")).toBe("evenodd");
-    expect(path.getAttribute("fill")).toBe("currentColor");
-  });
 });

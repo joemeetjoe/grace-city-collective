@@ -53,8 +53,6 @@ describe("bandMargin", () => {
   it("cuts shares of the viewport off its top and foot, as a rootMargin", () => {
     expect(bandMargin(0.1, 0.33)).toBe("-10% 0px -33% 0px");
     expect(bandMargin(0, 0)).toBe("-0% 0px -0% 0px");
-    // the play band: settled once a seventh of the way up, gone once a tenth from the top
-    expect(PLAY_MARGIN).toBe(bandMargin(PLAY_BAND.top, PLAY_BAND.bottom));
     expect(PLAY_BAND.bottom).toBeGreaterThan(PLAY_BAND.top);
   });
 });

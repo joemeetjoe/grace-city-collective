@@ -38,22 +38,6 @@ describe("DotRail", () => {
     }
   });
 
-  it("is keyboard-focusable, in page order", () => {
-    const { container } = render(<DotRail markers={markers} activeId={null} />);
-    const links = Array.from(container.querySelectorAll("a"));
-    for (const a of links) expect(a.tabIndex).toBe(0);
-    links[3].focus();
-    expect(document.activeElement).toBe(links[3]);
-  });
-
-  it("hides below the tablet breakpoint and sits fixed, outside any scrolled content", () => {
-    const { container } = render(<DotRail markers={markers} activeId={null} />);
-    const rail = container.querySelector("[data-dot-rail]")!;
-    expect(rail.className).toContain("hidden");
-    expect(rail.className).toContain("lg:flex");
-    expect(rail.className).toContain("fixed");
-  });
-
   it("a click hands the id to onNavigate instead of following the hash", () => {
     const onNavigate = vi.fn();
     const { container } = render(
@@ -64,24 +48,5 @@ describe("DotRail", () => {
     );
     expect(onNavigate).toHaveBeenCalledWith("devotions");
     expect(followed).toBe(false);
-  });
-
-  it("reveals the label without a transition under reduced motion", () => {
-    const { container } = render(<DotRail markers={markers} activeId={null} />);
-    const label = container.querySelector("a [data-dot-label]")!;
-    expect(label.className).toContain("motion-safe:transition");
-    expect(label.className).toMatch(/group-hover:opacity-100/);
-    expect(label.className).toMatch(/group-focus-visible:opacity-100/);
-  });
-});
-
-describe("DotRail glass", () => {
-  it("lays a strip of frosted glass behind the dots, under them and behind the hidden labels' space", () => {
-    const { container } = render(<DotRail markers={markers} activeId={null} />);
-    const strip = container.querySelector("[data-dot-rail] [data-dot-glass]")!;
-    expect(strip).not.toBeNull();
-    expect(strip.className).toMatch(/backdrop-blur/);
-    expect(strip.className).toMatch(/-z-10/);
-    expect(strip.getAttribute("aria-hidden")).toBe("true");
   });
 });

@@ -324,11 +324,16 @@ describe("IntroSplash", () => {
       return { ...view, tl, handoff, handoffs, onDone, build };
     }
 
-    it("a click during the splash jumps the floor to its end and, with textures in, hands off", () => {
+    it.each([
+      ["a click", () => fireEvent.pointerDown(window)],
+      ["a keypress", () => fireEvent.keyDown(window, { key: "Enter" })],
+      ["a wheel scroll", () => fireEvent.wheel(window, { deltaY: 40 })],
+      ["a touch scroll", () => fireEvent.touchMove(window)],
+    ] as const)("%s during the splash jumps the floor to its end and, with textures in, hands off", (_gesture, dispatch) => {
       const { tl, handoffs, onDone } = mountSkippable();
       expect(tl().progress()).toBeLessThan(1);
       act(() => {
-        fireEvent.pointerDown(window);
+        dispatch();
       });
       expect(tl().progress()).toBe(1);
       expect(handoffs).toHaveLength(1);
@@ -336,41 +341,6 @@ describe("IntroSplash", () => {
         handoffs[0].progress(1);
       });
       expect(onDone).toHaveBeenCalledTimes(1);
-    });
-
-    it("a keypress does the same", () => {
-      const { tl, handoffs, onDone } = mountSkippable();
-      act(() => {
-        fireEvent.keyDown(window, { key: "Enter" });
-      });
-      expect(tl().progress()).toBe(1);
-      expect(handoffs).toHaveLength(1);
-      act(() => {
-        handoffs[0].progress(1);
-      });
-      expect(onDone).toHaveBeenCalledTimes(1);
-    });
-
-    it("a wheel scroll does the same", () => {
-      const { tl, handoffs, onDone } = mountSkippable();
-      act(() => {
-        fireEvent.wheel(window, { deltaY: 40 });
-      });
-      expect(tl().progress()).toBe(1);
-      expect(handoffs).toHaveLength(1);
-      act(() => {
-        handoffs[0].progress(1);
-      });
-      expect(onDone).toHaveBeenCalledTimes(1);
-    });
-
-    it("a touch scroll does the same", () => {
-      const { tl, handoffs } = mountSkippable();
-      act(() => {
-        fireEvent.touchMove(window);
-      });
-      expect(tl().progress()).toBe(1);
-      expect(handoffs).toHaveLength(1);
     });
 
     it("a skip before the textures are in does not hand off until ready flips", () => {
