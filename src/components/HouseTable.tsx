@@ -5,7 +5,7 @@ import {
   G_MARK_H as H,
   G_MARK_W as W,
   markBox,
-} from "@/components/gMarkGeometry";
+} from "@/marks/gMarkGeometry";
 import { cn } from "@/lib/utils";
 
 export type HouseTableProps = {

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import GMark from "@/components/GMark";
+import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
 import { introGateOpen } from "@/intro/gate";
 import { buildHandoff, navMark } from "@/intro/handoff";

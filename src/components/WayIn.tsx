@@ -4,7 +4,7 @@ import GatheringMark, {
   type Emblem,
   TRACE_MS,
   TRACE_STAGGER_MS,
-} from "@/components/GatheringMark";
+} from "@/marks/GatheringMark";
 import { FOCUS_RING } from "@/theme/interact";
 import { lozengePath } from "@/theme/lozenge";
 import type { Waymark } from "@/content/site";

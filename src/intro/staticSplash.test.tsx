@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 
-import GMark from "@/components/GMark";
+import GMark from "@/marks/GMark";
 import { tokens } from "@/theme/tokens";
 import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";

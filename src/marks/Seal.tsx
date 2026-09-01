@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type JSX, type Ref, type SVGProps } from "react";
 
-import { rasterOfLiveLook } from "@/components/sealRaster";
+import { rasterOfLiveLook } from "./sealRaster";
 import { cssVar, mix, tokens, type Token } from "@/theme/tokens";
 
 import { BAND, DRIP, FIELD, FLEUR, WAX } from "./sealPaths";

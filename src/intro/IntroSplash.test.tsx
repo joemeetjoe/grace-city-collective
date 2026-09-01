@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import GMark from "@/components/GMark";
+import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
 import IntroSplash from "./IntroSplash";
 import { NAV_MARK, buildHandoff, navMark } from "./handoff";

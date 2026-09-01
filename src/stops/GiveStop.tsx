@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 
-import SowingMark from "@/components/SowingMark";
+import SowingMark from "@/marks/SowingMark";
 import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";
 import PanelReveal from "@/components/panel/PanelReveal";

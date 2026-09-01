@@ -2,7 +2,7 @@ import { render } from "@testing-library/react";
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import Seal from "@/components/Seal";
+import Seal from "./Seal";
 import { baseMarkup } from "@/test/sealMarkup";
 
 import { STAMP_SECONDS, stampTween } from "./sealStamp";

@@ -1,7 +1,7 @@
 import { jump, jumpTo } from "@/app/jump";
 import { GHOST_BUTTON, SEAL_BUTTON } from "@/app/styles";
 import { GLASS, GLASS_CORNERS } from "@/theme/glass";
-import GMark from "@/components/GMark";
+import GMark from "@/marks/GMark";
 import { FOCUS_RING } from "@/theme/interact";
 import { STACK } from "@/theme/layerSplit";
 import MobileNav from "@/components/MobileNav";

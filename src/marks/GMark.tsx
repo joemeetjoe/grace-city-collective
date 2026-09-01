@@ -11,7 +11,7 @@ import {
   RULE_PAD as PAD,
   RULE_WEIGHT,
   gMarkAspect,
-} from "@/components/gMarkGeometry";
+} from "./gMarkGeometry";
 import { site } from "@/content/site";
 
 export type GMarkProps = {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { describe, expect, it } from "vitest";
 
 import WayIn, { RULE_STAGGER_MS, type WayInProps } from "./WayIn";
-import { TRACE_STAGGER_MS } from "./GatheringMark";
+import { TRACE_STAGGER_MS } from "@/marks/GatheringMark";
 
 const STEPS = [
   { title: "Say hello.", body: "Write to us." },

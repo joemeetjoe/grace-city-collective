@@ -2,7 +2,7 @@ import { BUTTON_CORNERS, GLASS } from "@/theme/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 
-import GMark from "@/components/GMark";
+import GMark from "@/marks/GMark";
 import { site } from "@/content/site";
 import { cn } from "@/lib/utils";
 

@@ -5,7 +5,7 @@ import {
   G_MARK_H as H,
   G_MARK_W as W,
   gMarkBox,
-} from "@/components/gMarkGeometry";
+} from "./gMarkGeometry";
 import { lozengePath } from "@/theme/lozenge";
 import {
   arrives,
@@ -13,7 +13,7 @@ import {
   LEAVE_MS,
   parent,
   TRAVEL_MS,
-} from "@/components/sowing";
+} from "./sowing";
 import { cn } from "@/lib/utils";
 
 export type SowingMarkProps = {

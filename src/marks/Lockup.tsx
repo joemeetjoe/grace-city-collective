@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
-import CollectiveScript from "@/components/CollectiveScript";
-import Seal, { type SealProps } from "@/components/Seal";
-import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "@/components/collectiveScriptMetrics";
+import CollectiveScript from "./CollectiveScript";
+import Seal, { type SealProps } from "./Seal";
+import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
 import {
   SCRIPT_EM,
   SEAL_EM,
@@ -11,8 +11,8 @@ import {
   scriptHeightFor,
   sealPeriodShiftEm,
   showScript,
-} from "@/components/lockupMetrics";
-import { STAMP_REPLAY_LABEL, useStampReplay } from "@/components/useStampReplay";
+} from "./lockupMetrics";
+import { STAMP_REPLAY_LABEL, useStampReplay } from "./useStampReplay";
 import { useBelowLg } from "@/layout/breakpoint";
 import { cn } from "@/lib/utils";
 

@@ -20,7 +20,7 @@ import {
   G_MARK_W,
   gMarkAspect,
   gMarkBox,
-} from "../components/gMarkGeometry";
+} from "../marks/gMarkGeometry";
 import { tokens } from "../theme/tokens";
 import { REDUCED_MOTION_QUERY } from "../device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
