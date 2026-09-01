@@ -18,9 +18,9 @@ import GatheringMark from "@/components/GatheringMark";
 import HouseTable from "@/components/HouseTable";
 import SharedLife from "@/components/SharedLife";
 import SowingMark from "@/components/SowingMark";
-import { BUTTON_CORNERS, GLASS, GLASS_CORNERS } from "@/components/glass";
+import { GLASS, GLASS_CORNERS } from "@/components/glass";
 import GMark from "@/components/GMark";
-import { BUTTON_LIFT, FOCUS_RING, LINK_SWEEP } from "@/components/interact";
+import { FOCUS_RING, LINK_SWEEP } from "@/components/interact";
 import { STACK } from "@/components/layerSplit";
 import Lockup from "@/components/Lockup";
 import MobileNav from "@/components/MobileNav";
@@ -45,6 +45,15 @@ import {
   wayIn,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
+import { IntroPendingContext, ReducedMotionContext } from "@/app/contexts";
+import { jump, jumpTo } from "@/app/jump";
+import {
+  GHOST_BUTTON,
+  SEAL_BUTTON,
+  gutter,
+  kickerCls,
+  serif,
+} from "@/app/styles";
 import { HERO_HEADLINE, riseHeroHeadline } from "@/intro/heroRise";
 import IntroSplash from "@/intro/IntroSplash";
 import { readPolicyInputs, shouldPlayIntro } from "@/intro/introPolicy";
@@ -55,15 +64,10 @@ import { useBelowLg } from "@/layout/breakpoint";
 import { useViewportHeight } from "@/layout/viewportHeight";
 import { detectWebgl, shouldUseStaticFallback } from "@/scene/fallback";
 import { readSaveData, readTierInputs, tierFor } from "@/scene/tier";
-import { jumpTo as scrollJumpTo } from "@/scroll/jump";
 import { sectionMarkers } from "@/scroll/markers";
-import { getScrollDriver } from "@/scroll/position";
 import { useActiveSection } from "@/scroll/useActiveSection";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 
-const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
-const gutter = "px-[clamp(20px,4.4vw,60px)]";
-const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
 // a scene card's paragraphs below lg: the phone headline is ~30px to the
 // desktop's ~48px, so 16px Geist (a big x-height, uniform strokes) out-weighs
 // the hairline Cormorant beside it; a half-size down, more leading and a
@@ -115,19 +119,8 @@ const EMBLEM_LIT_STEP_MS = 400;
 /** whether the copy panel around a component is shown, for ornaments that come in with its brackets */
 const PanelShownContext = createContext(true);
 
-/** whether the reader prefers reduced motion: the stops' ornaments then rest, shown */
-const ReducedMotionContext = createContext(false);
-
-/** whether the splash is still up, for the hero's pieces that wait for the handoff */
-const IntroPendingContext = createContext(false);
-
 /** how much of a long-form section's opening rule must be on screen before it draws */
 const RULE_DRAW_THRESHOLD = 0.5;
-
-/** the filled call to action, in the seal's red: it lifts and glows under the pointer */
-const SEAL_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} bg-seal text-cream hover:bg-seal-deep`;
-/** the hollow call to action: a cream hairline that brightens, with a cream glow */
-const GHOST_BUTTON = `${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING} border border-cream/45 [--lift-glow:var(--color-cream)] hover:border-cream hover:bg-cream/10`;
 
 /**
  * Where each stop's panel tucks behind the nearest figures (the front cuts
@@ -231,16 +224,6 @@ function PanelReveal(
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */
 const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
-
-function jumpTo(id: string) {
-  // through the smoother when one is running, native smooth scroll otherwise
-  scrollJumpTo(id, getScrollDriver());
-}
-
-function jump(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
-  e.preventDefault();
-  jumpTo(id);
-}
 
 function longform(site: SiteContent, id: string) {
   return site.longform.find((s) => s.id === id)!;
