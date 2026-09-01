@@ -1,7 +1,7 @@
 import { kickerCls, serif } from "@/app/styles";
 import SectionRule from "@/components/panel/SectionRule";
 import Reveal from "@/components/Reveal";
-import ScriptureRefs from "@/components/ScriptureRefs";
+import ScriptureRefs from "./ScriptureRefs";
 import { useSite } from "@/content/useSite";
 import { LONGFORM_SECTION, longform } from "@/longform/section";
 

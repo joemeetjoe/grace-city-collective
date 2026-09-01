@@ -4,7 +4,7 @@ import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";
 import PanelReveal from "@/components/panel/PanelReveal";
 import SmoothHeight from "@/components/SmoothHeight";
-import WayIn from "@/components/WayIn";
+import WayIn from "./WayIn";
 import { type SceneSection, wayIn } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { SEAL_BUTTON, serif } from "@/app/styles";

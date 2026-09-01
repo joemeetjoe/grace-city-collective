@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 
-import GatheringCalendar from "@/components/GatheringCalendar";
+import GatheringCalendar from "./GatheringCalendar";
 import GatheringMark from "@/marks/GatheringMark";
 import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";

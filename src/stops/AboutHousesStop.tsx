@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 
-import HouseTable from "@/components/HouseTable";
-import SharedLife from "@/components/SharedLife";
+import HouseTable from "./HouseTable";
+import SharedLife from "./SharedLife";
 import Bracketed, { PanelShownContext } from "@/components/panel/Bracketed";
 import Kicker from "@/components/panel/Kicker";
 import PanelReveal from "@/components/panel/PanelReveal";
