@@ -64,7 +64,7 @@ export default function MobileNav({
           <Dialog.Content
             data-nav-sheet=""
             aria-describedby={undefined}
-            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-300"
+            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in"
           >
             <Dialog.Title className="sr-only">{MENU_LABEL}</Dialog.Title>
 

@@ -29,8 +29,14 @@ import { SPLASH_MARK_SIZE } from "./splashMark";
 /** marks the static splash's root */
 export const STATIC_SPLASH_ATTR = "data-intro-static";
 
-/** the ink, on the document itself, before any stylesheet arrives */
-export const STATIC_SPLASH_STYLE = `html{background:${tokens.ink}}`;
+/**
+ * The ink, on the document and the body, before any stylesheet arrives: the
+ * stylesheet is loaded without blocking (src/lib/asyncCss.ts), so this is
+ * all a visit paints with until it lands — the splash carries its own layout
+ * inline, and a visit without the splash shows ink with no body margin
+ * rather than a white page.
+ */
+export const STATIC_SPLASH_STYLE = `html{background:${tokens.ink}}body{margin:0;background:${tokens.ink}}`;
 
 /** the ruled G mark, as GMark renders it for the splash: same viewBox, paths and size */
 export function staticSplashSvg(): string {

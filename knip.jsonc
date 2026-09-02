@@ -9,5 +9,9 @@
   // Tuning constants are exported for reading (an easing, a duration, a size)
   // and used only by the module that declares them. An export nothing else
   // imports and the module itself does not use is still reported.
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  // @fontsource-variable/geist ships no latin-only css to @import, so
+  // src/index.css names its latin file in a url() (#105), which knip does
+  // not follow.
+  "ignoreDependencies": ["@fontsource-variable/geist"]
 }

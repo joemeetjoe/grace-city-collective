@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { STATIC_SPLASH_ATTR, staticSplashTags } from './src/features/intro/staticSplash'
 import { engineChunkHref, enginePreloadScript } from './src/device/enginePreload'
+import { asyncCssLinks } from './src/lib/asyncCss'
 import { site } from './src/content/site'
 import {
   LLMS_FILE,
@@ -96,9 +97,24 @@ const surfaces = (): Plugin => {
   }
 }
 
+// The stylesheet loaded without blocking the first paint: Vite's stylesheet
+// link in the head becomes a preload that turns into a stylesheet on load,
+// with the plain link in a noscript (src/lib/asyncCss.ts). The splash paints
+// from the inline head style alone. Build only: dev serves the css itself.
+const asyncCss = (): Plugin => ({
+  name: 'gcc:async-css',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, ctx) {
+      if (!ctx.filename.endsWith('index.html') || !ctx.bundle) return
+      return asyncCssLinks(html)
+    },
+  },
+})
+
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload()],
+  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload(), asyncCss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

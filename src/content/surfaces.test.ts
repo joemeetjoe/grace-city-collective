@@ -232,7 +232,7 @@ describe("noscriptBlock", () => {
 
   it("hides the static splash and paints cream, so the page can be read without scripts", () => {
     expect(html).toContain("[data-splash]{display:none}");
-    expect(html).toContain(`html{background:${tokens.cream}}`);
+    expect(html).toContain(`html,body{background:${tokens.cream}}`);
     expect(noscriptBlock(site, opts)).not.toContain("display:none");
   });
 

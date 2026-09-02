@@ -20,3 +20,14 @@ export const readDist = (rel: string): string => readFileSync(distPath(rel), "ut
 
 /** the built index.html */
 export const distIndexHtml = (): string => readDist("index.html");
+
+/** the Vite manifest (build.manifest in vite.config.ts) */
+export const distManifest = (): Record<string, { file: string; css?: string[]; isEntry?: boolean }> =>
+  JSON.parse(readDist(".vite/manifest.json"));
+
+/** the shell's one stylesheet, as built */
+export function distCss(): string {
+  const css = distManifest()["index.html"]?.css ?? [];
+  if (css.length !== 1) throw new Error(`expected one stylesheet on the index.html entry, found ${css.length}`);
+  return readDist(css[0]);
+}

@@ -47,7 +47,8 @@ describe("staticSplashSvg", () => {
   it("paints in the tokens themselves, not CSS variables — no stylesheet has arrived yet", () => {
     expect(staticSplashSvg()).not.toContain("var(");
     expect(staticSplashMarkup()).not.toContain("var(");
-    expect(STATIC_SPLASH_STYLE).toContain(tokens.ink);
+    expect(STATIC_SPLASH_STYLE).toContain(`html{background:${tokens.ink}}`);
+    expect(STATIC_SPLASH_STYLE).toContain(`body{margin:0;background:${tokens.ink}}`);
   });
 });
 

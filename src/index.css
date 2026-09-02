@@ -1,8 +1,17 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "@fontsource-variable/geist";
-@import "@fontsource/cormorant-garamond/300.css";
-@import "@fontsource/cormorant-garamond/400.css";
+/* The two faces the site sets, latin subset only: the variable Geist for
+   body and headings, Cormorant Garamond 400 for the serif accents (#105).
+   Cormorant ships a per-subset file; Geist does not, so its latin face is
+   written out here as @fontsource-variable/geist/wght.css declares it. */
+@import "@fontsource/cormorant-garamond/latin-400.css";
+@font-face {
+  font-family: 'Geist Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("@fontsource-variable/geist/files/geist-latin-wght-normal.woff2") format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,6 +22,21 @@
     --color-seal: #9e1f2e;
     --color-seal-deep: #5c0f1b;
     --color-seal-highlight: #d67f48;
+}
+
+/* The mobile nav sheet's fade (src/features/nav/MobileNav.tsx): in over
+   300ms as it opens, out over 150ms as it closes — what tw-animate-css's
+   animate-in/fade-in-0 and animate-out/fade-out-0 did before the package
+   went (#105). Radix waits for the exit animation to end before unmounting. */
+@theme {
+    --animate-sheet-in: sheet-in 300ms ease;
+    --animate-sheet-out: sheet-out 150ms ease;
+    @keyframes sheet-in {
+        from { opacity: 0; }
+    }
+    @keyframes sheet-out {
+        to { opacity: 0; }
+    }
 }
 
 @theme inline {

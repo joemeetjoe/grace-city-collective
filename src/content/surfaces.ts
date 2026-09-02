@@ -469,12 +469,14 @@ export function llmsFullTxt(site: SiteContent, opts: SurfaceOptions): string {
 
 /**
  * The noscript block: the same outline as plain HTML, readable when scripts
- * are off — the page paints cream with ink type, and the static splash
- * (`splashSelector`, which would otherwise sit over everything) is hidden.
+ * are off — the page paints cream with ink type (over the inline ink the
+ * head puts on the document and the body, src/features/intro/staticSplash.ts),
+ * and the static splash (`splashSelector`, which would otherwise sit over
+ * everything) is hidden.
  */
 export function noscriptBlock(site: SiteContent, opts: SurfaceOptions & { splashSelector?: string }): string {
   const style =
-    `html{background:${tokens.cream}}` +
+    `html,body{background:${tokens.cream}}` +
     `article{max-width:40rem;margin:0 auto;padding:2rem 1.25rem;color:${tokens.ink};font-family:Georgia,serif;line-height:1.5}` +
     `article a{color:${tokens.seal}}` +
     (opts.splashSelector ? `${opts.splashSelector}{display:none}` : "");
