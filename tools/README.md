@@ -52,6 +52,32 @@ headline's measure is written in em rather than `ch` for the same reason
 size-adjust does not equalise, and a wider measure wraps the lines
 elsewhere.
 
+### The splash (`--splash`)
+
+`cdp-shot.mjs --splash` keeps the intro — the session flag is not set —
+and shoots the splash alone as `splash.png`, `--settle` ms (default 300)
+after the document has parsed: the static splash from `index.html`, or
+the live one that has just taken its place at the same geometry, with the
+red rule barely started. The trace's progress is not a stable thing to
+shoot, so a splash shot is only compared to another taken at the same
+settle; the diff then sits under 0.15 % (the rule's first stretch). The
+splash shots are a baseline of their own, re-taken deliberately when the
+composition changes (`src/features/intro/splashComposition.ts`); #107's
+options are in `docs/design/issue-107/`. `--rects` there measures the
+splash's own element, and `--label Hero` files it under the hero's label
+so `rectdiff.mjs` sets it against a hero run — #107's check that the
+splash headline and the hero's h1 take the same line boxes:
+
+```bash
+node tools/shots/cdp-shot.mjs --url http://localhost:4408/ --out shots/hero --size 1600x900 --dpr 2 --labels Hero --rects h1
+node tools/shots/cdp-shot.mjs --url http://localhost:4408/ --out shots/splash --size 1600x900 --dpr 2 --splash --label Hero --rects '[data-splash-headline]'
+node tools/shots/rectdiff.mjs shots/hero/state.json shots/splash/state.json --x 0.5
+# mobile: --size 390x844 --mobile --dpr 3
+```
+
+Tolerance: every edge within 0.5 px both ways (measured at #107: 0.00 px
+on both widths, with scripts blocked and with the bundle mounted).
+
 ## Fonts (`tools/fonts/`)
 
 - `metrics.py` — the metrics behind the fallback faces: for each web font

@@ -11,6 +11,7 @@ import { HERO_HEADLINE, riseHeroHeadline } from "./heroRise";
 import { readPolicyInputs, shouldPlayIntro } from "./introPolicy";
 import { buildNavReveal, collectNavReveal } from "./navReveal";
 import { fadeParallaxFromInk } from "./restingFade";
+import { SPLASH_HEADLINE } from "./splashComposition";
 import { removeStaticSplash } from "./staticSplashDom";
 
 export type IntroGate = {
@@ -37,15 +38,19 @@ export function useIntroGate(
   }, [policy.reducedMotion, parallax]);
 
   // after a played intro, the nav unfurls from its mark and the hero headline
-  // rises, the moment the splash's mark has landed: before the first paint
-  // without the splash, so nothing flashes into place first. A session that
-  // skips the intro renders everything at rest
+  // arrives, the moment the splash's mark has landed: before the first paint
+  // without the splash, so nothing flashes into place first. When the splash
+  // carried the headline (#107) the hero's own h1 — hidden until now, in the
+  // same box — settles from where the handoff lifted it; otherwise it rises
+  // from below. A session that skips the intro renders everything at rest
   const played = useRef(intro);
   useLayoutEffect(() => {
     if (!played.current || intro) return;
     const nav = buildNavReveal(collectNavReveal());
     const hero = riseHeroHeadline(
       document.querySelector<HTMLElement>(HERO_HEADLINE),
+      0,
+      SPLASH_HEADLINE ? "settle" : "rise",
     );
     return () => {
       nav.kill();

@@ -1,9 +1,11 @@
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { gsap } from "@/lib/gsap";
 import { STACK } from "@/theme/layerSplit";
 import { sectionIds, site } from "@/content/site";
+import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
@@ -31,6 +33,20 @@ vi.mock("@/scroll/useSmoothScroll", async (orig) => {
     ) => {
       smoother.calls.push({ held: refs.held });
       return mod.useSmoothScroll(refs, reduced);
+    },
+  };
+});
+
+// the handoff runs for real; its timelines are kept so a test can scrub one to its end
+const handoffs = vi.hoisted(() => ({ list: [] as gsap.core.Timeline[] }));
+vi.mock("@/features/intro/handoff", async (orig) => {
+  const mod = await orig<typeof import("@/features/intro/handoff")>();
+  return {
+    ...mod,
+    buildHandoff: (ctx: Parameters<typeof mod.buildHandoff>[0]) => {
+      const tl = mod.buildHandoff(ctx);
+      handoffs.list.push(tl);
+      return tl;
     },
   };
 });
@@ -100,6 +116,7 @@ async function longformIn(container: HTMLElement): Promise<Element> {
 
 beforeEach(() => {
   engineLoads.count = 0;
+  handoffs.list.length = 0;
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
@@ -113,14 +130,14 @@ afterEach(() => {
 describe("App intro policy", () => {
   it("a fresh session renders the splash over the hero", () => {
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).not.toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).not.toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
   });
 
   it("a session that already played the intro renders no splash", () => {
     window.sessionStorage.setItem(INTRO_PLAYED_KEY, "1");
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
   });
 
@@ -134,13 +151,49 @@ describe("App intro policy", () => {
   it("reduced motion renders no splash and fades the parallax up from ink", () => {
     preferReducedMotion();
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
     const parallax = container.querySelector("[data-parallax]") as HTMLElement;
     // the fade starts on ink the moment the page mounts
     expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
     // nothing played, so a later full-motion session still gets the intro
     expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+});
+
+describe("App splash headline (#107)", () => {
+  it("stands the hero headline on the splash, keeps the hero's own hidden until the handoff, then one h1 settles into place", async () => {
+    const heading = site.scene[0].heading;
+    const { container } = render(<App />);
+    const root = container.firstElementChild!;
+    // while the intro is pending index.css hides [data-hero-headline] under this attribute; the splash's h1 is the one that paints
+    expect(root.hasAttribute("data-intro-pending")).toBe(true);
+    const splashH1 = document.querySelector("[data-intro-splash] h1")!;
+    expect(splashH1.textContent).toBe(heading);
+    expect(container.querySelector("[data-hero-headline]")!.textContent).toBe(heading);
+    // a gesture skips the floor; the stub scene is ready, so the handoff builds
+    fireEvent.pointerDown(window);
+    await waitFor(() => expect(handoffs.list).toHaveLength(1));
+    act(() => {
+      handoffs.list[0].progress(1);
+    });
+    // landed: the splash is gone, its headline lifted the settle's distance on the way
+    expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(root.hasAttribute("data-intro-pending")).toBe(false);
+    // exactly one h1 carries the heading now: the hero's, shown
+    const h1s = [...document.querySelectorAll("h1")].filter((h) => h.textContent === heading);
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0].hasAttribute("data-hero-headline")).toBe(true);
+    // and its lines settle from where the splash's headline was, never from invisible
+    const lines = h1s[0].querySelectorAll(".hero-line");
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(gsap.getProperty(line, "opacity")).toBe(1);
+      const y = gsap.getProperty(line, "y") as number;
+      expect(y).toBeLessThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(-HERO_SETTLE_PX);
+    }
   });
 });
 
@@ -201,7 +254,7 @@ describe("App hero seal", () => {
     const hero = container.querySelector("[data-hero-lockup]")!;
     expect(hero.querySelector('[data-lockup="seal"]')).not.toBeNull();
     expect(hero.querySelector("button")).toBeNull();
-    expect(container.querySelector("[data-intro-splash] button")).toBeNull();
+    expect(document.querySelector("[data-intro-splash] button")).toBeNull();
   });
 });
 
@@ -625,7 +678,7 @@ describe("App page structure", () => {
     // position: fixed does not survive a transformed ancestor
     expect(wrapper.contains(container.querySelector("nav"))).toBe(false);
     expect(
-      wrapper.contains(container.querySelector("[data-intro-splash]")),
+      wrapper.contains(document.querySelector("[data-intro-splash]")),
     ).toBe(false);
   });
 });

@@ -12,7 +12,7 @@
  *        [--css "section{visibility:hidden}"]   (injected after load)
  *        [--mobile] [--dpr 3] [--reduced-motion] [--ids devotions,faq] [--menu]
  *        [--no-avif]   (force the AVIF probe's verdict to false: the WebP path)
- *        [--block-fonts] [--rects h1]
+ *        [--block-fonts] [--rects h1] [--splash] [--label Hero]
  *
  * --dpr sets the pixel ratio (desktop needs 2 for the desktop tier; headless is 1).
  * --mobile emulates a phone/tablet: the viewport is --size at --dpr with the
@@ -22,7 +22,15 @@
  * *.woff2 and *.woff request, so text paints in the fallback faces (#106);
  * --rects records the line boxes of the first element matching the selector
  * at each capture into state.json (`lines`, CSS px), with the web fonts that
- * loaded — tools/shots/rectdiff.mjs compares two such files.
+ * loaded — tools/shots/rectdiff.mjs compares two such files. --splash keeps
+ * the intro (the session flag is not set) and shoots the splash alone, as
+ * splash.png, --settle ms (default 300) after the document has parsed —
+ * the static splash, or the live one that has just taken its place at the
+ * same geometry, with the rule barely started; the trace's progress is not
+ * a stable thing to shoot, so a splash shot is compared to another at the
+ * same settle. --rects there measures the splash's own element, recorded
+ * under --label (default "splash"; "Hero" to set it against a hero run
+ * with rectdiff.mjs, which joins on the label).
  *
  * Writes <out>/<index>-<label>.png per `section[data-screen-label]`, plus
  * <out>/state.json with the page's performance.now() at each capture.
@@ -41,7 +49,10 @@ const out = arg("out", "shots");
 const port = Number(arg("port", 9333));
 const [W, H] = arg("size", "1600x900").split("x").map(Number);
 const [px, py] = arg("pointer", "0.5,0.5").split(",").map(Number);
-const settle = Number(arg("settle", 1800));
+// keep the intro and shoot the splash alone, shortly after the document has parsed
+const splash = process.argv.includes("--splash");
+const splashLabel = arg("label", "splash");
+const settle = Number(arg("settle", splash ? 300 : 1800));
 const only = arg("labels", "")?.split(",").filter(Boolean) ?? [];
 const scroll = Number(arg("scroll", 0));
 const css = arg("css", "");
@@ -138,29 +149,14 @@ try {
     await send("Network.enable");
     await send("Network.setBlockedURLs", { urls: ["*.woff2", "*.woff"] });
   }
-  await send("Page.addScriptToEvaluateOnNewDocument", {
-    source: `try { sessionStorage.setItem("gcc:intro-played", "1"); } catch {}`,
-  });
+  if (!splash) {
+    await send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `try { sessionStorage.setItem("gcc:intro-played", "1"); } catch {}`,
+    });
+  }
   if (noAvif) {
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `window[${JSON.stringify(AVIF_VERDICT_KEY)}] = false;` });
   }
-  await send("Page.navigate", { url });
-  // wait for the scene (or the static poster): the parallax container fades in once textures are ready
-  for (let i = 0; i < 100; i++) {
-    const ok = await evaluate(`!!document.querySelector("canvas, [data-poster]") && document.readyState === "complete"`);
-    if (ok) break;
-    await sleep(200);
-  }
-  await sleep(1500);
-  if (css) {
-    await evaluate(`(() => {
-      const s = document.createElement("style");
-      s.textContent = ${JSON.stringify(css)};
-      document.head.appendChild(s);
-    })()`);
-  }
-  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: px * W, y: py * H });
-
   // the line boxes of the first element matching --rects: one rect per line,
   // the union of the range's fragments on that line, plus the loaded web fonts
   const lineBoxes = async () => {
@@ -187,6 +183,43 @@ try {
       };
     })()`);
   };
+
+  await send("Page.navigate", { url });
+  if (splash) {
+    // the splash is on screen once the document has parsed; the bundle may or may not have mounted over it by --settle
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate(`document.readyState !== "loading"`)) break;
+      await sleep(50);
+    }
+    await sleep(settle);
+    const shot = await send("Page.captureScreenshot", { format: "png" });
+    const file = join(out, "splash.png");
+    writeFileSync(file, Buffer.from(shot.data, "base64"));
+    const state = await evaluate(`(() => ({
+      viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+      static: !!document.querySelector("[data-intro-static]"),
+      live: !!document.querySelector("[data-intro-splash]"),
+      bundle: (document.querySelector("script[type='module'][src*='/assets/']")?.getAttribute("src") ?? ""),
+      t: performance.now(),
+    }))()`);
+    writeFileSync(join(out, "state.json"), JSON.stringify([{ ...state, label: splashLabel, file, ...(await lineBoxes()) }], null, 2));
+    console.log("wrote", file);
+  } else {
+  // wait for the scene (or the static poster): the parallax container fades in once textures are ready
+  for (let i = 0; i < 100; i++) {
+    const ok = await evaluate(`!!document.querySelector("canvas, [data-poster]") && document.readyState === "complete"`);
+    if (ok) break;
+    await sleep(200);
+  }
+  await sleep(1500);
+  if (css) {
+    await evaluate(`(() => {
+      const s = document.createElement("style");
+      s.textContent = ${JSON.stringify(css)};
+      document.head.appendChild(s);
+    })()`);
+  }
+  await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: px * W, y: py * H });
 
   const labels = await evaluate(
     `Array.from(document.querySelectorAll("section[data-screen-label]")).map(s => s.dataset.screenLabel)`,
@@ -246,6 +279,7 @@ try {
     await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   }
   writeFileSync(join(out, "state.json"), JSON.stringify(state, null, 2));
+  }
 } finally {
   ws.close();
   proc.kill();

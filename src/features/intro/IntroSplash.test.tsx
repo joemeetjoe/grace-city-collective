@@ -3,10 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
+import { site } from "@/content/site";
 import IntroSplash from "./IntroSplash";
 import { NAV_MARK, buildHandoff, navMark } from "./handoff";
+import { HERO_SETTLE_PX } from "./heroRise";
 import { SPLASH_MARK_SIZE } from "./splashMark";
-import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "./staticSplash";
+import { LIVE_SPLASH_ATTR, SPLASH_HEADLINE_ATTR, STATIC_SPLASH_ATTR, staticSplashMarkup } from "./staticSplash";
 import { TRACE_HOLD, createTrace, ruleReach } from "./trace";
 
 /** builders that hand their timelines back to the test so it can scrub them */
@@ -67,18 +69,19 @@ describe("navMark", () => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("IntroSplash", () => {
-  it("covers the viewport on ink with the ruled G mark filling it", () => {
-    const { container } = render(<IntroSplash ready={false} onDone={() => {}} />);
-    const root = container.querySelector("[data-intro-splash]") as HTMLElement;
-    expect(root.className).toMatch(/fixed/);
-    expect(root.className).toMatch(/inset-0/);
-    expect(root.className).toMatch(/bg-ink/);
+  it("covers the viewport on ink with the ruled G mark and the headline on it", () => {
+    render(<IntroSplash ready={false} onDone={() => {}} />);
+    const root = document.querySelector("[data-intro-splash]") as HTMLElement;
+    expect(root.style.position).toBe("fixed");
+    expect(root.style.inset).toBe("0px");
+    expect(root.style.zIndex).toBe("50");
     const mark = root.querySelector("[data-g-mark]") as SVGSVGElement;
     expect(mark).not.toBeNull();
-    // as much of the viewport as it can: bound by height or by width, whichever is tighter
+    // as tall as its share of the height allows, or as wide as its share of the width, whichever binds first
     expect(SPLASH_MARK_SIZE).toMatch(/^min\(\d+svh, calc\(\d+vw \/ [\d.]+\)\)$/);
     expect(mark.getAttribute("aria-hidden")).toBe("true");
     expect(root.querySelector("[data-g-mark-rule]")).not.toBeNull();
+    expect(root.querySelector(`h1[${SPLASH_HEADLINE_ATTR}]`)!.textContent).toBe(site.scene[0].heading);
   });
 
   it("starts with the rule undrawn and lets the floor draw it out to the hold", () => {
@@ -138,12 +141,20 @@ describe("IntroSplash", () => {
     expect(spy).toHaveBeenLastCalledWith(500, 33);
   });
 
-  it("takes the place of the static splash from index.html the moment it is committed", () => {
+  it("adopts the static splash from index.html the moment it is committed: the same root, the same h1, and takes it away on unmount", () => {
     document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
-    expect(document.querySelector(`[${STATIC_SPLASH_ATTR}]`)).not.toBeNull();
-    render(<IntroSplash ready={false} onDone={() => {}} />);
+    const stat = document.querySelector(`[${STATIC_SPLASH_ATTR}]`)!;
+    const h1 = stat.querySelector(`[${SPLASH_HEADLINE_ATTR}]`)!;
+    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} />);
+    // nothing rebuilt: the headline that painted first is the one the splash keeps (it is the LCP element, #107)
+    expect(document.querySelector(`[${LIVE_SPLASH_ATTR}]`)).toBe(stat);
+    expect(stat.getAttribute("aria-hidden")).toBe("true");
+    expect(document.querySelectorAll(`[${STATIC_SPLASH_ATTR}]`)).toHaveLength(1);
+    expect(document.querySelector(`[${SPLASH_HEADLINE_ATTR}]`)).toBe(h1);
+    expect(document.querySelectorAll("h1")).toHaveLength(1);
+    unmount();
     expect(document.querySelector(`[${STATIC_SPLASH_ATTR}]`)).toBeNull();
-    expect(document.querySelector("[data-intro-splash]")).not.toBeNull();
+    expect(document.querySelector(`[${LIVE_SPLASH_ATTR}]`)).toBeNull();
   });
 
   it("does not hand off when the floor finishes before the textures are in", () => {
@@ -193,6 +204,10 @@ describe("IntroSplash", () => {
     });
     expect(ruleReach(splashRule())).toBeCloseTo(1, 6);
     expect(onDone).toHaveBeenCalledTimes(1);
+    // the headline lifted the settle's distance as the ink dissolved (#107): the hero's lines settle from there
+    const headline = document.querySelector(`[${SPLASH_HEADLINE_ATTR}]`)!;
+    expect(gsap.getProperty(headline, "y")).toBe(-HERO_SETTLE_PX);
+    expect(gsap.getProperty(headline, "opacity")).toBe(1);
   });
 
   it("sends the mark to the nav's mark when it is laid out, and leaves the nav's copy at rest afterwards", () => {

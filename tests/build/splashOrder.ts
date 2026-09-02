@@ -36,6 +36,28 @@ export function splashPrecedesBodyScripts(html: string): boolean {
   return script === null || splash.index < script.index;
 }
 
+/**
+ * The static splash's markup: from its root tag up to the first body
+ * <script>, which is its own reset (staticSplashTags puts the two back to
+ * back) — so everything in here is on screen before any script can run.
+ * "" when the body has no splash.
+ */
+export function staticSplashOf(html: string): string {
+  const body = bodyOf(html);
+  const splash = new RegExp(`<[a-z][^>]*\\s${STATIC_SPLASH_ATTR}\\b`, "i").exec(body);
+  if (!splash) return "";
+  const rest = body.slice(splash.index);
+  const script = /<script\b/i.exec(rest);
+  return script ? rest.slice(0, script.index) : rest;
+}
+
+/** the text of every <h1> in the static splash, entities decoded for &amp; &lt; &gt; */
+export function staticSplashHeadlines(html: string): string[] {
+  return [...staticSplashOf(html).matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) =>
+    m[1].replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"),
+  );
+}
+
 /** every `<link rel="stylesheet">` outside a <noscript>, anywhere in the page */
 export function blockingStylesheets(html: string): string[] {
   return (withoutNoscript(html).match(/<link\b[^>]*>/gi) ?? []).filter(isStylesheetLink);
