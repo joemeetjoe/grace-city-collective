@@ -66,6 +66,6 @@ describe("prefers-reduced-motion is read in one place", () => {
   it("no consumer asks the browser; each reads the store", () => {
     // the other media queries the page keeps live (the tier's width line, the lg breakpoint) stay theirs
     const others = where(/\bmatchMedia\b/).filter((path) => path !== READER && !HEAD_SCRIPTS.includes(path));
-    expect(others).toEqual(["device/deviceProfile.ts", "layout/breakpoint.ts"]);
+    expect(others).toEqual(["device/deviceProfile.ts", "layout/useBelowLg.ts"]);
   });
 });
