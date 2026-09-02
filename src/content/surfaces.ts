@@ -367,6 +367,7 @@ export function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
       const { address, email, pastor } = site.contact;
       blocks.push(
         p(addressLine(address)),
+        p(`${site.footer.gathering} · ${site.contact.sunday}`),
         p(mail(email)),
         p(`${LEAD_PASTOR_LABEL}: ${pastor.name} — `, mail(pastor.email)),
       );
@@ -378,7 +379,6 @@ export function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
     if (section.intro) blocks.push(p(section.intro));
     switch (section.id) {
       case "devotions":
-        blocks.push(p(site.devotionsIntro));
         for (const d of site.devotions) blocks.push(h(4, d.title), note(d.refs), p(d.body));
         break;
       case "beliefs":

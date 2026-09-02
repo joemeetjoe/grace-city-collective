@@ -6,11 +6,11 @@ import { MARK_TRACE_STAGGER_MS, RULE_STAGGER_MS } from "@/theme/motion";
 import WayIn, { type WayInProps } from "./WayIn";
 
 const STEPS = [
-  { title: "Say hello.", body: "Write to us." },
-  { title: "A pastor writes back.", body: "A real person." },
-  { title: "Dinner.", body: "A meal with you and yours." },
-  { title: "First Sunday, all together.", body: "The five rooms become one." },
-  { title: "Make the rounds.", body: "A Sunday in each home." },
+  { id: "hello", title: "Say hello.", body: "Write to us." },
+  { id: "reply", title: "A pastor writes back.", body: "A real person." },
+  { id: "dinner", title: "Dinner.", body: "A meal with you and yours." },
+  { id: "first-sunday", title: "First Sunday, all together.", body: "The five rooms become one." },
+  { id: "rounds", title: "Make the rounds.", body: "A Sunday in each home." },
 ];
 
 /** the way in with a step of its own, the way the visit stop keeps one */
