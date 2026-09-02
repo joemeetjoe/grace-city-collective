@@ -1,12 +1,24 @@
-# tools/
+# Tools
 
-Scripts the repo's gates run. None ship; each has its usage in its header.
+Scripts and checks that run against the built site or the repo itself, as
+opposed to the app in `src/`. Each is a plain node script or a vitest
+project; none is part of the bundle.
 
-## shots/ — the shot gate
+## Shots (`tools/shots/`)
 
-`cdp-shot.mjs` screenshots the built site at every scene waypoint (and the
-long-form stops named by `--ids`) in hardware headless Chrome; `pngdiff.mjs`
-compares two captures. A change that must not move a pixel is gated by
+- `cdp-shot.mjs` — headless-Chrome screenshots of the scene at scroll
+  waypoints over CDP; the visual gate for engine and layout changes.
+- `cdp-rects.mjs` — where each figure and copy panel lands at every scene
+  stop, in CSS px, from a debug build (`VITE_SCENE_DEBUG=1 pnpm build`);
+  the numbers the panel tucks are fitted to.
+- `mobile-check.mjs` — the standing mobile guard: loads the built site at
+  the four phone/tablet sizes and fails if the page is ever wider than the
+  viewport (`node tools/shots/mobile-check.mjs --url http://localhost:4173/`).
+- `pngdiff.mjs` — pixel diff of two shots, for before/after comparisons.
+
+### The shot gate
+
+A change that must not move a pixel is gated by
 shooting both tiers and diffing against the batch's baseline set:
 
 ```
@@ -35,13 +47,34 @@ measurement says why**: the default is the gate. Known widenings:
 WebP fallback path can be shot in the same Chrome; `state.json` records the
 verdict each capture ran under.
 
-`cdp-rects.mjs`, `mobile-check.mjs` and `mask-bboxes.json` are the layout
-measurements the panel/figure tuck and the mask-bounds tests rest on.
+## Transfer (`tools/perf/`)
 
-## perf/ — bytes
+- `transfer.mjs` (`pnpm transfer`) — bytes each tier sends over the wire on
+  a cold and a warm load, by category. Baseline and how to read the table
+  in [`docs/perf/README.md`](../docs/perf/README.md).
+- `transferReport.mjs` — the pure helpers (`classify`, `summarise`); their
+  tests run in the unit project.
 
-`transfer.mjs` (`pnpm transfer`) measures what a first load actually sends,
-per tier, in the same headless Chrome (`--no-avif` for the WebP path);
-`budget.mjs` (`pnpm budget`) sums the same first load statically from
-`dist/` against `budget.json` and runs in CI. docs/perf/README.md has the
-method and the baselines.
+## Build-output tests (`tests/build/`)
+
+A second vitest project that reads `dist/` instead of `src/`:
+
+```
+pnpm build        # writes dist/
+pnpm test:build   # runs only tests/build/**/*.test.ts, in node
+```
+
+`pnpm test` runs only the unit project (`src/**/*.test.{ts,tsx}` and
+`tools/perf/*.test.mjs`, in jsdom) and never needs a build. The two
+projects are defined under `test.projects` in `vite.config.ts`; neither
+picks up the other's files. Without a `dist/`, `pnpm test:build` stops in
+one line (`tests/build/globalSetup.ts`) rather than failing test by test.
+
+Helpers for new checks live in `tests/build/dist.ts`: `DIST_DIR`,
+`distPath(rel)`, `hasDist()`, `readDist(rel)` and `distIndexHtml()`.
+`tests/build/splashOrder.ts` holds the first predicate,
+`splashPrecedesBodyScripts(html)`: the static splash is the first thing in
+`<body>`, ahead of every body `<script>`, so it is on screen before any
+script that could paint has run. Later Vitals slices add their head-markup,
+generated-file, config and headless-Chrome timeline checks here; in CI the
+order is `test`, `build`, `test:build`, `budget`.

@@ -64,8 +64,29 @@ export default defineConfig({
     assetsInlineLimit: (file) => (/\.(webp|avif)$/.test(file) ? false : undefined),
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
+    // Two projects (#103). `pnpm test` runs the unit project against src/;
+    // `pnpm test:build` runs the build project against dist/ after a build
+    // (tools/README.md). Neither includes the other's files.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'jsdom',
+          setupFiles: ['./src/test/setup.ts'],
+          include: ['src/**/*.test.{ts,tsx}', 'tools/perf/*.test.mjs'],
+          exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'build',
+          environment: 'node',
+          include: ['tests/build/**/*.test.ts'],
+          globalSetup: ['./tests/build/globalSetup.ts'],
+        },
+      },
+    ],
   },
 })

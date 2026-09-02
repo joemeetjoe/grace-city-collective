@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --project unit",
+    "test:build": "vitest run --project build",
     "transfer": "node tools/perf/transfer.mjs",
     "budget": "node tools/perf/budget.mjs",
     "preview": "vite preview"
