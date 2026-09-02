@@ -20,6 +20,8 @@
  *        [--no-avif]          (force the AVIF probe's verdict to false before the page
  *                              runs, so the WebP fallback path is measured in the same
  *                              Chrome: src/device/avif.ts reads the preset verdict)
+ *        [--reduced-motion]   (emulate prefers-reduced-motion: reduce, so the still
+ *                              poster loads in place of the scene: the fallback path)
  *
  * Desktop is 1600×900 at DPR 2, mobile 390×844 at DPR 1.5 with the mobile
  * flag, so tierFor() picks the 2048 and 1024 tiers respectively.
@@ -31,7 +33,7 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { brotliCompressSync } from "node:zlib";
 
-import { formatTable, formatTimeline, summarise } from "./transferReport.mjs";
+import { PROFILES, formatTable, formatTimeline, kb, posterResponses, summarise } from "./transferReport.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -44,16 +46,12 @@ const idleMs = Number(arg("idle", 1500));
 const jsonOut = arg("json", "");
 const throttleKbps = Number(arg("throttle", 0));
 const timeline = process.argv.includes("--timeline");
+const reducedMotion = process.argv.includes("--reduced-motion");
 const tierNames = arg("tiers", "desktop,mobile").split(",").filter(Boolean);
 const noAvif = process.argv.includes("--no-avif");
 // the window property src/device/avif.ts keeps the verdict on (AVIF_VERDICT_KEY)
 const AVIF_VERDICT_KEY = "__gccAvif";
 const chrome = arg("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
-
-const PROFILES = {
-  desktop: { width: 1600, height: 900, dpr: 2, mobile: false },
-  mobile: { width: 390, height: 844, dpr: 1.5, mobile: true },
-};
 
 // ---- a CloudFront-shaped static server for dist/ ----------------------------
 const MIME = {
@@ -244,6 +242,9 @@ async function measureTier(name, url, userDataDir) {
     if (noAvif) {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `window[${JSON.stringify(AVIF_VERDICT_KEY)}] = false;` });
     }
+    if (reducedMotion) {
+      await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    }
     if (throttleKbps) {
       await cdp.send("Network.emulateNetworkConditions", {
         offline: false, latency: 150, downloadThroughput: (throttleKbps * 1000) / 8, uploadThroughput: (throttleKbps * 1000) / 8,
@@ -258,7 +259,8 @@ async function measureTier(name, url, userDataDir) {
     const warm = await loadOnce(cdp, url);
     return {
       profile, viewport, canvas, avif, formats: textureFormats(cold.responses),
-      cold: { ...cold, ...summarise(cold.responses) }, warm: { ...warm, ...summarise(warm.responses) },
+      cold: { ...cold, ...summarise(cold.responses), poster: posterResponses(cold.responses) },
+      warm: { ...warm, ...summarise(warm.responses), poster: posterResponses(warm.responses) },
     };
   } finally {
     cdp.ws.close();
@@ -273,7 +275,7 @@ const externalUrl = arg("url", "");
 const server = externalUrl ? null : await serveDist();
 const url = externalUrl || `http://127.0.0.1:${servePort}/`;
 const commit = (() => { try { return execSync("git rev-parse --short HEAD").toString().trim(); } catch { return ""; } })();
-const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, noAvif, tiers: {} };
+const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, noAvif, reducedMotion, tiers: {} };
 try {
   for (const name of tierNames) {
     if (!PROFILES[name]) throw new Error(`unknown tier ${name}`);
@@ -286,12 +288,14 @@ try {
     const t = run.tiers[name];
     const formats = Object.entries(t.formats).map(([ext, f]) => `${f.count} ${ext} ${(f.bytes / 1024).toFixed(1)} kB`).join(", ");
     console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, avif ${t.avif}, textures ${formats}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    for (const p of t.cold.poster) console.error(`${name}: poster ${p.rung}w ${p.format} ${kb(p.bytes)} kB  ${p.path}`);
     if (timeline) console.log(`${name} cold load, ms from the first request\n${formatTimeline(t.cold.responses, { trace: t.cold.traceAt, gate: t.cold.gateAt })}\n`);
   }
 } finally {
   server?.close();
 }
-console.log(`commit ${commit}  ${run.url}\n`);
+console.log(`commit ${commit}  ${run.url}${reducedMotion ? "  (prefers-reduced-motion: reduce — the poster path)" : ""}\n`);
 console.log(formatTable(run.tiers));
 if (jsonOut) {
   writeFileSync(jsonOut, JSON.stringify(run, null, 2) + "\n");

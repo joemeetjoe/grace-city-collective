@@ -51,6 +51,21 @@ export function tierTextureFiles(manifest, width) {
   return chosen.map((key) => manifest[key].file);
 }
 
+/** the poster ladder's rungs in the manifest (tools/poster/ladder.py writes them) */
+const POSTER_RUNG = (rung, format) => `src/assets/poster/dore-pentecost-dark-${rung}.${format}`;
+
+/**
+ * The one file a tier's poster path requests (no WebGL, reduced motion,
+ * Save-Data: the still in place of the scene, #109): the ladder rung the
+ * tier's viewport picks, in AVIF unless told otherwise.
+ */
+export function firstLoadPoster(manifest, rung, format = "avif") {
+  const key = POSTER_RUNG(rung, format);
+  const hit = manifest[key];
+  if (!hit) throw new Error(`no poster rung ${rung} (${format}) in the Vite manifest: ${key}`);
+  return { path: hit.file, category: classify(`/${hit.file}`) };
+}
+
 /**
  * The dist files (relative paths) a tier's first load requests, in request
  * order, each with its transfer category, read out of Vite's manifest
@@ -103,6 +118,9 @@ export function sumByCategory(files) {
 const KB = 1024;
 const ROWS = [...CATEGORIES, "total"];
 
+/** the poster row is checked and printed only for totals that carry one (`{ poster: { bytes, count } }`) */
+const rowsOf = (totals) => (totals.poster ? [...ROWS, "poster"] : ROWS);
+
 const measured = (totals, row) => (row === "total" ? totals.total : totals[row].bytes);
 
 /** a tier's ceiling for one row, in bytes; a budget file missing the tier or the row is an error */
@@ -119,7 +137,7 @@ function ceilingBytes(ceilings, tier, row) {
 export function checkBudget(totals, ceilings) {
   const breaches = [];
   for (const [tier, t] of Object.entries(totals)) {
-    for (const row of ROWS) {
+    for (const row of rowsOf(t)) {
       const bytes = measured(t, row);
       const ceiling = ceilingBytes(ceilings, tier, row);
       if (bytes > ceiling) breaches.push({ tier, category: row, bytes, ceiling });
@@ -132,14 +150,15 @@ const pad = (s, n) => String(s).padStart(n);
 
 /**
  * The per-tier table: a row per category and the total — files, kB on the
- * wire, the ceiling, the headroom left — with OVER on any breach.
+ * wire, the ceiling, the headroom left — with OVER on any breach; then the
+ * poster row, the fallback path's one image, outside the total.
  */
 export function formatBudgetTable(totals, ceilings) {
   const lines = [];
   for (const [tier, t] of Object.entries(totals)) {
     lines.push(`${tier}  (kB on the wire)`);
     lines.push(`  ${pad("", 8)} ${pad("files", 6)} ${pad("measured", 9)} ${pad("ceiling", 9)} ${pad("headroom", 9)}`);
-    for (const row of ROWS) {
+    for (const row of rowsOf(t)) {
       const bytes = measured(t, row);
       const ceiling = ceilingBytes(ceilings, tier, row);
       const files = row === "total" ? CATEGORIES.reduce((n, c) => n + t[c].count, 0) : t[row].count;
@@ -155,3 +174,11 @@ export function formatBudgetTable(totals, ceilings) {
 
 /** tier name → the plate width whose textures it loads; mirrors TIERS in src/device/tier.ts (a test guards the drift) */
 export const TIER_WIDTHS = { desktop: 2048, mobile: 1024 };
+
+/**
+ * tier name → the poster rung its transfer profile picks (posterSource in
+ * src/engine/posterLadder.ts over PROFILES; a test guards the drift): the
+ * desktop viewport at DPR 2 wants 3200 px and caps at the plate, the mobile
+ * one at DPR 1.5 wants 585 px and takes the smallest rung.
+ */
+export const TIER_POSTER_RUNGS = { desktop: 2048, mobile: 640 };

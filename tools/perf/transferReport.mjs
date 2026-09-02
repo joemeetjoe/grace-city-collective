@@ -5,6 +5,17 @@
  * that prints.
  */
 
+/**
+ * The two viewports the transfer measures, one per tier: desktop 1600×900 at
+ * DPR 2, mobile 390×844 at DPR 1.5 with the mobile flag, so tierFor() picks
+ * the 2048 and 1024 tiers respectively. The budget's poster row
+ * (budgetReport.mjs) takes the poster rung these would pick.
+ */
+export const PROFILES = {
+  desktop: { width: 1600, height: 900, dpr: 2, mobile: false },
+  mobile: { width: 390, height: 844, dpr: 1.5, mobile: true },
+};
+
 /** the categories a first load is made of, in table order */
 export const CATEGORIES = ["html", "js", "css", "font", "texture", "other"];
 
@@ -104,4 +115,22 @@ export function formatTimeline(responses, marks = {}) {
   // a mark sits after the responses that finished by the same moment
   rows.sort((a, b) => a.at - b.at || (a.mark ? 1 : 0) - (b.mark ? 1 : 0));
   return rows.map((r) => r.line).join("\n");
+}
+
+/** a poster rung's file name (src/assets/poster/, hashed by Vite in dist/): the width and format */
+const POSTER_FILE = /dore-pentecost-dark-(\d+)(?:-[^/.]+)?\.(avif|webp)$/;
+
+/**
+ * The still poster requests in a load (the fallback path: no WebGL, reduced
+ * motion, Save-Data), each with the rung width and format the browser
+ * picked from the ladder and its bytes; empty on the scene path.
+ */
+export function posterResponses(responses) {
+  const list = [];
+  for (const res of responses) {
+    const path = new URL(res.url, "http://x").pathname;
+    const m = POSTER_FILE.exec(path);
+    if (m) list.push({ path, rung: Number(m[1]), format: m[2], bytes: res.bytes });
+  }
+  return list;
 }

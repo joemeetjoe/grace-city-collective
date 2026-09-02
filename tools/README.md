@@ -47,13 +47,27 @@ measurement says why**: the default is the gate. Known widenings:
 WebP fallback path can be shot in the same Chrome; `state.json` records the
 verdict each capture ran under.
 
+## Poster (`tools/poster/`)
+
+- `ladder.py` — cuts the still poster's width ladder (640, 960, 1280, 1600,
+  2048) from the darkened plate `src/assets/dore-pentecost-dark-2048.jpg`
+  into `src/assets/poster/` in AVIF and WebP, with fixed encoder settings so
+  a re-run is byte-identical (`--check` proves it without writing). Runs
+  under the dore-recut venv, whose Pillow has both codecs:
+  `~/Projects/dore-recut/.venv-recut/bin/python tools/poster/ladder.py`.
+  The rungs mirror `POSTER_RUNGS` in `src/engine/posterLadder.ts`, which
+  `StaticPoster` lists in its `<picture>`.
+
 ## Transfer (`tools/perf/`)
 
 - `transfer.mjs` (`pnpm transfer`) — bytes each tier sends over the wire on
-  a cold and a warm load, by category. Baseline and how to read the table
+  a cold and a warm load, by category; `--reduced-motion` measures the
+  poster path instead of the scene. Baseline and how to read the table
   in [`docs/perf/README.md`](../docs/perf/README.md).
-- `transferReport.mjs` — the pure helpers (`classify`, `summarise`); their
-  tests run in the unit project.
+- `transferReport.mjs` — the pure helpers (`classify`, `summarise`,
+  `posterResponses`); their tests run in the unit project.
+- `budget.mjs` (`pnpm budget`) — the static byte budget from `dist/` against
+  `budget.json`, with a poster row for the fallback path's one image.
 
 ## Build-output tests (`tests/build/`)
 

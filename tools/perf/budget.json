@@ -5,8 +5,10 @@
     "html/js/css/svg at their brotli size, avif/webp/woff2 raw — so this table and docs/perf/wire-*.json compare directly.",
     "Set on 2026-09-02 (#102) at the post-batch numbers plus ~5%, rounded up: desktop 1857.1 kB measured (textures 1547.1, js 248.2),",
     "mobile 913.7 kB (textures 603.8). The AVIF path is what is budgeted; the WebP fallback path is measured in docs/perf/wire-final-webp.json.",
+    "poster: the fallback path's one image (no WebGL, reduced motion, Save-Data), outside the total — the AVIF rung the tier's",
+    "transfer profile picks from the ladder (tools/poster/ladder.py; #109): desktop 2048 at 486.1 kB, mobile 640 at 76.6 kB, plus ~15%.",
     "To raise a ceiling deliberately: change the number in the same PR as the change that needs it, and say why in the PR."
   ],
-  "desktop": { "total": 1950, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 1625, "other": 0.5 },
-  "mobile": { "total": 960, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 635, "other": 0.5 }
+  "desktop": { "total": 1950, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 1625, "other": 0.5, "poster": 560 },
+  "mobile": { "total": 960, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 635, "other": 0.5, "poster": 90 }
 }

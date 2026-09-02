@@ -48,7 +48,10 @@ const manifest = Object.fromEntries([
   font("cormorant-garamond-latin-400-normal"),
   font("cormorant-garamond-latin-400-normal", "woff"),
   font("cormorant-garamond-latin-300-normal"),
-  ["src/assets/dore-pentecost-dark-2048.webp", { file: "assets/dore-pentecost-dark-2048-P0ster.webp" }],
+  ["src/assets/poster/dore-pentecost-dark-640.avif", { file: "assets/dore-pentecost-dark-640-P0ster.avif" }],
+  ["src/assets/poster/dore-pentecost-dark-640.webp", { file: "assets/dore-pentecost-dark-640-P0ster.webp" }],
+  ["src/assets/poster/dore-pentecost-dark-2048.avif", { file: "assets/dore-pentecost-dark-2048-P0ster.avif" }],
+  ["src/assets/poster/dore-pentecost-dark-2048.webp", { file: "assets/dore-pentecost-dark-2048-P0ster.webp" }],
   texture(2048, "plate-backdrop"),
   texture(2048, "plate-backdrop", "avif"),
   texture(2048, "map-floor"),
@@ -164,5 +167,49 @@ import { TIERS, tierWidth } from "../../src/device/tier";
 describe("TIER_WIDTHS", () => {
   it("mirrors the tiers the app decides between (src/device/tier.ts)", () => {
     expect(TIER_WIDTHS).toEqual(Object.fromEntries(Object.values(TIERS).map((t) => [t.name, tierWidth(t)])));
+  });
+});
+
+import { firstLoadPoster, TIER_POSTER_RUNGS } from "./budgetReport.mjs";
+import { PROFILES } from "./transferReport.mjs";
+import { posterSource } from "../../src/engine/posterLadder";
+
+describe("firstLoadPoster", () => {
+  it("names the AVIF rung a tier's poster path requests, as a texture", () => {
+    expect(firstLoadPoster(manifest, 2048)).toEqual({ path: "assets/dore-pentecost-dark-2048-P0ster.avif", category: "texture" });
+    expect(firstLoadPoster(manifest, 640, "webp")).toEqual({ path: "assets/dore-pentecost-dark-640-P0ster.webp", category: "texture" });
+  });
+
+  it("fails loudly when the ladder has no such rung", () => {
+    expect(() => firstLoadPoster(manifest, 960)).toThrow(/960/);
+  });
+});
+
+describe("TIER_POSTER_RUNGS", () => {
+  it("is the rung each transfer profile picks (src/engine/posterLadder.ts over PROFILES), the poster row's file", () => {
+    expect(TIER_POSTER_RUNGS).toEqual(
+      Object.fromEntries(Object.entries(PROFILES).map(([tier, p]) => [tier, posterSource({ ...p, saveData: false }).rung])),
+    );
+    expect(TIER_POSTER_RUNGS).toEqual({ desktop: 2048, mobile: 640 });
+  });
+});
+
+describe("the poster row", () => {
+  const withPoster = { ...desktop, poster: { bytes: 300 * 1024, count: 1 } };
+  const posterCeilings = { desktop: { ...ceilings.desktop, poster: 400 } };
+
+  it("is checked against its own ceiling and never added to the total", () => {
+    expect(checkBudget({ desktop: withPoster }, posterCeilings)).toEqual([]);
+    expect(checkBudget({ desktop: withPoster }, { desktop: { ...posterCeilings.desktop, poster: 299 } })).toEqual([
+      { tier: "desktop", category: "poster", bytes: 300 * 1024, ceiling: 299 * 1024 },
+    ]);
+    expect(() => checkBudget({ desktop: withPoster }, ceilings)).toThrow(/poster/);
+  });
+
+  it("prints after the total, and is absent when the totals carry no poster", () => {
+    const text = formatBudgetTable({ desktop: withPoster }, posterCeilings);
+    expect(text).toMatch(/total\s+7\s+2361\.0\s+2500\.0\s+139\.0\s*$/m);
+    expect(text).toMatch(/total.*\n\s+poster\s+1\s+300\.0\s+400\.0\s+100\.0\s*$/m);
+    expect(formatBudgetTable({ desktop }, ceilings)).not.toContain("poster");
   });
 });

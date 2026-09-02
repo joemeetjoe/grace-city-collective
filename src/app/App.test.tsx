@@ -238,7 +238,7 @@ describe("App static fallback", () => {
     const { container } = render(<FreshApp />);
     expect(container.querySelector("[data-parallax-stub]")).toBeNull();
     const img = container.querySelector("[data-parallax] [data-poster] img")!;
-    expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-1280/);
+    expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-640\b.*\.webp$/);
     await new Promise((r) => setTimeout(r, 20));
     expect(engineLoads.count).toBe(0);
   });

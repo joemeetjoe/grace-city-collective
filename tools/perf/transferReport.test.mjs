@@ -85,3 +85,25 @@ describe("formatTimeline", () => {
     expect(lines[4]).toMatch(/^\s+1800\s+-- gate$/);
   });
 });
+
+import { posterResponses } from "./transferReport.mjs";
+
+describe("posterResponses", () => {
+  it("picks out the poster rungs a load requested, with their width, format and bytes", () => {
+    const list = posterResponses([
+      r("http://h/", 900, 10),
+      r("http://h/assets/index-A.js", 300_000, 200),
+      r("http://h/assets/dore-pentecost-dark-2048-Xy12.avif", 310_000, 900),
+      r("http://h/assets/dore-pentecost-dark-640-Zz9a.webp", 41_000, 950),
+      r("http://h/dore/2048/plate.webp", 378_000, 1200),
+    ]);
+    expect(list).toEqual([
+      { path: "/assets/dore-pentecost-dark-2048-Xy12.avif", rung: 2048, format: "avif", bytes: 310_000 },
+      { path: "/assets/dore-pentecost-dark-640-Zz9a.webp", rung: 640, format: "webp", bytes: 41_000 },
+    ]);
+  });
+
+  it("is empty when the load took the scene path", () => {
+    expect(posterResponses([r("http://h/", 900, 10), r("http://h/dore/2048/plate.webp", 378_000, 1200)])).toEqual([]);
+  });
+});
