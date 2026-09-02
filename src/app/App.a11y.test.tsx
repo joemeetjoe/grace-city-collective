@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { INTRO_PLAYED_KEY } from "@/features/intro/introPolicy";
-import { installScrollDriver } from "@/scroll/position";
 
 // One axe pass over the whole App under jsdom (Vitals 10/13, #112), so a
 // pull request goes red locally before Lighthouse CI sees it. The same
@@ -65,7 +64,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   window.sessionStorage.clear();
-  installScrollDriver(null);
 });
 
 describe("App accessibility (axe)", () => {

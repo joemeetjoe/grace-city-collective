@@ -104,3 +104,13 @@ describe("settleSmoother", () => {
     expect(set.mock.calls[0][0]).toBeLessThan(1);
   });
 });
+
+describe("createSmoothScroll", () => {
+  it("registers ScrollTrigger and ScrollSmoother itself, on import", async () => {
+    const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+    const { ScrollSmoother } = await import("gsap/ScrollSmoother");
+    const globals = (gsap.core as unknown as { globals: () => Record<string, unknown> }).globals();
+    expect(globals.ScrollTrigger).toBe(ScrollTrigger);
+    expect(globals.ScrollSmoother).toBe(ScrollSmoother);
+  });
+});

@@ -12,7 +12,6 @@ import { useSceneLayers } from "./useSceneLayers";
 import IntroSplash from "@/features/intro/IntroSplash";
 import { useIntroGate } from "@/features/intro/useIntroGate";
 import { sectionMarkers } from "@/scroll/markers";
-import { useActiveSection } from "@/scroll/useActiveSection";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
 import { syncTier } from "@/state/syncTier";
@@ -42,16 +41,16 @@ export default function App() {
     contentRef,
     held,
     sections,
-  } = useSceneLayers();
+  } = useSceneLayers(ids);
   useIntroGate(parallaxRef);
-  useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held });
-  // which section is under the viewport's midpoint, kept in the store and
-  // read here for the nav links and the dot rail alike
-  useActiveSection(ids);
+  // the smoother, the paging, and the section watch that keeps the store's
+  // activeId — which section is under the viewport's midpoint, read here
+  // for the nav links and the dot rail alike
+  const scroll = useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held, sections });
   const intro = useAppStore((s) => s.intro);
   const activeId = useAppStore((s) => s.activeId);
   const sceneInView = useAppStore((s) => s.sceneInView);
-  const { jumpTo } = useJump();
+  const jump = useJump(scroll);
 
   return (
     <div
@@ -62,14 +61,14 @@ export default function App() {
       {intro && <IntroSplash />}
 
       {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
-      <SiteNav activeId={activeId} sceneInView={sceneInView} />
+      <SiteNav activeId={activeId} sceneInView={sceneInView} jump={jump} />
 
       {/* the section dots, fixed outside the smoother's content like the nav,
           and stacked with it so section copy never covers a dot */}
       <DotRail
         markers={markers}
         activeId={activeId}
-        onNavigate={jumpTo}
+        onNavigate={jump.jumpTo}
         className={STACK.nav}
       />
 
@@ -86,6 +85,7 @@ export default function App() {
             frameRef={frameRef}
             sceneRef={sceneRef}
             sections={sections}
+            scroll={scroll}
           />
         </main>
       </div>

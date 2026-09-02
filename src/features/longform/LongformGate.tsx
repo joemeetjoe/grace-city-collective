@@ -10,6 +10,7 @@ import {
 
 import { useSite } from "@/content/useSite";
 import { refreshScrollPositions } from "@/scroll/refresh";
+import type { SectionRegistry } from "@/scroll/sections";
 import { useInViewOnce } from "@/ui/useInViewOnce";
 import { loadLongform } from "./loadLongform";
 import {
@@ -45,7 +46,12 @@ const PLACEHOLDER = "min-h-[100svh]";
  * sections keep their placeholder height (no fallback flashes them empty)
  * until the whole chunk is ready to commit at once.
  */
-export default function LongformGate() {
+export type LongformGateProps = {
+  /** the page's section registry: each long-form section mounts with its ref (scroll/sections.ts) */
+  sections: SectionRegistry;
+};
+
+export default function LongformGate({ sections }: LongformGateProps) {
   const site = useSite();
   const [requested, setRequested] = useState(false);
   const mounted = useSyncExternalStore(subscribeLongform, isLongformMounted);
@@ -83,6 +89,7 @@ export default function LongformGate() {
       {site.longform.map((s) => (
         <section
           key={s.id}
+          ref={sections.ref(s.id)}
           id={s.id}
           aria-busy={mounted ? undefined : true}
           className={mounted ? LONGFORM_SECTION : `${LONGFORM_SECTION} ${PLACEHOLDER}`}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type RefObject } from "react";
+import { lazy, Suspense, useMemo, useState, type RefObject } from "react";
 
 import CornerOrnaments, {
   FRAME_ARM,
@@ -12,7 +12,8 @@ import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
 import { useBelowLg } from "@/layout/breakpoint";
 import { useViewportHeight } from "@/layout/viewportHeight";
-import type { SectionRefs } from "@/scroll/sectionRefs";
+import type { SectionRegistry } from "@/scroll/sections";
+import type { PageScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
 
 /**
@@ -28,15 +29,17 @@ const PentecostParallax = lazy(loadParallax);
 const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
 
-/** the scene's DOM handles (useSceneLayers), and nothing else: every fact comes off the store */
+/** the scene's DOM handles (useSceneLayers) and the page's scroll (useSmoothScroll), and nothing else: every fact comes off the store */
 export type HomePageProps = {
   parallaxRef: RefObject<HTMLDivElement | null>;
   frontRef: RefObject<HTMLDivElement | null>;
   frontCanvasRef: RefObject<HTMLCanvasElement | null>;
   frameRef: RefObject<HTMLDivElement | null>;
   sceneRef: RefObject<HTMLDivElement | null>;
-  /** the scene sections as the stops mount them (useSceneLayers) */
-  sections: SectionRefs;
+  /** every section mounts with its ref from here (scroll/sections.ts) */
+  sections: SectionRegistry;
+  /** the scroll position the camera reads, whichever is driving */
+  scroll: PageScroll;
 };
 
 /**
@@ -51,6 +54,7 @@ export default function HomePage({
   frameRef,
   sceneRef,
   sections,
+  scroll,
 }: HomePageProps) {
   const site = useSite();
   const intro = useAppStore((s) => s.intro);
@@ -64,6 +68,13 @@ export default function HomePage({
   // below lg the frame's dvh steps as the URL bar moves; a measured px
   // height lets the layer's transition glide between the steps instead
   const frameHeight = useViewportHeight(useBelowLg());
+  // the camera paces itself against the scene's sections alone — the
+  // long-form below scrolls past a scene at rest — read off the page's
+  // registry by their ids when the scene builds (createParallaxScene.ts)
+  const sceneSections = useMemo(() => {
+    const ids = new Set<string>(site.scene.map((s) => s.id));
+    return () => sections.sections().flatMap(({ id, el }) => (ids.has(id) ? [el] : []));
+  }, [site, sections]);
 
   return (
     <>
@@ -101,7 +112,8 @@ export default function HomePage({
                 layerSpread={1.25}
                 tier={engineTier}
                 frontCanvas={frontCanvasRef}
-                sections={sections}
+                sections={sceneSections}
+                scrollTop={scroll.scrollTop}
               />
             </Suspense>
           )}
@@ -168,8 +180,8 @@ export default function HomePage({
         minmax(0,1fr) column: a section's min-content can never widen the
         cell, and the sticky layers with it, past the viewport (#51) */}
         <div className="relative col-start-1 row-start-1 min-w-0">
-          {site.scene.map((s, i) => (
-            <Scene key={s.id} section={s} ref={sections.at(i)} />
+          {site.scene.map((s) => (
+            <Scene key={s.id} section={s} ref={sections.ref(s.id)} />
           ))}
         </div>
       </div>
@@ -177,7 +189,7 @@ export default function HomePage({
       {/* long-form: ordinary scrolling on ink, no waypoints. Its words come
       in their own chunk once the reader nears (#111); the sections stand
       from the first render */}
-      <LongformGate />
+      <LongformGate sections={sections} />
     </>
   );
 }

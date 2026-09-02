@@ -1,7 +1,6 @@
 import * as THREE from "three";
 
 import { supportsAvif } from "@/device/avif";
-import { getScrollTop } from "@/scroll/position";
 import { browserInput, type SceneInput } from "./input";
 import { GL_FLAGS } from "./tuning";
 
@@ -26,7 +25,7 @@ export type SceneEnv = {
   /** one renderer per canvas; the WebGL context it takes is the canvas's own */
   createRenderer(canvas: HTMLCanvasElement, params: RendererParams): Renderer;
   viewport(): Viewport;
-  /** the smoothed scroll (scroll/position.ts) */
+  /** the document's own scroll; the page hands the smoothed one through the config (createParallaxScene.ts) */
   scrollTop(): number;
   /** the AVIF verdict every texture request waits on (#101) */
   supportsAvif(): Promise<boolean>;
@@ -41,7 +40,7 @@ export function browserEnv(win: Window = window, doc: Document = document): Scen
   return {
     createRenderer: (canvas, params) => new THREE.WebGLRenderer({ canvas, ...params }),
     viewport: () => ({ width: win.innerWidth, height: win.innerHeight, dpr: win.devicePixelRatio || 1 }),
-    scrollTop: getScrollTop,
+    scrollTop: () => doc.documentElement.scrollTop,
     supportsAvif,
     now: () => performance.now(),
     raf: (cb) => win.requestAnimationFrame(cb),

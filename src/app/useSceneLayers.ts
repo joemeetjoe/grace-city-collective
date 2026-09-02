@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
-import { useSectionRefs, type SectionRefs } from "@/scroll/sectionRefs";
+import { createSectionRegistry, type SectionRegistry } from "@/scroll/sections";
 import { useAppStore } from "@/state/appStore";
 import { observeInView } from "@/ui/useInView";
 
@@ -14,17 +14,19 @@ export type SceneLayers = {
   /** the smoother's content, the page's <main> */
   contentRef: RefObject<HTMLElement | null>;
   held: RefObject<HTMLDivElement | null>[];
-  /** the scene sections, in order, as the stops mount them: the engine paces the camera against them, a scroll pager reads the same list */
-  sections: SectionRefs;
+  /** every section of the page by ref, in `ids` order (scroll/sections.ts) */
+  sections: SectionRegistry;
 };
 
 /**
- * the scene's DOM handles. Every ref and the held list originate here, in
- * one hook, so useSmoothScroll keeps its run-once contract with the same ref
- * objects for the life of the mount. The one fact the scene's box yields —
- * whether it is on screen — goes to the store, never out of here as state.
+ * the scene's DOM handles. Every ref, the held list and the section registry
+ * originate here, in one hook, so useSmoothScroll keeps its run-once
+ * contract with the same ref objects for the life of the mount. `ids` are
+ * the page's sections in scroll order, stable (memoised). The one fact the
+ * scene's box yields — whether it is on screen — goes to the store, never
+ * out of here as state.
  */
-export function useSceneLayers(): SceneLayers {
+export function useSceneLayers(ids: readonly string[]): SceneLayers {
   const parallaxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);
@@ -36,7 +38,7 @@ export function useSceneLayers(): SceneLayers {
   // front canvas and the frame ride with the back canvas; a stable list so
   // the hook runs once
   const [held] = useState(() => [parallaxRef, frontRef, frameRef]);
-  const sections = useSectionRefs();
+  const sections = useMemo(() => createSectionRegistry(ids), [ids]);
 
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible: the store's sceneInView, written

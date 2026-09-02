@@ -1,5 +1,10 @@
+import { SplitText } from "gsap/SplitText";
+
+import { gsap } from "@/lib/gsap";
 import { HERO_RISE_EASE, HERO_RISE_SECONDS, HERO_RISE_STAGGER, HERO_SETTLE_SECONDS, HERO_SETTLE_STAGGER } from "@/theme/motion";
-import { gsap, SplitText } from "@/lib/gsap";
+
+// the split below; registering again elsewhere is a no-op
+gsap.registerPlugin(SplitText);
 
 /** how far a line comes up, in px (its rise and the beat between lines: theme/motion.ts) */
 export const HERO_RISE_PX = 28;

@@ -79,6 +79,8 @@ export type SceneConfig = {
   reducedMotion?: boolean;
   /** the page's scene sections, in order, read when the scene builds */
   sections: () => readonly HTMLElement[];
+  /** the page's scroll position, whichever is driving it (a smoother's, scroll/useSmoothScroll.ts); the env's own by default */
+  scrollTop?: () => number;
   /** the loading manager's progress: loaded of total textures */
   onProgress?: (loaded: number, total: number) => void;
   /** every texture landed and uploaded, once */
@@ -106,6 +108,7 @@ export function createParallaxScene(
   const opts: SceneOptions = { ...SCENE_DEFAULTS, ...options };
   const { tier } = config;
   const reducedMotion = config.reducedMotion ?? false;
+  const scrollTop = config.scrollTop ?? env.scrollTop;
   const width = tierWidth(tier);
   const dpr = Math.min(env.viewport().dpr, tier.dprCap);
   // the scroll's pixel ratio (#70): reduced while the scroll flies, the
@@ -222,9 +225,9 @@ export function createParallaxScene(
    */
   let sectionCache: SectionRect[] = [];
   const measure = () => {
-    sectionCache = measureSections(sections, env.scrollTop());
+    sectionCache = measureSections(sections, scrollTop());
   };
-  const sectionProgress = () => sectionProgressAt(env.scrollTop() + env.viewport().height * SCROLL_PROBE, sectionCache);
+  const sectionProgress = () => sectionProgressAt(scrollTop() + env.viewport().height * SCROLL_PROBE, sectionCache);
 
   // every input path routes here: mark a frame and, if the loop is parked, re-arm it
   const wake = () => {
@@ -243,7 +246,7 @@ export function createParallaxScene(
     const plan = tickFrame(state, {
       now,
       t: (now - t0) / 1000,
-      scrollY: env.scrollTop(),
+      scrollY: scrollTop(),
       progress: sectionProgress(),
       sectionCount: sections.length,
       aspect: camera.aspect,

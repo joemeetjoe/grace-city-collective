@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ScrollTrigger } from "@/lib/gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
 import { refreshScrollPositions } from "./refresh";
 
 afterEach(() => vi.restoreAllMocks());

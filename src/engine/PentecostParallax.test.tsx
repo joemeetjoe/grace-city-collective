@@ -167,9 +167,10 @@ function loading() {
   return { progress, ready: () => useAppStore.getState().ready };
 }
 
-/** the scene paces itself against the page's scene sections, handed in by ref (scroll/sectionRefs.ts) */
+/** the scene paces itself against the page's scene sections, read when it builds (HomePage, over scroll/sections.ts) */
 function sections() {
-  return { current: ["Hero", "About", "Gatherings", "Give", "Visit"].map(() => document.createElement("section")) };
+  const els = ["Hero", "About", "Gatherings", "Give", "Visit"].map(() => document.createElement("section"));
+  return () => els;
 }
 
 async function mountAndLoad(front: boolean) {

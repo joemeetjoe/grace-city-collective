@@ -4,7 +4,7 @@ import type { SiteContent } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { isLongformMounted, requestLongform } from "@/features/longform/longformRequest";
 import { jumpTo as scrollJumpTo } from "@/scroll/jump";
-import { getScrollDriver } from "@/scroll/position";
+import type { PageScroll } from "@/scroll/useSmoothScroll";
 
 export type Jump = {
   /**
@@ -18,16 +18,16 @@ export type Jump = {
   jump: (e: MouseEvent<HTMLAnchorElement>, id: string) => void;
 };
 
-/** the nav's jumps over `site`: which ids wait for the long-form chunk (#111) */
-export function createJump(site: SiteContent): Jump {
+/** the nav's jumps over `site`, through `scroll`'s driver: which ids wait for the long-form chunk (#111) */
+export function createJump(site: SiteContent, scroll: Pick<PageScroll, "driver">): Jump {
   const longformIds = new Set<string>(site.longform.map((s) => s.id));
   const jumpTo = (id: string) => {
     if (longformIds.has(id) && !isLongformMounted()) {
-      void requestLongform().then(() => scrollJumpTo(id, getScrollDriver()));
+      void requestLongform().then(() => scrollJumpTo(id, scroll.driver()));
       return;
     }
     // through the smoother when one is running, native smooth scroll otherwise
-    scrollJumpTo(id, getScrollDriver());
+    scrollJumpTo(id, scroll.driver());
   };
   return {
     jumpTo,
@@ -38,8 +38,8 @@ export function createJump(site: SiteContent): Jump {
   };
 }
 
-/** the nav's jumps over the provided site content; stable for the life of the content */
-export function useJump(): Jump {
+/** the nav's jumps over the provided site content and the page's scroll; stable for the life of both */
+export function useJump(scroll: PageScroll): Jump {
   const site = useSite();
-  return useMemo(() => createJump(site), [site]);
+  return useMemo(() => createJump(site, scroll), [site, scroll]);
 }

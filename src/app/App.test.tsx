@@ -9,7 +9,7 @@ import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
-import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
+import type { ScrollDriver } from "@/scroll/position";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
 const seams = vi.hoisted(() => ({ webgl: true }));
@@ -17,6 +17,20 @@ vi.mock("@/device/fallback", async (orig) => ({
   ...(await orig<typeof import("@/device/fallback")>()),
   detectWebgl: () => seams.webgl,
 }));
+
+// the smoother runs for real unless a test stands a driver in for it: then
+// the handle the app gets carries that driver, and the nav's jumps go through it
+const smoothers = vi.hoisted(() => ({ driver: null as ScrollDriver | null }));
+vi.mock("@/scroll/smoother", async (orig) => {
+  const mod = await orig<typeof import("@/scroll/smoother")>();
+  return {
+    ...mod,
+    createSmoothScroll: (...args: Parameters<typeof mod.createSmoothScroll>) => {
+      if (!smoothers.driver) return mod.createSmoothScroll(...args);
+      return { driver: smoothers.driver, transforms: false, settle() {}, interrupt() {}, dispose() {} };
+    },
+  };
+});
 
 // the smoother runs for real; the hook's arguments are recorded so a test can
 // see which layers it was asked to hold
@@ -115,6 +129,7 @@ async function longformIn(container: HTMLElement): Promise<Element> {
 beforeEach(() => {
   engineLoads.count = 0;
   handoffs.list.length = 0;
+  smoothers.driver = null;
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
@@ -122,7 +137,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   window.sessionStorage.clear();
-  installScrollDriver(null);
 });
 
 describe("App intro policy", () => {
@@ -320,11 +334,10 @@ describe("App content", () => {
     expect(container.textContent).not.toContain("gmail.com");
   });
 
-  it("nav links jump through the scroll driver when one is installed", () => {
+  it("nav links jump through the smoother's driver while one runs", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    smoothers.driver = driver;
     const { container } = render(<App />);
-    // after the mount: the app installs its own smoother on mount, and the last one in wins
-    installScrollDriver(driver);
     fireEvent.click(container.querySelector("nav a[href='#give']")!);
     expect(driver.scrollTo).toHaveBeenCalledTimes(1);
     expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
@@ -356,31 +369,32 @@ describe("App nav jumps to the long-form (#111)", () => {
   }
 
   // the gate's store remembers the page's one request: a fresh module graph
-  // per test, with the scroll driver installed on the same graph the app reads
+  // per test (the smoother mock, and the driver it stands in, carry over)
   const freshPage = async () => {
     vi.resetModules();
-    const [{ default: FreshApp }, position] = await Promise.all([import("./App"), import("@/scroll/position")]);
-    return { FreshApp, installScrollDriver: position.installScrollDriver };
+    const { default: FreshApp } = await import("./App");
+    return { FreshApp };
   };
 
   afterEach(() => vi.unstubAllGlobals());
 
   it("a nav link to a long-form section asks for the chunk and lands once its words have mounted", async () => {
     quietObserver();
-    const { FreshApp, installScrollDriver } = await freshPage();
-    const { container } = render(<FreshApp />);
-    const faq = container.querySelector("#faq")!;
-    expect(faq).not.toBeNull();
-    expect(faq.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector("#faq dl")).toBeNull();
+    const { FreshApp } = await freshPage();
+    let container: HTMLElement | null = null;
     let wordsAtLanding: Element | null = null;
     const driver: ScrollDriver = {
       scrollTop: () => 0,
       scrollTo: vi.fn(() => {
-        wordsAtLanding = container.querySelector("#faq dl");
+        wordsAtLanding = container!.querySelector("#faq dl");
       }),
     };
-    installScrollDriver(driver);
+    smoothers.driver = driver;
+    container = render(<FreshApp />).container;
+    const faq = container.querySelector("#faq")!;
+    expect(faq).not.toBeNull();
+    expect(faq.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("#faq dl")).toBeNull();
     fireEvent.click(container.querySelector("nav a[href='#faq']")!);
     // not yet: the chunk is in flight
     expect(driver.scrollTo).not.toHaveBeenCalled();
@@ -390,19 +404,17 @@ describe("App nav jumps to the long-form (#111)", () => {
     // the same section element, now full: nothing the nav or the watch holds went stale
     expect(container.querySelector("#faq")).toBe(faq);
     expect(faq.getAttribute("aria-busy")).toBeNull();
-    installScrollDriver(null);
   });
 
   it("a nav link to a scene stop goes at once, whatever the chunk is doing", async () => {
     quietObserver();
-    const { FreshApp, installScrollDriver } = await freshPage();
-    const { container } = render(<FreshApp />);
+    const { FreshApp } = await freshPage();
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
-    installScrollDriver(driver);
+    smoothers.driver = driver;
+    const { container } = render(<FreshApp />);
     fireEvent.click(container.querySelector("nav a[href='#give']")!);
     expect(driver.scrollTo).toHaveBeenCalledTimes(1);
     expect(container.querySelector("#faq dl")).toBeNull();
-    installScrollDriver(null);
   });
 });
 
@@ -590,12 +602,12 @@ describe("App section markers", () => {
 
   it("the rail sits outside the smoother's content, and its dots jump through the driver", async () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    smoothers.driver = driver;
     const { container } = render(<App />);
     const rail = container.querySelector("[data-dot-rail]")!;
     expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(
       false,
     );
-    installScrollDriver(driver);
     fireEvent.click(rail.querySelector("a[href='#faq']")!);
     // a long-form dot waits for the chunk (App nav jumps, below); at once once it is in
     await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true));

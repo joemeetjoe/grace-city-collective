@@ -34,7 +34,7 @@ export type AppState = {
 
 /** what a mount decides once (app/initApp.ts): the intro policy and the device's verdicts */
 export type AppProfile = Pick<AppState, "intro" | "reducedMotion" | "tier" | "fallback"> & {
-  /** the section the page opens on, current until the watch reports (scroll/useActiveSection.ts) */
+  /** the section the page opens on, current until the section watch reports (scroll/sectionWatch.ts) */
   activeId?: string | null;
 };
 

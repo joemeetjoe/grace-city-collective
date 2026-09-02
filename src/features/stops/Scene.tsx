@@ -7,7 +7,7 @@ import GiveStop from "./GiveStop";
 import HeroStop from "./HeroStop";
 import VisitStop from "./VisitStop";
 
-/** a stop's props: its words from site.ts, and the ref its <section> lands in (scroll/sectionRefs.ts) */
+/** a stop's props: its words from site.ts, and the ref its <section> lands in (scroll/sections.ts) */
 export type StopProps = { section: SceneSection; ref?: Ref<HTMLElement> };
 
 /** one viewport of the scene; the layout varies by stop, the words come from site.ts */

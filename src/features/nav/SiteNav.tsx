@@ -1,4 +1,4 @@
-import { useJump } from "@/app/jump";
+import type { Jump } from "@/app/jump";
 import GMark from "@/marks/GMark";
 import { FOCUS_RING, GLASS, GLASS_CORNERS, STACK, button } from "@/theme/classes";
 import MobileNav from "./MobileNav";
@@ -16,15 +16,17 @@ import { useSite } from "@/content/useSite";
 export default function SiteNav({
   activeId,
   sceneInView,
+  jump: { jump, jumpTo },
 }: {
   /** which section is under the viewport's midpoint, lighting its link */
   activeId: string | null;
   /** once the scene has scrolled away the nav sits over long-form text, so it
       takes an ink backdrop to stay legible */
   sceneInView: boolean;
+  /** the nav's jumps, through the page's scroll (app/jump.ts) */
+  jump: Jump;
 }) {
   const site = useSite();
-  const { jump, jumpTo } = useJump();
   return (
     <div
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
