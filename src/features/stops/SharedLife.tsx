@@ -6,8 +6,10 @@ import {
   G_MARK_W as W,
   markBox,
 } from "@/marks/gMarkGeometry";
-import { TILE_STAGGER_MS } from "@/theme/motion";
+import { STATE } from "@/theme/classes";
 import { cn } from "@/lib/utils";
+import Tile from "./Tile";
+import { AT_REST, TILE_TRANSITION, enterLift, enterPose, pose, stagger } from "./tileGeometry";
 
 export type SharedLifeProps = {
   /**
@@ -25,9 +27,11 @@ export type SharedLifeProps = {
    * by side, six and six, for a phone card where a dozen rows run too long;
    * in two columns the huddle gathers in the middle between them
    */
-  columns?: 1 | 2;
+  columns?: Columns;
   className?: string;
 };
+
+export type Columns = 1 | 2;
 
 /** the lines of the program, a house church's dozen */
 export const ROWS = 12;
@@ -45,10 +49,7 @@ const LINE_RUNS = [
   1, 0.72, 0.88, 0.6, 0.94, 0.68, 0.8, 1, 0.64, 0.86, 0.74, 0.56,
 ];
 
-/** how far up from its line a waiting row sits, in a slot's heights */
-const ENTER_OUT = 0.6;
-export const ENTER_SCALE = 0.55;
-/** the rows print in one after the next from the top (TILE_STAGGER_MS) */
+/** the rows print in one after the next from the top (TILE_STAGGER_MS), each from ENTER_OUT of a slot up */
 
 /** a slot grows this much leaving its row: a line item is smaller than a person */
 export const HUDDLE_SCALE = 1.6;
@@ -69,38 +70,66 @@ const COLUMN_GAP = Math.round(W * 0.9);
 export const VIEW_W_2 = 2 * VIEW_W + COLUMN_GAP;
 export const VIEW_H_2 = (ROWS / 2) * SLOT_H + (ROWS / 2 - 1) * GAP;
 
-/** the drawing's extent for a number of columns, and the rows down each */
-function extent(columns: 1 | 2): { viewW: number; viewH: number; perColumn: number } {
-  const perColumn = ROWS / columns;
-  return {
-    viewW: columns * VIEW_W + (columns - 1) * COLUMN_GAP,
-    viewH: perColumn * SLOT_H + (perColumn - 1) * GAP,
-    perColumn,
-  };
-}
-
-const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_var(--ease-site),transform_.9s_var(--ease-site)]";
-
 const BOX = markBox(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, SLOT_CORNER);
 
-/** a row's slot at rest: its centre, in the logo's units — down the first column, then the next */
-function restCentre(row: number, columns: 1 | 2 = 1): { cx: number; cy: number } {
-  const { perColumn } = extent(columns);
-  const column = Math.floor(row / perColumn);
-  const r = row % perColumn;
-  return { cx: column * (VIEW_W + COLUMN_GAP) + SLOT_W / 2, cy: r * (SLOT_H + GAP) + SLOT_H / 2 };
-}
+/** a line's inline style in each of its states: in place beside its slot, faded while the slots huddle, and waiting up from its place */
+type LineStyles = { at: CSSProperties; faded: CSSProperties; waiting: CSSProperties };
 
-/**
- * where a slot stands in the huddle, in the logo's units: the first row's
- * in the middle, the next five in a ring round it, the last six in a ring
- * round those, each nudged a little off its place
- */
-function huddleCentre(row: number, columns: 1 | 2 = 1): { cx: number; cy: number } {
-  const { viewW, viewH } = extent(columns);
+/** a row: its slot's centre at rest, its line's run, its pose in the huddle, and its turn in the stagger */
+type Row = {
+  cx: number;
+  cy: number;
+  x1: number;
+  x2: number;
+  huddle: string;
+  delay: string;
+  heart: boolean;
+  line: LineStyles;
+};
+
+type Layout = { viewW: number; viewH: number; rows: Row[] };
+
+/** the waiting pose every slot shares: up from its line, and small */
+const WAITING = enterPose(0, -1, SLOT_H);
+
+/** the drawing laid out in a number of columns: its extent, and every row's places */
+function layout(columns: Columns): Layout {
+  const perColumn = ROWS / columns;
+  const viewW = columns * VIEW_W + (columns - 1) * COLUMN_GAP;
+  const viewH = perColumn * SLOT_H + (perColumn - 1) * GAP;
   // one column: up in the top third; two: in the middle, between the columns
   const mid = { cx: viewW / 2, cy: Math.round(viewH * (columns === 1 ? HUDDLE_Y : 0.5)) };
+  const rows = Array.from({ length: ROWS }, (_, row): Row => {
+    // at rest, down the first column, then the next
+    const column = Math.floor(row / perColumn);
+    const r = row % perColumn;
+    const cx = column * (VIEW_W + COLUMN_GAP) + SLOT_W / 2;
+    const cy = r * (SLOT_H + GAP) + SLOT_H / 2;
+    // in the huddle: the first row's in the middle, the next five in a ring
+    // round it, the last six in a ring round those, each nudged a little
+    const to = huddleCentre(row, mid);
+    const delay = stagger(row + 1);
+    const x1 = cx + SLOT_W / 2 + GAP;
+    const lift = `translateY(${enterLift(SLOT_H)}px)`;
+    return {
+      cx,
+      cy,
+      x1,
+      x2: x1 + LINE_W * LINE_RUNS[row],
+      huddle: pose(to.cx - cx, to.cy - cy, HUDDLE_SCALE),
+      delay,
+      heart: row === 0,
+      line: {
+        at: { opacity: 1, transform: "translateY(0px)", transitionDelay: delay },
+        faded: { opacity: 0, transform: "translateY(0px)", transitionDelay: delay },
+        waiting: { opacity: 0, transform: lift, transitionDelay: delay },
+      },
+    };
+  });
+  return { viewW, viewH, rows };
+}
+
+function huddleCentre(row: number, mid: { cx: number; cy: number }): { cx: number; cy: number } {
   if (row === 0) return mid;
   const inner = row <= 5;
   const n = inner ? 5 : 6;
@@ -114,16 +143,11 @@ function huddleCentre(row: number, columns: 1 | 2 = 1): { cx: number; cy: number
   };
 }
 
-/** a slot's transform about its own centre, in the logo's units */
-function pose(row: number, shown: boolean, lit: boolean, columns: 1 | 2): string {
-  if (!shown) {
-    return `translate(0px, ${-ENTER_OUT * SLOT_H}px) scale(${ENTER_SCALE})`;
-  }
-  if (!lit) return "translate(0px, 0px) scale(1)";
-  const rest = restCentre(row, columns);
-  const to = huddleCentre(row, columns);
-  return `translate(${to.cx - rest.cx}px, ${to.cy - rest.cy}px) scale(${HUDDLE_SCALE})`;
-}
+/** both layouts, placed once */
+const LAYOUTS: Record<Columns, Layout> = { 1: layout(1), 2: layout(2) };
+
+/** the slots in drawing order: the heart is drawn last, so its red sits over the cream of the rest */
+const DRAW_ORDER = [...Array.from({ length: ROWS - 1 }, (_, i) => i + 1), 0];
 
 /**
  * A life shared, not a program, drawn in the G mark's box — rounded
@@ -146,79 +170,47 @@ export default function SharedLife({
   columns = 1,
   className,
 }: SharedLifeProps) {
-  const rows = Array.from({ length: ROWS }, (_, row) => row);
-  const { viewW, viewH } = extent(columns);
+  const { viewW, viewH, rows } = LAYOUTS[columns];
+  const slotPose = !shown ? WAITING : !lit ? AT_REST : undefined;
   return (
     <svg
       aria-hidden
-      data-shared-life=""
-      data-lit={lit ? "" : undefined}
-      data-columns={columns}
       viewBox={`0 0 ${viewW} ${viewH}`}
       preserveAspectRatio="xMidYMid meet"
-      className={cn("text-cream", className)}
+      className={cn("text-cream", className, lit && STATE.lit)}
     >
-      {rows.map((row) => {
-        const { cx, cy } = restCentre(row, columns);
-        const delay = `${(row + 1) * TILE_STAGGER_MS}ms`;
-        const x1 = cx + SLOT_W / 2 + GAP;
+      {rows.map((row, i) => (
+        <line
+          key={i}
+          x1={row.x1}
+          x2={row.x2}
+          y1={row.cy}
+          y2={row.cy}
+          stroke="currentColor"
+          strokeOpacity={0.3}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+          className={TILE_TRANSITION}
+          style={!shown ? row.line.waiting : lit ? row.line.faded : row.line.at}
+        />
+      ))}
+      {DRAW_ORDER.map((i) => {
+        const row = rows[i];
         return (
-          <line
-            key={row}
-            data-line=""
-            x1={x1}
-            x2={x1 + LINE_W * LINE_RUNS[row]}
-            y1={cy}
-            y2={cy}
-            stroke="currentColor"
-            strokeOpacity={0.3}
-            strokeWidth={1}
-            vectorEffect="non-scaling-stroke"
-            className={TRANSITION}
-            style={{
-              opacity: shown && !lit ? 1 : 0,
-              transform: shown
-                ? "translateY(0px)"
-                : `translateY(${-ENTER_OUT * SLOT_H}px)`,
-              transitionDelay: delay,
-            }}
+          <Tile
+            key={i}
+            cx={row.cx}
+            cy={row.cy}
+            d={BOX}
+            transform={slotPose ?? row.huddle}
+            delay={row.delay}
+            shown={shown}
+            fill={row.heart ? "var(--color-seal)" : "currentColor"}
+            fillOpacity={lit ? (row.heart ? 1 : 0.2) : 0}
+            stroke={row.heart && lit ? "var(--color-seal)" : "currentColor"}
+            strokeOpacity={lit ? 0.7 : row.heart ? 0.5 : 0.28}
+            className={lit ? STATE.on : undefined}
           />
-        );
-      })}
-      {/* the heart is drawn last, so its red sits over the cream of the rest */}
-      {[...rows.slice(1), 0].map((row) => {
-        const { cx, cy } = restCentre(row, columns);
-        const heart = row === 0;
-        const delay = `${(row + 1) * TILE_STAGGER_MS}ms`;
-        // the pose moves the slot's own group, so the path keeps its centring
-        const style: CSSProperties = {
-          transform: pose(row, shown, lit, columns),
-          transformOrigin: "center",
-          transformBox: "fill-box",
-          transitionDelay: delay,
-          opacity: shown ? 1 : 0,
-        };
-        return (
-          <g key={row} transform={`translate(${cx} ${cy})`}>
-            <g
-              data-slot={row}
-              data-on={lit ? "" : undefined}
-              className={TRANSITION}
-              style={style}
-            >
-              <path
-                d={BOX}
-                fill={heart ? "var(--color-seal)" : "currentColor"}
-                fillOpacity={lit ? (heart ? 1 : 0.2) : 0}
-                stroke={heart && lit ? "var(--color-seal)" : "currentColor"}
-                strokeOpacity={lit ? 0.7 : heart ? 0.5 : 0.28}
-                strokeWidth={1}
-                vectorEffect="non-scaling-stroke"
-                className={TRANSITION}
-                style={{ transitionDelay: delay }}
-              />
-            </g>
-          </g>
         );
       })}
     </svg>

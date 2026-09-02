@@ -41,7 +41,7 @@ export default function HouseChurchesStop({ section: s, ref }: StopProps) {
           reveal={STOP_COLUMN}
         />
       </div>
-      <div data-house-churches-table="" className={ornamentColumn({ ornament: "table" })}>
+      <div className={ornamentColumn({ ornament: "table" })}>
         {/* a phone lays the table on its side under the words (the column is
             too tall a drawing there); from md it stands in its column */}
         <HouseTable

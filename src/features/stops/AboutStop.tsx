@@ -39,7 +39,7 @@ export default function AboutStop({ section: s, ref }: StopProps) {
           reveal={STOP_COLUMN}
         />
       </div>
-      <div data-about-shared-life="" className={ornamentColumn({ ornament: "life" })}>
+      <div className={ornamentColumn({ ornament: "life" })}>
         {/* a phone runs the dozen rows six and six, side by side (a single
             column runs too long under the words); from md the tall column */}
         <SharedLife

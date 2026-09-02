@@ -48,7 +48,6 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
       panelClassName="flex w-full max-w-[1080px] flex-col lg:flex-row"
     >
       <div
-        data-gatherings-calendar=""
         // its width is the tuck less the panel's padding (Bracketed), so the
         // words start where the tuck put them; Tailwind reads classes literally.
         // The month is absolutely placed inside, so it fills the column's height
@@ -72,7 +71,7 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
         />
         {/* below lg the month lies across under the headline, where the
             desktop's column would have no room */}
-        <div data-gatherings-calendar="" className="my-1 lg:hidden">
+        <div className="my-1 lg:hidden">
           <GatheringCalendar
             lit={belowLg ? litInTurn : lit}
             shown={shown}

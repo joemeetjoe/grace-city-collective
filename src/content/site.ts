@@ -59,6 +59,10 @@ export type Gathering = {
 };
 /** one step of the way in (WayIn.tsx): how a visitor becomes one of the family */
 export type Waymark = { id: ContentId; title: string; body: string };
+/** one of the way in's arrows: what it is called for a screen reader, and the word under it */
+export type WayArrowWords = { label: string; word: string };
+/** the way in's own words: the list's name, and its two arrows' */
+export type WayInWords = { list: string; back: WayArrowWords; next: WayArrowWords };
 export type Devotion = { id: ContentId; title: string; refs: string; body: string };
 export type Belief = { id: ContentId; title: string; body: string; refs: string };
 export type BeliefPosture = { id: ContentId; line: string; quote: string; ref: string };
@@ -80,6 +84,7 @@ export type SiteContent = {
   gatherings: Gathering[];
   /** absent in content published before the way in existed: the site falls back to its own */
   wayIn?: Waymark[];
+  wayInWords?: WayInWords;
   longform: LongformSection[];
   devotions: Devotion[];
   beliefPosture: BeliefPosture[];
@@ -95,6 +100,11 @@ export type SiteContent = {
 /** the way in, from the content or, where none was published, the built-in words */
 export function wayIn(content: SiteContent): Waymark[] {
   return content.wayIn ?? site.wayIn!;
+}
+
+/** the way in's words, from the content or, where none were published, the built-in ones */
+export function wayInWords(content: SiteContent): WayInWords {
+  return content.wayInWords ?? site.wayInWords!;
 }
 
 /** every id a nav item may point at: scene stops first, long-form after */
@@ -224,6 +234,12 @@ export const site: SiteContent = {
       body: "Then spend a Sunday in each of the house churches, until one of them feels like home. Stay there.",
     },
   ],
+  // the way in's own words: the arrows tell the story on ("and then") and back ("before that")
+  wayInWords: {
+    list: "The way in",
+    back: { label: "Back a step", word: "Before that" },
+    next: { label: "Next step", word: "And then" },
+  },
 
   longform: [
     {

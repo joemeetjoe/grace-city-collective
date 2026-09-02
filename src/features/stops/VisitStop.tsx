@@ -1,14 +1,14 @@
-import { useState } from "react";
-
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import SmoothHeight from "@/ui/SmoothHeight";
+import { WAY_RISE } from "@/theme/classes";
 import WayIn from "./WayIn";
-import { wayIn } from "@/content/site";
+import { wayIn, wayInWords } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import Stop, { type StopProps } from "./Stop";
 import StopWords from "./StopWords";
 import { useStopPanel } from "./useStopPanel";
+import { useWayStep } from "./useWayStep";
 
 /**
  * The visit stop: the dove hangs in the upper third of the frame; the panel
@@ -22,11 +22,11 @@ import { useStopPanel } from "./useStopPanel";
  */
 export default function VisitStop({ section: s, ref }: StopProps) {
   const site = useSite();
-  // the step of the way in the reader stands on
-  const [way, setWay] = useState(0);
+  // the step of the way in the reader stands on, and which way it last walked
+  const [way, onStep] = useWayStep();
   const { panel, shown, belowLg } = useStopPanel();
   const steps = wayIn(site);
-  const at = steps[Math.min(way, steps.length - 1)];
+  const at = steps[Math.min(way.step, steps.length - 1)];
   return (
     <Stop
       section={s}
@@ -47,25 +47,26 @@ export default function VisitStop({ section: s, ref }: StopProps) {
         <div className="w-full">
           <SmoothHeight className="w-full">
             <div
-              key={way}
-              data-way-words=""
+              key={way.step}
               aria-live="polite"
-              className="way-in-rise flex flex-col items-center gap-5 short:lg:gap-3"
+              className={`${WAY_RISE} flex flex-col items-center gap-5 short:lg:gap-3`}
             >
               {/* the call to write sits under the first step's words, and goes with them */}
               <StopWords
                 stop="visit"
                 heading={at?.title}
                 body={at ? [at.body] : []}
-                cta={way === 0 ? s.cta : undefined}
+                cta={way.step === 0 ? s.cta : undefined}
               />
             </div>
           </SmoothHeight>
         </div>
         <WayIn
           steps={steps}
-          step={way}
-          onStep={setWay}
+          step={way.step}
+          dir={way.dir}
+          onStep={onStep}
+          words={wayInWords(site)}
           shown={shown}
           single={belowLg}
           className="pt-1"

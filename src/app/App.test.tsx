@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { gsap } from "@/lib/gsap";
-import { NAV_GLASS, STACK } from "@/theme/classes";
-import { sectionIds, site } from "@/content/site";
+import { NAV_GLASS, STACK, STATE } from "@/theme/classes";
+import { sectionIds, site, wayInWords } from "@/content/site";
+import * as calendar from "@/features/stops/GatheringCalendar";
+import * as table from "@/features/stops/HouseTable";
+import * as life from "@/features/stops/SharedLife";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
@@ -421,29 +424,39 @@ describe("App nav jumps to the long-form (#111)", () => {
   });
 });
 
+/** an ornament's svg by the extent it draws in, the one thing that tells one layout of a drawing from another */
+function drawing(root: Element, w: number, h: number): SVGSVGElement {
+  const svg = Array.from(root.querySelectorAll("svg")).find((s) => s.getAttribute("viewBox") === `0 0 ${w} ${h}`);
+  if (!svg) throw new Error(`no drawing ${w}×${h}`);
+  return svg;
+}
+
 describe("App gatherings calendar", () => {
   it("the calendar sits in the gatherings panel and lights for the gathering under the pointer", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#gatherings [data-copy-panel]")!;
-    const grid = panel.querySelector("[data-gathering-calendar]")!;
-    expect(grid.getAttribute("data-lit")).toBeNull();
+    const grid = drawing(panel, calendar.VIEW_W, calendar.VIEW_H);
+    expect(grid).not.toHaveClass(STATE.lit);
     const homes = panel.querySelector("[data-gathering=homes]")!;
     const feast = panel.querySelector("[data-gathering=feast]")!;
+    // the other three Sundays light cream for the homes; the first, red, for the feast
+    const litSundays = () =>
+      Array.from(grid.querySelectorAll(`.${STATE.on} path`), (p) => p.getAttribute("fill"));
     fireEvent.mouseEnter(homes);
-    expect(grid.getAttribute("data-lit")).toBe("homes");
+    expect(grid).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(["currentColor", "currentColor", "currentColor"]);
     fireEvent.mouseLeave(homes);
-    expect(grid.getAttribute("data-lit")).toBeNull();
+    expect(grid).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(feast);
-    expect(grid.getAttribute("data-lit")).toBe("feast");
+    expect(grid).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(["var(--color-seal)"]);
     // leaving one after entering the other does not put the lit one out
     fireEvent.mouseLeave(homes);
-    expect(grid.getAttribute("data-lit")).toBe("feast");
+    expect(litSundays()).toEqual(["var(--color-seal)"]);
     // two drawings, one per layout: the desktop's column first, then the
     // phone's month across, under the headline and before the gatherings
-    const drawings = panel.querySelectorAll("[data-gathering-calendar]");
-    expect(drawings).toHaveLength(2);
-    expect(drawings[0].getAttribute("data-across")).toBeNull();
-    expect(drawings[1].getAttribute("data-across")).toBe("");
+    const drawings = [grid, drawing(panel, calendar.VIEW_W_ACROSS, calendar.VIEW_H_ACROSS)];
+    expect(drawings[0].compareDocumentPosition(drawings[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const heading = panel.querySelector("h2")!;
     expect(
       heading.compareDocumentPosition(drawings[1]) &
@@ -454,7 +467,8 @@ describe("App gatherings calendar", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // on desktop the pointer lights the phone's month too, the same way
-    expect(drawings[1].getAttribute("data-lit")).toBe("feast");
+    expect(drawings[1]).toHaveClass(STATE.lit);
+    expect(drawings[1].querySelectorAll(`.${STATE.on}`)).toHaveLength(1);
   });
 });
 
@@ -462,18 +476,18 @@ describe("App house churches table", () => {
   it("the table sits in the house churches panel and lights while the pointer is over the panel", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const column = panel.querySelector("[data-house-churches-table]")!;
-    const table = column.querySelector("[data-house-table]")!;
-    expect(table.getAttribute("data-lit")).toBeNull();
+    const standing = drawing(panel, table.VIEW_W, table.VIEW_H);
+    expect(standing).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(table.getAttribute("data-lit")).toBe("");
+    expect(standing).toHaveClass(STATE.lit);
     fireEvent.mouseLeave(panel);
-    expect(table.getAttribute("data-lit")).toBeNull();
-    // the words come first, the table after them, past the divider
+    expect(standing).not.toHaveClass(STATE.lit);
+    // the words come first, the table after them, past the divider; on a
+    // phone it lies across, under the words
     const kicker = panel.querySelector("p")!;
-    expect(
-      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const across = drawing(panel, table.VIEW_H, table.VIEW_W);
+    expect(kicker.compareDocumentPosition(across) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(across.compareDocumentPosition(standing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
@@ -481,23 +495,19 @@ describe("App shared life", () => {
   it("the program sits in the who-we-are panel and huddles while the pointer is over the panel", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#about [data-copy-panel]")!;
-    const column = panel.querySelector("[data-about-shared-life]")!;
-    const life = column.querySelector("[data-shared-life]")!;
-    expect(life.getAttribute("data-lit")).toBeNull();
+    // two drawings, one per layout: the phone's two columns and the desktop's one
+    const twoColumns = drawing(panel, life.VIEW_W_2, life.VIEW_H_2);
+    const oneColumn = drawing(panel, life.VIEW_W, life.VIEW_H);
+    expect(oneColumn).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(life.getAttribute("data-lit")).toBe("");
+    expect(oneColumn).toHaveClass(STATE.lit);
+    expect(twoColumns).toHaveClass(STATE.lit);
     fireEvent.mouseLeave(panel);
-    expect(life.getAttribute("data-lit")).toBeNull();
+    expect(oneColumn).not.toHaveClass(STATE.lit);
     // the words come first, the program after them, past the divider
     const kicker = panel.querySelector("p")!;
-    expect(
-      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // two drawings, one per layout: the phone's two columns and the desktop's one
-    const drawings = container.querySelectorAll("[data-shared-life]");
-    expect(drawings).toHaveLength(2);
-    expect(drawings[0].getAttribute("data-columns")).toBe("2");
-    expect(drawings[1].getAttribute("data-columns")).toBe("1");
+    expect(kicker.compareDocumentPosition(twoColumns) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(twoColumns.compareDocumentPosition(oneColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
@@ -522,56 +532,59 @@ describe("App stops below lg (#56)", () => {
     belowLg();
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const table = container.querySelector("[data-house-table]")!;
-    const life = container.querySelector("[data-shared-life]")!;
+    const across = drawing(container, table.VIEW_H, table.VIEW_W);
+    const program = drawing(container, life.VIEW_W_2, life.VIEW_H_2);
     const field = container.querySelector("[data-sowing-mark]")!;
     const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
     expect(marks.length).toBeGreaterThan(1);
     // the panel is shown, its ornament in place and at rest first
     expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
-    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(across).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(table.getAttribute("data-lit")).toBeNull();
-    await waitFor(() => expect(table.getAttribute("data-lit")).toBe(""), {
+    expect(across).not.toHaveClass(STATE.lit);
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), {
       timeout: 3000,
     });
-    expect(life.getAttribute("data-lit")).toBe("");
+    expect(program).toHaveClass(STATE.lit);
     expect(field.getAttribute("data-lit")).toBe("");
     // the emblems light in turn, the first with the rest of the ornaments,
-    // and the month across lights for whichever lit last
-    const month = container.querySelector(
-      "#gatherings [data-gathering-calendar][data-across]",
-    )!;
+    // and the month across lights for whichever lit last: the homes' three
+    // Sundays cream, the feast's first Sunday red
+    const month = drawing(container.querySelector("#gatherings")!, calendar.VIEW_W_ACROSS, calendar.VIEW_H_ACROSS);
+    const litSundays = () =>
+      Array.from(month.querySelectorAll(`.${STATE.on} path`), (p) => p.getAttribute("fill"));
+    const sundaysFor = (mark: string | null) =>
+      mark === "feast" ? ["var(--color-seal)"] : ["currentColor", "currentColor", "currentColor"];
     expect(marks[0].getAttribute("data-lit")).toBe("");
     expect(marks[marks.length - 1].getAttribute("data-lit")).toBeNull();
-    expect(month.getAttribute("data-lit")).toBe(marks[0].getAttribute("data-gathering-mark"));
+    expect(month).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(sundaysFor(marks[0].getAttribute("data-gathering-mark")));
     await waitFor(
       () => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""),
       { timeout: 3000 },
     );
-    expect(month.getAttribute("data-lit")).toBe(
-      marks[marks.length - 1].getAttribute("data-gathering-mark"),
-    );
+    expect(litSundays()).toEqual(sundaysFor(marks[marks.length - 1].getAttribute("data-gathering-mark")));
     fireEvent.mouseLeave(panel);
-    expect(table.getAttribute("data-lit")).toBe("");
+    expect(across).toHaveClass(STATE.lit);
   });
 
   it("the visit stop's way in shows one step at a time (from lg up the whole rail)", () => {
     belowLg();
     const { container } = render(<App />);
-    const way = container.querySelector("#visit [data-way-in]")!;
-    expect(way.hasAttribute("data-single")).toBe(true);
-    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
-    expect(container.querySelector("#visit [data-way-traveller]")).toBeNull();
-    fireEvent.click(container.querySelector<HTMLButtonElement>("#visit [data-way-arrow='next']")!);
-    expect(way.getAttribute("data-step")).toBe("1");
-    expect(way.getAttribute("data-way-dir")).toBe("next");
-    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    const words = wayInWords(site);
+    const steps = (root: HTMLElement) => root.querySelectorAll("#visit ol li");
+    expect(steps(container).length).toBe(1);
+    // alone, no traveller stands on the list
+    expect(container.querySelector("#visit ol > span")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: words.next.label }));
+    expect(steps(container).length).toBe(1);
+    expect(steps(container)[0]).toHaveAttribute("id", "way-in-step-1");
+    expect(steps(container)[0]).toHaveClass("way-in-slide-next");
     cleanup();
     vi.restoreAllMocks();
     const { container: desktop } = render(<App />);
-    expect(desktop.querySelectorAll("#visit [data-way-step]").length).toBe(5);
-    expect(desktop.querySelector("#visit [data-way-in]")!.hasAttribute("data-single")).toBe(false);
+    expect(steps(desktop).length).toBe(5);
+    expect(desktop.querySelector("#visit ol > span")).not.toBeNull();
   });
 
   it("under reduced motion the panels are shown and the ornaments rest", async () => {
@@ -579,10 +592,10 @@ describe("App stops below lg (#56)", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
     expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
-    const table = container.querySelector("[data-house-table]")!;
-    expect(table.getAttribute("data-lit")).toBeNull();
+    const across = drawing(container, table.VIEW_H, table.VIEW_W);
+    expect(across).not.toHaveClass(STATE.lit);
     await new Promise((r) => setTimeout(r, 1500));
-    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(across).not.toHaveClass(STATE.lit);
     expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
     expect(container.querySelector("#gatherings [data-gathering-mark]")!.getAttribute("data-lit")).toBeNull();
   });

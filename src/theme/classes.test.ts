@@ -15,8 +15,11 @@ import {
   ORNAMENT_IN_COLUMN,
   PHONE_BODY,
   STACK,
+  STATE,
   STOP_COLUMN,
   TUCK,
+  WAY_RISE,
+  WAY_SLIDE,
   WORDS_BESIDE,
   between,
   button,
@@ -233,6 +236,15 @@ describe("the bundles answer with the class lists they replaced", () => {
     expect(ORNAMENT_IN_COLUMN).toBe(
       "w-[clamp(72px,20vw,120px)] md:absolute md:inset-y-1 md:right-0 md:h-[calc(100%_-_8px)] md:w-[calc(100%_-_clamp(20px,2vw,32px))]",
     );
+  });
+
+  it("the ornaments' states, and the way in's animations index.css keys on (#125)", () => {
+    expect(STATE).toEqual({ lit: "is-lit", on: "is-on", walked: "is-walked", drawn: "is-drawn" });
+    expect(WAY_RISE).toBe("way-in-rise");
+    expect(WAY_SLIDE).toEqual({ next: "way-in-slide-next", back: "way-in-slide-back" });
+    for (const name of [WAY_RISE, ...Object.values(WAY_SLIDE)]) {
+      expect(indexCss).toContain(`.${name} {`);
+    }
   });
 
   it("the long-form", () => {

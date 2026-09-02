@@ -26,7 +26,6 @@ export default function GiveStop({ section: s, ref }: StopProps) {
       panelClassName={`${STOP_COLUMN} items-center`}
     >
       <div
-        data-give-sowing=""
         // on desktop it starts at the glass's padding and runs the width of
         // the house table's column (HouseChurchesStop), wider than the give
         // tuck alone: the words set narrower than the room the tuck leaves

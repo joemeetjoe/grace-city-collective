@@ -253,6 +253,30 @@ export const ornamentColumn = cva(
 export const ORNAMENT_IN_COLUMN =
   "w-[clamp(72px,20vw,120px)] md:absolute md:inset-y-1 md:right-0 md:h-[calc(100%_-_8px)] md:w-[calc(100%_-_clamp(20px,2vw,32px))]";
 
+/* ---- the ornaments' states ----------------------------------------------- */
+
+/**
+ * The ornaments' visual states as classes (#125): a component derives them
+ * from its props, and a test or a tool keys on them, so the two share one
+ * spelling. The presentation attributes still carry the colours (the
+ * transitions run on them); index.css has no rule on these yet — they say
+ * which state a tile stands in, where a `data-*` attribute used to.
+ */
+export const STATE = {
+  /** the reader is over the drawing: the svg root */
+  lit: "is-lit",
+  /** a tile is filled: a seat taken, a slot huddled, a Sunday lit, the step the traveller stands on */
+  on: "is-on",
+  /** a step of the way in the traveller has walked past */
+  walked: "is-walked",
+  /** a span of the way in's rule the traveller has walked along */
+  drawn: "is-drawn",
+} as const;
+
+/** the way in's animations, in index.css: a step's words rise; below lg its emblem slides in from the side the reader walks toward */
+export const WAY_RISE = "way-in-rise";
+export const WAY_SLIDE = { next: "way-in-slide-next", back: "way-in-slide-back" } as const;
+
 /* ---- a stop's frame and where its panel tucks ---------------------------- */
 
 /**
