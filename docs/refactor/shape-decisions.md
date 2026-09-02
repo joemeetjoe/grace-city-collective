@@ -83,9 +83,9 @@ action:
 
 - `state/syncTier.ts` — `subscribeTier` (device/deviceProfile.ts) →
   `setTier(readTier())`
-- `state/syncReducedMotion.ts` — the one runtime reader of
-  `prefers-reduced-motion`: `initialReducedMotion()` for what a mount decides
-  over, and a `change` subscription → `setReducedMotion`
+- `state/syncReducedMotion.ts` — `subscribeReducedMotion`
+  (device/motionPreference.ts) → `setReducedMotion`; the same module's
+  `readReducedMotion` is what a mount decides over
 
 Each returns its unsubscribe; `App` runs both as effects. A new live fact gets
 its own `state/sync<Fact>.ts` on this shape.

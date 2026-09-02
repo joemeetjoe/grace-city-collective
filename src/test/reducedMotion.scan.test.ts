@@ -34,7 +34,7 @@ const files = sources(SRC).map((path) => ({ path: relative(SRC, path), text: rea
 const where = (re: RegExp) => files.filter(({ text }) => re.test(text)).map(({ path }) => path).sort();
 
 /** the runtime module that reads the media query */
-const READER = "state/syncReducedMotion.ts";
+const READER = "device/motionPreference.ts";
 /** the build-time head scripts: the query as text inside a string literal */
 const HEAD_SCRIPTS = ["device/enginePreload.ts", "features/intro/staticSplash.ts"];
 

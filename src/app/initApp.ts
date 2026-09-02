@@ -3,13 +3,13 @@ import { readDeviceProfile } from "@/device/deviceProfile";
 import { readPolicyInputs, shouldPlayIntro } from "@/features/intro/introPolicy";
 import { useAppStore, type AppProfile } from "@/state/appStore";
 import { seam } from "@/state/seam";
-import { initialReducedMotion } from "@/state/syncReducedMotion";
+import { readReducedMotion } from "@/device/motionPreference";
 
 /** what a mount decides once: whether the splash plays, and the device's verdicts */
 function readAppProfile(): AppProfile {
   // the preference as the mount reads it, through the one runtime reader of
   // the media query; the store keeps it live from here (state/syncReducedMotion.ts)
-  const reducedMotion = initialReducedMotion();
+  const reducedMotion = readReducedMotion();
   // once per session, and never under reduced motion
   const policy = readPolicyInputs(reducedMotion);
   const { fallback, tier } = readDeviceProfile(reducedMotion);

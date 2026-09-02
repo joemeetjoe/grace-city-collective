@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { TIERS } from "@/device/tier";
 import { REST_STATE, useAppStore } from "./appStore";
-import { initialReducedMotion, syncReducedMotion } from "./syncReducedMotion";
+import { syncReducedMotion } from "./syncReducedMotion";
 
 /** the window's media queries, each with a live `matches` the test sets, fired by hand */
 function stubMatchMedia() {
@@ -35,17 +35,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   useAppStore.setState(REST_STATE);
-});
-
-describe("initialReducedMotion", () => {
-  it("reads the preference off the media query, and a window without matchMedia as full motion", () => {
-    const mq = stubMatchMedia();
-    expect(initialReducedMotion()).toBe(false);
-    mq.set(REDUCED_MOTION_QUERY, true);
-    expect(initialReducedMotion()).toBe(true);
-    vi.stubGlobal("matchMedia", undefined);
-    expect(initialReducedMotion()).toBe(false);
-  });
 });
 
 describe("syncReducedMotion", () => {

@@ -1,4 +1,4 @@
-import { initialReducedMotion } from "@/state/syncReducedMotion";
+import { readReducedMotion } from "./motionPreference";
 import { readSaveData } from "./tier";
 
 /**
@@ -32,7 +32,7 @@ export function detectWebgl(doc: Document = document): boolean {
 
 export type FallbackSeams = {
   doc?: Document;
-  /** the preference as read at the mount; the media query is read in one place (state/syncReducedMotion.ts) */
+  /** the preference as read at the mount; the device reads the media query (device/motionPreference.ts) */
   reducedMotion?: boolean;
   nav?: Navigator;
 };
@@ -40,7 +40,7 @@ export type FallbackSeams = {
 /** gather the fallback inputs from the browser (every seam injectable for tests) */
 export function readFallbackInputs({
   doc = document,
-  reducedMotion = initialReducedMotion(),
+  reducedMotion = readReducedMotion(),
   nav = navigator,
 }: FallbackSeams = {}): FallbackInputs {
   return {

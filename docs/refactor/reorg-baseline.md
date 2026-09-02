@@ -100,12 +100,10 @@ lib, theme  →  device  →  state  →  scroll, layout, content  →  engine, 
   is never swapped in for a running scene. Full rules:
   [shape-decisions.md](shape-decisions.md).
 
-- Verified against the imports at the Shape tip, four edges point upward and
+- Verified against the imports at the Shape tip, three edges point upward and
   are the rule's exceptions: `theme/layerSplit.ts` takes `TierName` from
   `device/tier.ts` and `state/appStore.ts` takes `SectionId` from
-  `content/site.ts` (both type-only); `device/fallback.ts` calls
-  `initialReducedMotion()` in `state/syncReducedMotion.ts`, which is the one
-  runtime reader of the media query (#132); and `features/nav/useNavigate.ts`
+  `content/site.ts` (both type-only); and `features/nav/useNavigate.ts`
   reads `app/useJumpTo.ts`, since the jump context is the app's to provide.
   `content/` imports nothing at all.
 
