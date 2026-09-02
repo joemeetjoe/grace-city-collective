@@ -6,6 +6,13 @@ diffs its shots against these.
 
 Captured from merge commit `b3b6920` (current main tip, post app-split).
 
+> The Shape batch (#116–#134) ran on top of this one and settled the rules the
+> tree below is now held to — the app store, the engine handle, the DOM
+> contract, the token rules, the subscription hooks and the scans that enforce
+> them. They are written down in
+> [shape-decisions.md](shape-decisions.md); read that before changing any of
+> them.
+
 ## Where the pixels live
 
 The PNGs are not committed. They sit at:
@@ -80,16 +87,27 @@ lib, theme  →  device  →  state  →  scroll, layout, content  →  engine, 
             →  features/ (intro, stops, longform, nav)  →  app
 ```
 
-- `state/` (#117) is the app store (`appStore.ts`: intro, reducedMotion,
-  tier, fallback, progress, ready, activeId, sceneInView) and the tooling
-  seam (`seam.ts`, `window.__gcc`). It sits just above `device` because it
-  holds a `Tier`; everything from `scroll` up may read and subscribe to it,
-  and `app` alone decides its state (`app/initApp.ts`). Refs and DOM handles
-  never go in it. `tier` alone stays live after init (#118, `syncTier.ts`
-  over `device/deviceProfile.ts`'s `subscribeTier`): a resize across the
-  tier's width line or a move to another display updates the fact, while
-  the scene keeps the tier it mounted with (`app/HomePage.tsx`), so no
-  texture ever reloads mid-session.
+- `state/` (#117) is the app store (`appStore.ts`: intro, introPlayed,
+  reducedMotion, tier, fallback, progress, ready, sceneError, activeId,
+  sceneInView) and the tooling seam (`seam.ts`, `window.__gcc`). It sits just
+  above `device` because it holds a `Tier`; everything from `scroll` up may
+  read and subscribe to it, and `app` alone decides its state
+  (`app/initApp.ts`). Refs and DOM handles never go in it — the three
+  registries beside it are the documented exceptions. `tier` (#118,
+  `syncTier.ts`) and `reducedMotion` (#132, `syncReducedMotion.ts`) stay live
+  after init on the `sync*` shape, while what the mount decided stays decided:
+  the scene keeps the tier it mounted with (`app/HomePage.tsx`) and the poster
+  is never swapped in for a running scene. Full rules:
+  [shape-decisions.md](shape-decisions.md).
+
+- Verified against the imports at the Shape tip, four edges point upward and
+  are the rule's exceptions: `theme/layerSplit.ts` takes `TierName` from
+  `device/tier.ts` and `state/appStore.ts` takes `SectionId` from
+  `content/site.ts` (both type-only); `device/fallback.ts` calls
+  `initialReducedMotion()` in `state/syncReducedMotion.ts`, which is the one
+  runtime reader of the media query (#132); and `features/nav/useNavigate.ts`
+  reads `app/useJumpTo.ts`, since the jump context is the app's to provide.
+  `content/` imports nothing at all.
 
 - The engine is consumed only via `@/engine`; there are no other barrels.
 - Import convention: `@/` for cross-directory imports, `./` within a
