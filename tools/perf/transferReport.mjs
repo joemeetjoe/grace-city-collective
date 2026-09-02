@@ -88,3 +88,20 @@ export function formatTable(tiers) {
   }
   return lines.join("\n");
 }
+
+/**
+ * The load as a timeline: every response in finishing order — start, end
+ * (ms from the first request), kB, path — with the page's own marks
+ * (e.g. trace: the splash's G-mark trace began; gate) slotted in by time.
+ */
+export function formatTimeline(responses, marks = {}) {
+  const rows = [
+    ...responses.map((r) => ({ at: r.finishedAt, line: `${pad(r.startedAt ?? "", 6)} ${pad(r.finishedAt, 6)} ${pad(kb(r.bytes), 8)}  ${new URL(r.url, "http://x").pathname}` })),
+    ...Object.entries(marks)
+      .filter(([, at]) => at != null)
+      .map(([name, at]) => ({ at, mark: true, line: `${pad("", 6)} ${pad(at, 6)} ${pad("", 8)}  -- ${name}` })),
+  ];
+  // a mark sits after the responses that finished by the same moment
+  rows.sort((a, b) => a.at - b.at || (a.mark ? 1 : 0) - (b.mark ? 1 : 0));
+  return rows.map((r) => r.line).join("\n");
+}

@@ -15,6 +15,8 @@
  *        [--dist dist] [--tiers desktop,mobile] [--serve-port 4399] [--port 9399]
  *        [--url https://…/]   (measure a deployed site instead of dist/)
  *        [--idle 1500]        (ms of network silence that counts as idle)
+ *        [--throttle 1600]    (kbps down, 150 ms rtt: a slow connection, to see the
+ *                              order things arrive in; --timeline prints it)
  *
  * Desktop is 1600×900 at DPR 2, mobile 390×844 at DPR 1.5 with the mobile
  * flag, so tierFor() picks the 2048 and 1024 tiers respectively.
@@ -26,7 +28,7 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { brotliCompressSync } from "node:zlib";
 
-import { formatTable, summarise } from "./transferReport.mjs";
+import { formatTable, formatTimeline, summarise } from "./transferReport.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -37,6 +39,8 @@ const servePort = Number(arg("serve-port", 4399));
 const cdpPort = Number(arg("port", 9399));
 const idleMs = Number(arg("idle", 1500));
 const jsonOut = arg("json", "");
+const throttleKbps = Number(arg("throttle", 0));
+const timeline = process.argv.includes("--timeline");
 const tierNames = arg("tiers", "desktop,mobile").split(",").filter(Boolean);
 const chrome = arg("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
 
@@ -147,7 +151,7 @@ async function loadOnce({ send, on, evaluate }, url) {
   const handlers = {
     "Network.requestWillBeSent": (p) => {
       if (t0 === null) t0 = p.timestamp;
-      inflight.set(p.requestId, { url: p.request.url, mimeType: "", fromCache: false });
+      inflight.set(p.requestId, { url: p.request.url, mimeType: "", fromCache: false, startedAt: stamp(p.timestamp) });
       last = Date.now();
     },
     "Network.requestServedFromCache": (p) => {
@@ -177,13 +181,18 @@ async function loadOnce({ send, on, evaluate }, url) {
 
   await send("Page.navigate", { url });
   let introDoneAt = null;
+  // the splash's G-mark trace begins when IntroSplash mounts over the static splash
+  let traceAt = null;
+  const traceBegun = () =>
+    evaluate(`document.querySelector("[data-intro-splash]") ? Math.round(performance.now()) : null`).catch(() => null);
   const introDone = () =>
     evaluate(
       `document.querySelector("#root > *") != null && document.querySelector("[data-intro-pending]") == null ? Math.round(performance.now()) : null`,
     ).catch(() => null);
   const started = Date.now();
   while (Date.now() - started < 60_000) {
-    await sleep(200);
+    await sleep(100);
+    if (traceAt === null) traceAt = await traceBegun();
     if (introDoneAt === null) introDoneAt = await introDone();
     if (inflight.size === 0 && responses.length && Date.now() - last > idleMs) break;
   }
@@ -194,7 +203,7 @@ async function loadOnce({ send, on, evaluate }, url) {
     introDoneAt = await introDone();
   }
   responses.sort((a, b) => a.finishedAt - b.finishedAt);
-  return { responses, introDoneAt, idleAt: responses.at(-1)?.finishedAt ?? null };
+  return { responses, traceAt, introDoneAt, idleAt: responses.at(-1)?.finishedAt ?? null };
 }
 
 async function measureTier(name, url, userDataDir) {
@@ -211,6 +220,11 @@ async function measureTier(name, url, userDataDir) {
       ...(profile.mobile ? { screenWidth: profile.width, screenHeight: profile.height } : {}),
     });
     if (profile.mobile) await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    if (throttleKbps) {
+      await cdp.send("Network.emulateNetworkConditions", {
+        offline: false, latency: 150, downloadThroughput: (throttleKbps * 1000) / 8, uploadThroughput: (throttleKbps * 1000) / 8,
+      });
+    }
     const cold = await loadOnce(cdp, url);
     const viewport = await cdp.evaluate("({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })");
     const canvas = await cdp.evaluate('!!document.querySelector("canvas")');
@@ -231,7 +245,7 @@ const externalUrl = arg("url", "");
 const server = externalUrl ? null : await serveDist();
 const url = externalUrl || `http://127.0.0.1:${servePort}/`;
 const commit = (() => { try { return execSync("git rev-parse --short HEAD").toString().trim(); } catch { return ""; } })();
-const run = { commit, date: new Date().toISOString(), url, idleMs, tiers: {} };
+const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, tiers: {} };
 try {
   for (const name of tierNames) {
     if (!PROFILES[name]) throw new Error(`unknown tier ${name}`);
@@ -242,7 +256,8 @@ try {
       rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
     const t = run.tiers[name];
-    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    if (timeline) console.log(`${name} cold load, ms from the first request\n${formatTimeline(t.cold.responses, { trace: t.cold.traceAt, gate: t.cold.gateAt })}\n`);
   }
 } finally {
   server?.close();

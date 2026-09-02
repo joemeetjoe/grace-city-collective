@@ -64,3 +64,24 @@ describe("formatTable", () => {
     expect(kb(1536)).toBe("1.5");
   });
 });
+
+import { formatTimeline } from "./transferReport.mjs";
+
+describe("formatTimeline", () => {
+  it("lists each response in finishing order with its start, end and bytes, and the page's marks in between", () => {
+    const text = formatTimeline(
+      [
+        r("http://h/", 900, 40, { startedAt: 0 }),
+        r("http://h/assets/index-A.js", 300_000, 900, { startedAt: 45 }),
+        r("http://h/assets/PentecostParallax-B.js", 500_000, 1800, { startedAt: 50 }),
+      ],
+      { trace: 1000, gate: 1800 },
+    );
+    const lines = text.split("\n");
+    expect(lines[0]).toMatch(/^\s+0\s+40\s+0\.9\s+\/$/);
+    expect(lines[1]).toMatch(/^\s+45\s+900\s+293\.0\s+\/assets\/index-A\.js$/);
+    expect(lines[2]).toMatch(/^\s+1000\s+-- trace$/);
+    expect(lines[3]).toMatch(/^\s+50\s+1800\s+488\.3\s+\/assets\/PentecostParallax-B\.js$/);
+    expect(lines[4]).toMatch(/^\s+1800\s+-- gate$/);
+  });
+});

@@ -4,6 +4,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { staticSplashTags } from './src/features/intro/staticSplash'
+import { engineChunkHref, enginePreloadScript } from './src/device/enginePreload'
 
 // https://vite.dev/config/
 // Served from `/` in dev and on a custom domain; the Pages workflow sets
@@ -23,9 +24,30 @@ const staticSplash = (): Plugin => ({
   },
 })
 
+// The engine chunk (three.js + the parallax scene, behind the dynamic import
+// in src/engine/index.ts) module-preloaded from the HTML by an inline head
+// script, so it downloads alongside the shell — unless the device will take
+// the static poster (src/device/enginePreload.ts).
+const enginePreload = (): Plugin => ({
+  name: 'gcc:engine-preload',
+  transformIndexHtml: {
+    order: 'post',
+    handler(_html, ctx) {
+      if (!ctx.filename.endsWith('index.html') || !ctx.bundle) return
+      return [
+        {
+          tag: 'script',
+          children: enginePreloadScript(engineChunkHref(ctx.bundle, base)),
+          injectTo: 'head',
+        },
+      ]
+    },
+  },
+})
+
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), staticSplash()],
+  plugins: [react(), tailwindcss(), staticSplash(), enginePreload()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

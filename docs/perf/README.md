@@ -64,3 +64,10 @@ Timings in the JSON (`gateAt`, `idleAt`, `introDoneAt`, in ms from the
 first request) are loopback numbers and only useful relative to each
 other; the bytes are the measurement. `--url https://…/` measures a
 deployed site instead of `dist/`; `--tiers desktop` runs one tier.
+
+`--throttle 1600 --timeline` slows the connection (kbps down, 150 ms rtt)
+and prints the cold load as a timeline — every response's start and end
+next to the page's own marks (`trace`: the splash's G-mark trace began;
+`gate`) — which is how the order things arrive in is checked: the engine
+chunk (#98) starts downloading before the shell has finished, and the trace
+is animating before the engine has landed.

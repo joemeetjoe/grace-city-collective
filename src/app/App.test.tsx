@@ -45,6 +45,19 @@ vi.mock("@/engine/PentecostParallax", async () => {
   return { default: ParallaxStub };
 });
 
+// the engine chunk is requested through the barrel's loader; count the requests
+const engineLoads = vi.hoisted(() => ({ count: 0 }));
+vi.mock("@/engine", async (orig) => {
+  const mod = await orig<typeof import("@/engine")>();
+  return {
+    ...mod,
+    loadParallax: () => {
+      engineLoads.count += 1;
+      return mod.loadParallax();
+    },
+  };
+});
+
 function stubFontSize(px: number) {
   const real = window.getComputedStyle.bind(window);
   vi.spyOn(window, "getComputedStyle").mockImplementation((el, pseudo) => {
@@ -76,6 +89,7 @@ const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
 const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
 beforeEach(() => {
+  engineLoads.count = 0;
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
@@ -199,20 +213,34 @@ describe("App nav", () => {
 });
 
 describe("App static fallback", () => {
-  it("with WebGL and full motion the scene renders, not the poster", () => {
-    const { container } = render(<App />);
-    expect(
-      container.querySelector("[data-parallax] [data-parallax-stub]"),
-    ).not.toBeNull();
+  // React.lazy remembers the chunk once it has resolved, so the loader is
+  // called once per module instance: these two render a fresh App
+  const freshApp = async () => {
+    vi.resetModules();
+    return (await import("./App")).default;
+  };
+
+  it("with WebGL and full motion the scene renders, not the poster, once the engine chunk arrives", async () => {
+    const FreshApp = await freshApp();
+    const { container } = render(<FreshApp />);
+    await waitFor(() =>
+      expect(
+        container.querySelector("[data-parallax] [data-parallax-stub]"),
+      ).not.toBeNull(),
+    );
     expect(container.querySelector("[data-poster]")).toBeNull();
+    expect(engineLoads.count).toBe(1);
   });
 
-  it("without WebGL the poster covers the scene container instead", () => {
+  it("without WebGL the poster covers the scene container instead, and the engine chunk is never requested", async () => {
     seams.webgl = false;
-    const { container } = render(<App />);
+    const FreshApp = await freshApp();
+    const { container } = render(<FreshApp />);
     expect(container.querySelector("[data-parallax-stub]")).toBeNull();
     const img = container.querySelector("[data-parallax] [data-poster] img")!;
     expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-1280/);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(engineLoads.count).toBe(0);
   });
 
   it("under reduced motion the poster stands in and still fades up from ink", () => {
