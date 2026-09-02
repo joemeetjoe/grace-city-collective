@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { SectionId, SiteContent } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { isLongformMounted, requestLongform } from "@/features/longform/longformRequest";
-import { jumpTo as scrollJumpTo } from "@/scroll/jump";
+import { jumpTo as scrollJumpTo, type JumpOptions as ScrollJumpOptions } from "@/scroll/jump";
 import type { PageScroll } from "@/scroll/useSmoothScroll";
 
 /**
@@ -12,20 +12,22 @@ import type { PageScroll } from "@/scroll/useSmoothScroll";
  * chunk, so the jump asks for it and lands once it has mounted — its box is
  * then its full height, not the placeholder's — unless it already has.
  * The app provides it to the nav (jumpContext.tsx), and a link's click
- * reaches it through features/nav/useNavigate.ts.
+ * reaches it through features/nav/useNavigate.ts. `immediate` lands without
+ * the tween (a deep link on load, app/useHashSync.ts).
  */
-export type JumpTo = (id: SectionId) => void;
+export type JumpOptions = Pick<ScrollJumpOptions, "immediate">;
+export type JumpTo = (id: SectionId, options?: JumpOptions) => void;
 
 /** the nav's jump over `site`, through `scroll`'s driver: which ids wait for the long-form chunk (#111) */
 export function createJump(site: SiteContent, scroll: Pick<PageScroll, "driver">): JumpTo {
   const longformIds = new Set<SectionId>(site.longform.map((s) => s.id));
-  return (id) => {
+  return (id, options) => {
     if (longformIds.has(id) && !isLongformMounted()) {
-      void requestLongform().then(() => scrollJumpTo(id, scroll.driver()));
+      void requestLongform().then(() => scrollJumpTo(id, scroll.driver(), options));
       return;
     }
     // through the smoother when one is running, native smooth scroll otherwise
-    scrollJumpTo(id, scroll.driver());
+    scrollJumpTo(id, scroll.driver(), options);
   };
 }
 

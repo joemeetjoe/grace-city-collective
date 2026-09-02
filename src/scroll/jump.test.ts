@@ -45,6 +45,17 @@ describe("jumpTo", () => {
     expect(driver.scrollTo).toHaveBeenCalledWith(404, true);
   });
 
+  it("lands at once when immediate: no tween through the smoother, an instant scroll without one", () => {
+    section("give", 300);
+    const driver: ScrollDriver = { scrollTop: () => 1000, scrollTo: vi.fn() };
+    expect(jumpTo("give", driver, { immediate: true })).toBe(true);
+    expect(driver.scrollTo).toHaveBeenCalledWith(1300, false);
+    document.documentElement.scrollTop = 50;
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    expect(jumpTo("give", null, { immediate: true })).toBe(true);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 350, behavior: "instant" });
+  });
+
   it("does nothing for an id that is not on the page", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});

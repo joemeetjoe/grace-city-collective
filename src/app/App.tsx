@@ -9,6 +9,7 @@ import { initApp } from "./initApp";
 import { useJump } from "./jump";
 import { JumpProvider } from "./jumpContext";
 import HomePage from "./HomePage";
+import { useHashSync } from "./useHashSync";
 import { useSceneLayers } from "./useSceneLayers";
 import IntroSplash from "@/features/intro/IntroSplash";
 import { useIntroGate } from "@/features/intro/useIntroGate";
@@ -49,7 +50,10 @@ export default function App() {
   // nav links and the dot rail from the store
   const scroll = useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held, sections });
   const intro = useAppStore((s) => s.intro);
-  const jump = useJump(scroll);
+  // the nav's jump, and the location hash that follows it and the hand
+  // (useHashSync.ts): a link's click writes the hash and jumps, a hash on
+  // arrival lands after the splash
+  const jump = useHashSync(useJump(scroll), ids);
 
   return (
     <div

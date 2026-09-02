@@ -15,7 +15,7 @@ import type { JumpTo } from "./jump";
 // the context and its provider share the default's one definition, so they
 // live together (react-refresh would rather the component stood alone)
 // eslint-disable-next-line react-refresh/only-export-components
-export const JumpContext = createContext<JumpTo>((id) => scrollJumpTo(id, null));
+export const JumpContext = createContext<JumpTo>((id, options) => scrollJumpTo(id, null, options));
 
 export function JumpProvider({ jump, children }: { jump: JumpTo; children: ReactNode }) {
   return <JumpContext.Provider value={jump}>{children}</JumpContext.Provider>;

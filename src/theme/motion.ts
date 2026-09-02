@@ -148,3 +148,5 @@ export const STALL_COUNTED_MS = 16;
 
 /** ms of quiet after which the next wheel event is a new gesture (wheelGesture.ts) */
 export const WHEEL_REST_MS = 250;
+/** the location hash follows the active section at most this often (scroll/hash.ts, app/useHashSync.ts) */
+export const HASH_THROTTLE_MS = 250;
