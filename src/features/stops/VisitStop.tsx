@@ -43,12 +43,14 @@ export default function VisitStop({ section: s, ref }: StopProps) {
         {/* the words' height eases from one step to the next, so the glass
             grows and shrinks with them instead of jumping */}
         {/* wrapped, so the reveal's own transition stays on the wrapper
-            and the height's on the block (Reveal) */}
-        <div className="w-full">
+            and the height's on the block (Reveal). The wrapper is the live
+            region (#130): it stays put from step to step and announces the
+            words that change inside it, whole, while the keyed block below
+            remounts to rise */}
+        <div className="w-full" aria-live="polite" aria-atomic="true">
           <SmoothHeight className="w-full">
             <div
               key={way.step}
-              aria-live="polite"
               className={`${WAY_RISE} flex flex-col items-center gap-5 short:lg:gap-3`}
             >
               {/* the call to write sits under the first step's words, and goes with them */}

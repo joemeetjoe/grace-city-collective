@@ -1,0 +1,55 @@
+
+=== desktop  1600×900 @2× ===
+1. the splash (sampled 900 ms after navigate; intro up: true)
+  page under it inert            → true (holds the nav: true)
+  status line read out          → "Press any key to skip the intro."
+  tabbables outside the splash  → 0
+  Tab                            → «body»                                         :focus-visible=no   NONE
+  Enter skips the intro         → page no longer inert: true
+2. Tab through the chrome
+  Tab 1                          → Give (a)                                       :focus-visible=yes  theme ring
+  Tab 2                          → Join Sunday (a)                                :focus-visible=yes  theme ring
+  Tab 3                          → About (a)                                      :focus-visible=yes  theme ring
+  Tab 4                          → House churches (a)                             :focus-visible=yes  theme ring
+  Tab 5                          → Gatherings (a)                                 :focus-visible=yes  theme ring
+  Tab 6                          → Give (a)                                       :focus-visible=yes  theme ring
+  Tab 7                          → Visit (a)                                      :focus-visible=yes  theme ring
+  Tab 8                          → Devotions (a)                                  :focus-visible=yes  theme ring
+  Tab 9                          → Beliefs (a)                                    :focus-visible=yes  theme ring
+  Tab 10                         → FAQ (a)                                        :focus-visible=yes  theme ring
+  Tab 11                         → Messages (a)                                   :focus-visible=yes  theme ring
+  Tab 12                         → Home (a)                                       :focus-visible=yes  theme ring
+  · shot desktop-01-g-mark-home.png  (126×128 css @2×)
+  focus the first nav link       → About (a)                                      :focus-visible=yes  theme ring
+  · shot desktop-02-nav-link.png  (136×105 css @2×)
+  focus the first dot            → Grace City Collective (a)                      :focus-visible=yes  theme ring  its written label is now at opacity 0
+  · shot desktop-03-dot-rail.png  (273×111 css @2×)
+3. the menu sheet
+  no Menu button at this width — the sheet is the phone and tablet nav
+4. the way in (Visit)
+  focus the Visit link           → Join Sunday (a)                                :focus-visible=yes  theme ring
+  Enter jumps to #visit         → its top is 0 px from the viewport's, the sheet closed: true
+  the live region             → aria-atomic=true  "Say hello.Write to us and tell us a little about yourself — "
+  focus Next step                → Next step (button)                             :focus-visible=yes  theme ring
+  · shot desktop-04-way-in-next.png  (248×187 css @2×)
+    Enter 1                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-1  live region is the same node: true
+    Enter 2                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-2  live region is the same node: true
+    Enter 3                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-3  live region is the same node: true
+    Enter 4                      → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-4  live region is the same node: true
+    Enter 5                      → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-3  live region is the same node: true
+  · shot desktop-05-way-in-back.png  (248×187 css @2×)
+    Enter back 1                 → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-2
+    Enter back 2                 → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-1
+    Enter back 3                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-0
+    Enter back 4                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-1
+    Enter back 5                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-2
+5. an ornament's switch (House churches)
+  focus the House churches link  → House churches (a)                             :focus-visible=yes  theme ring
+  Enter jumps to #house-churches→ its top is 0 px from the viewport's, the sheet closed: true
+  focus the switch               → Seat the table (button)                        :focus-visible=yes  theme ring  named "Seat the table"
+  · shot desktop-06-ornament-switch.png  (199×526 css @2×)
+  Space                          → Seat the table (button)                        :focus-visible=yes  theme ring  aria-pressed=true  drawing lit: false → true
+  · shot desktop-07-ornament-lit.png  (199×526 css @2×)
+  Space again unlights it       → lit: false
+6. axe-core in the browser
+  no violations

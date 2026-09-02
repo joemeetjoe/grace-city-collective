@@ -63,6 +63,25 @@ export type Waymark = { id: ContentId; title: string; body: string };
 export type WayArrowWords = { label: string; word: string };
 /** the way in's own words: the list's name, and its two arrows' */
 export type WayInWords = { list: string; back: WayArrowWords; next: WayArrowWords };
+/**
+ * The words assistive tech alone hears (#130): the splash's skip hint, the
+ * menu sheet's description, and the ornaments' switches — what a keyboard
+ * or a touch presses to light a drawing the pointer lights by hovering.
+ */
+type ChromeWords = {
+  /** read out while the splash is up: any key skips the intro */
+  skipIntro: string;
+  /** the menu sheet's description, under its title */
+  menu: string;
+  /** the house table (HouseChurchesStop): its seats taken */
+  table: string;
+  /** the shared life (AboutStop): the program huddled */
+  life: string;
+  /** the sown field (GiveStop): the harvest filled */
+  field: string;
+  /** the month of Sundays (GatheringsStop), followed by the gathering's own name */
+  month: string;
+};
 type Devotion = { id: ContentId; title: string; refs: string; body: string };
 type Belief = { id: ContentId; title: string; body: string; refs: string };
 type BeliefPosture = { id: ContentId; line: string; quote: string; ref: string };
@@ -85,6 +104,8 @@ export type SiteContent = {
   /** absent in content published before the way in existed: the site falls back to its own */
   wayIn?: Waymark[];
   wayInWords?: WayInWords;
+  /** absent in content published before #130: the site falls back to its own */
+  chromeWords?: ChromeWords;
   longform: LongformContent[];
   devotions: Devotion[];
   beliefPosture: BeliefPosture[];
@@ -107,6 +128,11 @@ export function wayInWords(content: SiteContent): WayInWords {
   return content.wayInWords ?? WAY_IN_WORDS;
 }
 
+/** the chrome's words for assistive tech, from the content or, where none were published, the built-in ones */
+export function chromeWords(content: SiteContent): ChromeWords {
+  return content.chromeWords ?? CHROME_WORDS;
+}
+
 /** every id a nav item may point at: scene stops first, long-form after */
 export function sectionIds(content: SiteContent): SectionId[] {
   return [...content.scene.map((s) => s.id), ...content.longform.map((s) => s.id)];
@@ -124,6 +150,16 @@ const WAY_IN_WORDS: WayInWords = {
   list: "The way in",
   back: { label: "Back a step", word: "Before that" },
   next: { label: "Next step", word: "And then" },
+};
+
+/** the words only assistive tech hears (ChromeWords); each a short line in the site's own voice */
+const CHROME_WORDS: ChromeWords = {
+  skipIntro: "Press any key to skip the intro.",
+  menu: "The page's sections, and where to give or join us on a Sunday.",
+  table: "Seat the table",
+  life: "Share the life",
+  field: "Reap the field",
+  month: "Light the Sundays",
 };
 
 const WAY_IN: Waymark[] = [
@@ -247,6 +283,7 @@ export const site: SiteContent = {
 
   wayIn: WAY_IN,
   wayInWords: WAY_IN_WORDS,
+  chromeWords: CHROME_WORDS,
 
   longform: [
     {

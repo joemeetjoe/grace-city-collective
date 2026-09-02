@@ -2,9 +2,11 @@ import { useState } from "react";
 
 import GatheringCalendar from "./GatheringCalendar";
 import GatheringMark from "@/marks/GatheringMark";
+import OrnamentSwitch from "./OrnamentSwitch";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import {
   GATHERING_MARKS,
+  chromeWords,
   type GatheringMark as Mark,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
@@ -24,16 +26,21 @@ import { useStopPanel } from "./useStopPanel";
  * across under the headline instead, lit for whichever gathering's emblem
  * lit last as they light in turn (useStopPanel). Each gathering's emblem
  * (GatheringMark) traces in with the brackets at the foot of its column,
- * and gathers while the reader is over the gathering.
+ * and gathers while the reader is over the gathering — or while its
+ * emblem's switch is pressed (OrnamentSwitch, #130), which holds it.
  */
 export default function GatheringsStop({ section: s, ref }: StopProps) {
   const site = useSite();
-  // the gathering under the pointer, lighting the tiles beside the headline
-  const [lit, setLit] = useState<Mark | null>(null);
+  const words = chromeWords(site);
+  // the gathering under the pointer, and the one whose switch is pressed: either lights the tiles beside the headline
+  const [over, setOver] = useState<Mark | null>(null);
+  const [pressed, setPressed] = useState<Mark | null>(null);
+  const lit = over ?? pressed;
   const { panel, shown, belowLg, inTurn } = useStopPanel(site.gatherings.length);
   // each gathering's mark; a gathering published before the marks existed
   // takes one by position. Below lg the emblems light in turn, and the
-  // month across lights for the one that lit last
+  // month across lights for the one that lit last — until a switch is
+  // pressed (#130), which is the touch's way in and speaks for both
   const marks = site.gatherings.map(
     (g, i) => g.mark ?? GATHERING_MARKS[i % GATHERING_MARKS.length],
   );
@@ -73,7 +80,7 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
             desktop's column would have no room */}
         <div className="my-1 lg:hidden">
           <GatheringCalendar
-            lit={belowLg ? litInTurn : lit}
+            lit={belowLg ? (pressed ?? litInTurn) : lit}
             shown={shown}
             across
             className="w-full max-w-[320px]"
@@ -93,9 +100,9 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
               <div
                 key={g.id}
                 data-gathering={mark}
-                onMouseEnter={() => setLit(mark)}
+                onMouseEnter={() => setOver(mark)}
                 onMouseLeave={() =>
-                  setLit((was) => (was === mark ? null : was))
+                  setOver((was) => (was === mark ? null : was))
                 }
                 className="rule-draw flex flex-col gap-2 pt-4 md:gap-4 md:pt-7 short:lg:gap-3 short:lg:pt-5"
               >
@@ -110,12 +117,19 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
                 <p className={`text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed short:lg:text-base ${PHONE_BODY}`}>
                   {g.body}
                 </p>
-                <GatheringMark
-                  mark={mark}
-                  shown={shown}
-                  lit={belowLg ? i < inTurn : lit === mark}
+                <OrnamentSwitch
+                  label={`${words.month}: ${g.title}`}
+                  pressed={pressed === mark}
+                  onPress={() => setPressed((was) => (was === mark ? null : mark))}
                   className="mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 short:lg:h-9 short:lg:w-9"
-                />
+                >
+                  <GatheringMark
+                    mark={mark}
+                    shown={shown}
+                    lit={belowLg ? i < inTurn || pressed === mark : lit === mark}
+                    className="block h-full w-full"
+                  />
+                </OrnamentSwitch>
               </div>
             );
           })}

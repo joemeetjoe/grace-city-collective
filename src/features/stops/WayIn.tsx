@@ -1,4 +1,4 @@
-import { memo, useMemo, type CSSProperties } from "react";
+import { memo, useMemo, useRef, type CSSProperties, type RefObject } from "react";
 
 import GatheringMark, { type Emblem } from "@/marks/GatheringMark";
 import { FOCUS_RING, STATE, WAY_SLIDE } from "@/theme/classes";
@@ -96,7 +96,7 @@ function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disa
         fillOpacity={disabled ? 0 : 1}
         stroke="currentColor"
         strokeWidth={1}
-        className="transition-[fill-opacity] duration-500"
+        className="motion-safe:transition-[fill-opacity] duration-500"
       />
       <path
         d={`M${tail} ${cy - 4}L${tip} ${cy}L${tail} ${cy + 4}`}
@@ -105,7 +105,7 @@ function DiamondArrow({ back = false, disabled = false }: { back?: boolean; disa
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="transition-[stroke] duration-500"
+        className="motion-safe:transition-[stroke] duration-500"
       />
     </svg>
   );
@@ -119,16 +119,19 @@ type WayArrowProps = {
   delay: number;
   words: WayArrowWords;
   onClick: () => void;
+  /** the button, for the walk to hand focus across as an arrow disables (#130) */
+  ref: RefObject<HTMLButtonElement | null>;
 };
 
 /** an arrow with its word under it, level with the rule and the numerals; it appears with the way */
-const WayArrow = memo(function WayArrow({ back = false, disabled, shown, delay, words, onClick }: WayArrowProps) {
+const WayArrow = memo(function WayArrow({ back = false, disabled, shown, delay, words, onClick, ref }: WayArrowProps) {
   const style = useMemo<CSSProperties>(
     () => ({ opacity: shown ? undefined : 0, transitionDelay: shown ? `${delay}ms` : "0ms" }),
     [shown, delay],
   );
   return (
     <button
+      ref={ref}
       type="button"
       aria-label={words.label}
       disabled={disabled}
@@ -139,7 +142,7 @@ const WayArrow = memo(function WayArrow({ back = false, disabled, shown, delay, 
         // on a phone 56px wide, where "before that" wraps to two lines, so the way in — two
         // arrows and five steps — fits a 375px viewport inside its panel (#51); from md wide
         // enough that it stays on one line; it lifts a hair under the pointer, no glow
-        "mt-[6px] flex w-[56px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-0.5 pt-1 text-seal md:w-[108px] md:gap-[5px] md:px-1 transition-[opacity,color,transform] duration-500 ease-site hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
+        "mt-[6px] flex w-[56px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-0.5 pt-1 text-seal md:w-[108px] md:gap-[5px] md:px-1 motion-safe:transition-[opacity,color,transform] duration-500 ease-site hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
         FOCUS_RING,
       )}
       style={style}
@@ -182,7 +185,7 @@ const WayStep = memo(function WayStep({ i, on, walked, last, shown, single, slid
       id={`way-in-step-${i}`}
       aria-current={on ? "step" : undefined}
       className={cn(
-        "relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-1 transition-colors duration-500",
+        "relative flex min-w-0 flex-1 flex-col items-center gap-1 pb-1 motion-safe:transition-colors duration-500",
         on ? "text-seal" : walked ? "text-cream/80" : "text-cream/45",
         slide && WAY_SLIDE[slide],
         on && STATE.on,
@@ -269,6 +272,10 @@ const Traveller = memo(function Traveller({ step, count, shown, at }: { step: nu
  * in from the right walking on and from the left walking back
  * (WAY_SLIDE, index.css, only where motion is welcome); there is no
  * rule to draw, so the one emblem traces in at once and the arrows follow.
+ *
+ * An arrow that reaches its end disables, and a disabled button drops the
+ * keyboard's focus on the floor: so the walk hands focus to the other arrow
+ * first, in the same press (#130), and the reader turns round where they are.
  */
 export default function WayIn({
   steps,
@@ -284,17 +291,26 @@ export default function WayIn({
   const last = count - 1;
   const done = railDone(last, single);
   const shownSteps = single ? [step] : steps.map((_, i) => i);
+  const backRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  /** a walk to `to`: focus crosses to the other arrow before this one disables at an end */
+  const walk = (to: number, from: RefObject<HTMLButtonElement | null>, other: RefObject<HTMLButtonElement | null>) => {
+    const end = to === 0 || to === last;
+    if (end && from.current && document.activeElement === from.current) other.current?.focus();
+    onStep(to);
+  };
   return (
     <div className={cn("flex w-full flex-col items-center", className)}>
       {/* no gap on a phone: the arrows and the steps together are the panel's whole width at 375px */}
       <div className="flex w-full items-center md:gap-2">
         <WayArrow
+          ref={backRef}
           back
           disabled={step === 0}
           shown={shown}
           delay={0}
           words={words.back}
-          onClick={() => onStep(Math.max(0, step - 1))}
+          onClick={() => walk(Math.max(0, step - 1), backRef, nextRef)}
         />
         <ol aria-label={words.list} className="relative flex min-w-0 flex-1 items-start">
           {/* alone, the current step only, keyed by its index so each step mounts afresh and slides in */}
@@ -313,11 +329,12 @@ export default function WayIn({
           {!single && <Traveller step={step} count={count} shown={shown} at={done} />}
         </ol>
         <WayArrow
+          ref={nextRef}
           disabled={step === last}
           shown={shown}
           delay={done}
           words={words.next}
-          onClick={() => onStep(Math.min(last, step + 1))}
+          onClick={() => walk(Math.min(last, step + 1), nextRef, backRef)}
         />
       </div>
     </div>

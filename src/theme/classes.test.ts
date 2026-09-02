@@ -146,7 +146,7 @@ describe("the bundles answer with the class lists they replaced", () => {
   });
 
   it("the mobile nav's pills (MobileNav)", () => {
-    const base = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
+    const base = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] motion-safe:transition-colors ${FOCUS_RING}`;
     expect(pill({ intent: "menu" })).toBe(`${base} ${GLASS} cursor-pointer text-cream/85 hover:text-cream`);
     expect(pill({ intent: "close" })).toBe(`${base} cursor-pointer text-cream/85 hover:text-cream`);
     expect(pill({ intent: "ghost" })).toBe(`${base} border border-cream/45 hover:border-cream hover:bg-cream/10`);
@@ -156,9 +156,9 @@ describe("the bundles answer with the class lists they replaced", () => {
   it("the nav's G mark, at the xl corner (SiteNav) and on the phone bar and the sheet (MobileNav)", () => {
     expectSame(
       navMark({ seat: "corner" }),
-      `inline-flex rounded-sm text-cream transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
+      `inline-flex rounded-sm text-cream motion-safe:transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
     );
-    expectSame(navMark({ seat: "bar" }), `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`);
+    expectSame(navMark({ seat: "bar" }), `${BUTTON_CORNERS} inline-flex p-1.5 text-cream ${FOCUS_RING}`);
   });
 
   it("the stop headlines", () => {

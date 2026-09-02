@@ -80,7 +80,7 @@ export const BUTTON_CORNERS = "rounded-tl-[12px] rounded-br-[12px]";
 
 /* ---- hover and focus manners: every link and button answers the pointer and the keyboard the same way ---- */
 
-/** a hairline ring on keyboard focus only, stood off the element on ink, like the dot rail's */
+/** a hairline ring on keyboard focus only, stood off the element on ink: every link, button and switch wears it (#130) */
 export const FOCUS_RING =
   "outline-none focus-visible:ring-1 focus-visible:ring-cream/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink";
 
@@ -132,7 +132,7 @@ export const button = cva(`${BUTTON_CORNERS} ${BUTTON_LIFT} ${FOCUS_RING}`, {
  * Close stays bare, and Give and Join Sunday take the hollow and the filled
  * treatment without the lift.
  */
-export const pill = cva(`${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`, {
+export const pill = cva(`${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] motion-safe:transition-colors ${FOCUS_RING}`, {
   variants: {
     intent: {
       menu: `${GLASS} cursor-pointer text-cream/85 hover:text-cream`,
@@ -152,8 +152,8 @@ export const pill = cva(`${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] upper
 export const navMark = cva("inline-flex text-cream", {
   variants: {
     seat: {
-      corner: `rounded-sm transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
-      bar: `${BUTTON_CORNERS} p-1.5`,
+      corner: `rounded-sm motion-safe:transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
+      bar: `${BUTTON_CORNERS} p-1.5 ${FOCUS_RING}`,
     },
   },
 });

@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import MobileNav from "./MobileNav";
-import { MENU_LABEL } from "./mobileNavLabels";
+import { HOME_LABEL, MENU_LABEL } from "./mobileNavLabels";
 import { JumpProvider } from "@/app/JumpProvider";
-import { site } from "@/content/site";
+import { chromeWords, site } from "@/content/site";
 import { REST_STATE, useAppStore } from "@/state/appStore";
 import { revealTargets } from "@/state/revealTargets";
 import { NAV_MARK_SIZE } from "@/theme/measures";
@@ -21,11 +21,14 @@ function openSheet() {
 }
 
 describe("MobileNav", () => {
-  it("at rest shows the ruled G mark, named for the site, and a Menu button, and no links", () => {
+  it("at rest shows the ruled G mark in a link named Home, and a Menu button, and no links", () => {
     const { container } = render(<MobileNav />);
-    const mark = container.querySelector('[data-g-mark][role="img"]') as SVGSVGElement;
+    const home = screen.getByRole("link", { name: HOME_LABEL });
+    expect(home.getAttribute("href")).toBe("#hero");
+    const mark = home.querySelector("[data-g-mark]") as SVGSVGElement;
     expect(mark).not.toBeNull();
-    expect(mark.getAttribute("aria-label")).toBe(site.name);
+    // the mark is decoration to its link (#130): the link's name is the one read out
+    expect(mark.getAttribute("aria-hidden")).toBe("true");
     expect(mark.querySelector("[data-g-mark-rule]")).not.toBeNull();
     expect(mark.style.height).toBe(`${NAV_MARK_SIZE}px`);
     expect(container.querySelector("[data-seal]")).toBeNull();
@@ -57,11 +60,13 @@ describe("MobileNav", () => {
     expect(sheet.querySelectorAll("[aria-current]").length).toBe(1);
   });
 
-  it("the sheet is a dialog named Menu that takes focus and hides the bar behind it (the radix Dialog's labelling and trap)", () => {
+  it("the sheet is a dialog named Menu and described in the content's words, that takes focus and hides the bar behind it (the radix Dialog's labelling and trap)", () => {
     const { container } = render(<MobileNav />);
     const sheet = openSheet();
     expect(screen.getByRole("dialog", { name: MENU_LABEL })).toBe(sheet);
     expect(sheet.getAttribute("aria-labelledby")).toBe(sheet.querySelector("h2")!.id);
+    expect(sheet).toHaveAccessibleDescription(chromeWords(site).menu);
+    expect(sheet.getAttribute("aria-describedby")).toBe(sheet.querySelector("p.sr-only")!.id);
     expect(sheet.contains(document.activeElement)).toBe(true);
     expect(container.getAttribute("aria-hidden")).toBe("true");
   });
@@ -102,8 +107,10 @@ describe("MobileNav", () => {
     expect(revealTargets("mark")).toEqual([link]);
     expect(fireEvent.click(link)).toBe(false);
     const sheet = openSheet();
-    const sheetMark = sheet.querySelector("a[href='#hero'] [data-g-mark]") as SVGSVGElement;
-    expect(sheetMark.getAttribute("aria-label")).toBe(site.name);
+    const sheetLink = sheet.querySelector("a[href='#hero']")!;
+    expect(sheetLink.getAttribute("aria-label")).toBe(HOME_LABEL);
+    const sheetMark = sheetLink.querySelector("[data-g-mark]") as SVGSVGElement;
+    expect(sheetMark.getAttribute("aria-hidden")).toBe("true");
     expect(sheetMark.style.height).toBe(`${NAV_MARK_SIZE}px`);
     expect(revealTargets("mark")).toEqual([link]);
   });
@@ -137,6 +144,6 @@ describe("MobileNav class lists", () => {
     const bar = container.querySelector("a[href='#hero']")!.className;
     const sheet = openSheet();
     expect(sheet.querySelector("a[href='#hero']")!.className).toBe(bar);
-    expect(bar.split(/\s+/)).toEqual(expect.arrayContaining(["inline-flex", "p-1.5", "text-cream", "rounded-tl-[12px]", "rounded-br-[12px]"]));
+    expect(bar.split(/\s+/)).toEqual(expect.arrayContaining(["inline-flex", "p-1.5", "text-cream", "rounded-tl-[12px]", "rounded-br-[12px]", "focus-visible:ring-1"]));
   });
 });

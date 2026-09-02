@@ -1,5 +1,7 @@
 import { useLayoutEffect } from "react";
 
+import { chromeWords } from "@/content/site";
+import { useSite } from "@/content/useSite";
 import { useAppStore } from "@/state/appStore";
 import { createIntroController } from "./introMachine";
 import { SPLASH_HEADLINE_ATTR } from "./staticSplash";
@@ -43,14 +45,27 @@ function splashParts(root: HTMLElement) {
  * handoff the hero's own h1, hidden while the intro is pending, takes over
  * without a pixel moving, and the adopted root leaves with the splash
  * (useIntroReveals.ts).
+ *
+ * The one thing rendered here is for assistive tech (#130): the adopted
+ * splash is aria-hidden and the page under it inert (App.tsx), so a status
+ * line, unseen, is the whole of what a screen reader can reach while the
+ * intro plays, and it says that any key skips it. The static splash paints
+ * from the document; this line is inserted into it when React mounts — an
+ * insertion into a live region, which is what a live region announces —
+ * and it leaves with the splash.
  */
 export default function IntroSplash({ create = createIntroController }: IntroSplashProps) {
+  const site = useSite();
   useLayoutEffect(() => {
     const root = adoptStaticSplash();
     const controller = create({ root, ...splashParts(root), store: useAppStore, skipTarget: window });
     return controller.dispose;
   }, [create]);
 
-  // the splash is the adopted static markup; nothing to render here
-  return null;
+  // the splash itself is the adopted static markup; only the hint renders here
+  return (
+    <p role="status" aria-live="polite" className="sr-only">
+      {chromeWords(site).skipIntro}
+    </p>
+  );
 }

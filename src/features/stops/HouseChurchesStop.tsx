@@ -1,4 +1,7 @@
 import HouseTable from "./HouseTable";
+import OrnamentSwitch from "./OrnamentSwitch";
+import { chromeWords } from "@/content/site";
+import { useSite } from "@/content/useSite";
 import {
   ORNAMENT_IN_COLUMN,
   STOP_COLUMN,
@@ -17,12 +20,13 @@ import { useStopPanel } from "./useStopPanel";
  * calendar's mirror: a house church at table in the G mark's box
  * (HouseTable), in a column past a divider (ornamentColumn), so the panel
  * runs wider than a column alone. Its seats are taken with the panel's
- * brackets and drawn in while the reader is over the panel — or, below lg,
- * while the stop is settled on screen (useStopPanel) — seated under the
- * words on a phone.
+ * brackets and drawn in while the reader is over the panel, or its switch
+ * is pressed (OrnamentSwitch) — or, below lg, while the stop is settled on
+ * screen (useStopPanel) — seated under the words on a phone.
  */
 export default function HouseChurchesStop({ section: s, ref }: StopProps) {
-  const { panel, hover, shown, lit } = useStopPanel();
+  const words = chromeWords(useSite());
+  const { panel, hover, press, shown, lit } = useStopPanel();
   return (
     <Stop
       section={s}
@@ -44,17 +48,12 @@ export default function HouseChurchesStop({ section: s, ref }: StopProps) {
       <div className={ornamentColumn({ ornament: "table" })}>
         {/* a phone lays the table on its side under the words (the column is
             too tall a drawing there); from md it stands in its column */}
-        <HouseTable
-          lit={lit}
-          shown={shown}
-          across
-          className="block w-full max-w-[300px] md:hidden"
-        />
-        <HouseTable
-          lit={lit}
-          shown={shown}
-          className={`hidden md:block ${ORNAMENT_IN_COLUMN}`}
-        />
+        <OrnamentSwitch label={words.table} {...press} className="w-full max-w-[300px] md:hidden">
+          <HouseTable lit={lit} shown={shown} across className="block w-full" />
+        </OrnamentSwitch>
+        <OrnamentSwitch label={words.table} {...press} className={`hidden md:block ${ORNAMENT_IN_COLUMN}`}>
+          <HouseTable lit={lit} shown={shown} className="block h-full w-full" />
+        </OrnamentSwitch>
       </div>
     </Stop>
   );

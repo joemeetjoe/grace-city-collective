@@ -323,15 +323,19 @@ body::-webkit-scrollbar {
   }
 }
 
-/* a text link: a hairline underline sweeps in from the left on hover or focus */
+/* a text link: a hairline underline sweeps in from the left on hover or focus
+   (the sweep itself only where motion is welcome; under reduced motion the
+   underline simply appears) */
 @utility link-sweep {
   background-image: linear-gradient(currentColor, currentColor);
   background-size: 0% 1px;
   background-position: 0 100%;
   background-repeat: no-repeat;
-  transition:
-    background-size var(--duration-lift) var(--ease-site),
-    color var(--duration-quick) ease;
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      background-size var(--duration-lift) var(--ease-site),
+      color var(--duration-quick) ease;
+  }
   &:hover,
   &:focus-visible {
     background-size: 100% 1px;
@@ -339,15 +343,18 @@ body::-webkit-scrollbar {
 }
 
 /* a button: a pixel's lift and a soft glow of its own colour (--lift-glow) on
-   hover; it settles quickly on press */
+   hover; it settles quickly on press (the easing between only where motion
+   is welcome) */
 @utility btn-lift {
   --lift-glow: var(--color-seal);
-  transition:
-    background-color var(--duration-lift) var(--ease-site),
-    border-color var(--duration-lift) var(--ease-site),
-    color var(--duration-lift) var(--ease-site),
-    box-shadow var(--duration-lift) var(--ease-site),
-    transform var(--duration-lift) var(--ease-site);
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      background-color var(--duration-lift) var(--ease-site),
+      border-color var(--duration-lift) var(--ease-site),
+      color var(--duration-lift) var(--ease-site),
+      box-shadow var(--duration-lift) var(--ease-site),
+      transform var(--duration-lift) var(--ease-site);
+  }
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 12px 28px -12px color-mix(in oklab, var(--lift-glow) 70%, transparent);

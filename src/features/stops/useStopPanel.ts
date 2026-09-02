@@ -5,7 +5,7 @@ import { useInView } from "@/ui/useInView";
 import { useBelowLg } from "@/layout/useBelowLg";
 import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 import type { HoverHandlers, PanelWatch } from "./Stop";
-import { useHoverLit } from "./useHoverLit";
+import { useHoverLit, type PressState } from "./useHoverLit";
 
 // on a phone a stop's ornament plays the pointer's part a beat after its rows
 // have printed in (useInTurn, ORNAMENT_LIT_AT_MS), so its rest state — the
@@ -17,10 +17,12 @@ import { useHoverLit } from "./useHoverLit";
  * The panel logic every stop shares: the stop's panel, watched for when it
  * is shown (PANEL_SHOWN_*), and what lights its ornament on this device.
  * From lg up that is the pointer over the panel (`hover`, for the Stop to
- * take); below lg the same signal that shows the panel plays the ornament
+ * take) or the ornament's switch pressed (`press`, for its OrnamentSwitch,
+ * #130); below lg the same signal that shows the panel plays the ornament
  * while the panel is settled on screen, and undoes it as the panel leaves;
- * under reduced motion the panel is shown and the ornament rests. `lit`
- * is that choice made, so no stop asks which device it is on.
+ * under reduced motion the panel is shown and the ornament rests. The
+ * switch answers on both tiers — below lg it is the touch's only way in.
+ * `lit` is that choice made, so no stop asks which device it is on.
  *
  * `count` is how many pieces light in turn below lg (EMBLEM_LIT_STEP_MS
  * apart): the gatherings' emblems pass their number and read `inTurn`;
@@ -32,6 +34,8 @@ export function useStopPanel(count = 1): {
   panel: PanelWatch;
   /** the pointer over the panel, for a Stop whose ornament lights as a whole */
   hover: HoverHandlers;
+  /** the ornament's switch: pressed by keyboard or touch, it holds the ornament lit (OrnamentSwitch) */
+  press: PressState;
   /** whether the panel is shown: what its ornaments take to come in with its brackets */
   shown: boolean;
   /** whether the stop's ornament is lit, on this device */
@@ -56,12 +60,15 @@ export function useStopPanel(count = 1): {
     EMBLEM_LIT_STEP_MS,
     ORNAMENT_LIT_AT_MS,
   );
-  const { over, hover } = useHoverLit();
+  const { over, hover, press } = useHoverLit();
   return {
     panel: { ref: panelRef, shown },
     hover,
+    press,
     shown,
-    lit: belowLg ? playing : over,
+    // the switch answers on either tier (#130): below lg it is the touch's
+    // only way in, and it holds the ornament lit past the beat it plays
+    lit: (belowLg ? playing : over) || press.pressed,
     belowLg,
     inTurn,
   };

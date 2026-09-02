@@ -66,33 +66,41 @@ export default function App() {
     >
       {intro && <IntroSplash />}
 
-      {/* the fixed chrome's links jump through the page's scroll: the jump
-          reaches them by context (JumpProvider.tsx), the active section by the store */}
-      <JumpProvider jump={jump}>
-        {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
-        <SiteNav />
+      {/* the page under the splash: inert while the intro plays (#130), so
+          nothing behind the splash takes focus or reaches assistive tech —
+          the skip gestures listen on the window, and the splash's hint
+          (IntroSplash) stands outside. A plain div: no position, no
+          transform, so the fixed chrome and the smoother's wrapper inside
+          keep the viewport as their containing block */}
+      <div inert={intro || undefined}>
+        {/* the fixed chrome's links jump through the page's scroll: the jump
+            reaches them by context (JumpProvider.tsx), the active section by the store */}
+        <JumpProvider jump={jump}>
+          {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
+          <SiteNav />
 
-        {/* the section dots, fixed outside the smoother's content like the nav,
-            and stacked with it so section copy never covers a dot */}
-        <DotRail markers={markers} className={STACK.nav} />
-      </JumpProvider>
+          {/* the section dots, fixed outside the smoother's content like the nav,
+              and stacked with it so section copy never covers a dot */}
+          <DotRail markers={markers} className={STACK.nav} />
+        </JumpProvider>
 
-      {/* everything that scrolls lives in the smoother's content; the wrapper
-          becomes its fixed viewport when the smoother is on (src/scroll).
-          The content is the page's <main>: the one landmark, so every
-          section sits inside a landmark (axe region, App.a11y.test.tsx) */}
-      <div id="smooth-wrapper" ref={wrapperRef}>
-        <main id="smooth-content" ref={contentRef}>
-          <HomePage
-            parallaxRef={parallaxRef}
-            frontRef={frontRef}
-            frontCanvasRef={frontCanvasRef}
-            frameRef={frameRef}
-            sceneRef={sceneRef}
-            sections={sections}
-            scroll={scroll}
-          />
-        </main>
+        {/* everything that scrolls lives in the smoother's content; the wrapper
+            becomes its fixed viewport when the smoother is on (src/scroll).
+            The content is the page's <main>: the one landmark, so every
+            section sits inside a landmark (axe region, App.a11y.test.tsx) */}
+        <div id="smooth-wrapper" ref={wrapperRef}>
+          <main id="smooth-content" ref={contentRef}>
+            <HomePage
+              parallaxRef={parallaxRef}
+              frontRef={frontRef}
+              frontCanvasRef={frontCanvasRef}
+              frameRef={frameRef}
+              sceneRef={sceneRef}
+              sections={sections}
+              scroll={scroll}
+            />
+          </main>
+        </div>
       </div>
     </div>
   );

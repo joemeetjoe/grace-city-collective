@@ -15,13 +15,14 @@ export type NavLinksProps = {
  * with aria-current; on any other link the underline sweeps in from the
  * left under the pointer. Each link is a piece of the nav's cascade
  * (src/features/intro/navReveal.ts), and the row wears the glass that fades up with it.
+ * The row is a list (#130): one item per link, so assistive tech counts them.
  */
 export default function NavLinks({ className }: NavLinksProps) {
   const site = useSite();
   const activeId = useAppStore((s) => s.activeId);
   const navigate = useNavigate();
   return (
-    <div
+    <ul
       ref={revealRef("glass")}
       className={cn(
         NAV_GLASS,
@@ -32,23 +33,25 @@ export default function NavLinks({ className }: NavLinksProps) {
       {site.nav.map((n) => {
         const active = n.id === activeId;
         return (
-          <a
-            key={n.id}
-            ref={revealRef("link")}
-            href={`#${n.id}`}
-            aria-current={active ? "location" : undefined}
-            onClick={navigate(n.id)}
-            className={cn(
-              NAV_REVEAL,
-              "relative rounded-sm transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:bg-seal after:transition-transform after:duration-500 after:ease-site hover:after:scale-x-100",
-              FOCUS_RING,
-              active ? "text-seal after:scale-x-100 hover:text-seal" : "after:scale-x-0 hover:text-cream",
-            )}
-          >
-            {n.label}
-          </a>
+          <li key={n.id}>
+            {/* block, so the link's box is the line box its underline hangs from, as it was as a flex item */}
+            <a
+              ref={revealRef("link")}
+              href={`#${n.id}`}
+              aria-current={active ? "location" : undefined}
+              onClick={navigate(n.id)}
+              className={cn(
+                NAV_REVEAL,
+                "relative block rounded-sm motion-safe:transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:bg-seal motion-safe:after:transition-transform after:duration-500 after:ease-site hover:after:scale-x-100",
+                FOCUS_RING,
+                active ? "text-seal after:scale-x-100 hover:text-seal" : "after:scale-x-0 hover:text-cream",
+              )}
+            >
+              {n.label}
+            </a>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

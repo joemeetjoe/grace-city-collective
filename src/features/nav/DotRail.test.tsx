@@ -22,18 +22,21 @@ const label = (a: Element) => a.querySelector("span:first-of-type")!;
 const dot = (a: Element) => a.querySelector("span:last-of-type")!;
 
 describe("DotRail", () => {
-  it("is a landmark with one link per section, each named after its section", () => {
+  it("is a landmark with one link per section, each named by the label written out beside its dot", () => {
     render(<DotRail markers={markers} />);
     const rail = screen.getByRole("navigation", { name: "Sections" });
     const links = Array.from(rail.querySelectorAll("a"));
     expect(links.map((a) => a.getAttribute("href"))).toEqual(
       markers.map((m) => `#${m.id}`),
     );
-    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual(
-      markers.map((m) => m.label),
-    );
-    // the label is also written out, to be revealed beside the dot
-    for (const m of markers) expect(rail.textContent).toContain(m.label);
+    // the visible label is the accessible name (#130): no aria-label to drift from it
+    for (const m of markers) {
+      const link = screen.getByRole("link", { name: m.label });
+      expect(link.getAttribute("href")).toBe(`#${m.id}`);
+      expect(link.hasAttribute("aria-label")).toBe(false);
+      expect(label(link).hasAttribute("aria-hidden")).toBe(false);
+      expect(dot(link).getAttribute("aria-hidden")).toBe("true");
+    }
   });
 
   it("fills the store's active dot crimson and marks its link current", () => {

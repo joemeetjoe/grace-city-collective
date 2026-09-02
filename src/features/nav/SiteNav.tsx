@@ -2,6 +2,7 @@ import GMark from "@/marks/GMark";
 import { GLASS, GLASS_CORNERS, NAV_REVEAL, STACK, button, navMark } from "@/theme/classes";
 import { NAV_MARK_SIZE } from "@/theme/measures";
 import MobileNav from "./MobileNav";
+import { HOME_LABEL } from "./mobileNavLabels";
 import NavLinks from "./NavLinks";
 import { useNavigate } from "./useNavigate";
 import { useAppStore } from "@/state/appStore";
@@ -25,7 +26,8 @@ export default function SiteNav() {
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
     >
       <nav
-        className={`pointer-events-auto absolute inset-x-frame-inset top-frame-inset flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
+        aria-label="Primary"
+        className={`pointer-events-auto absolute inset-x-frame-inset top-frame-inset flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] motion-safe:transition-colors duration-500 ${
           sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
         }`}
       >
@@ -53,7 +55,8 @@ export default function SiteNav() {
             Join Sunday
           </a>
         </div>
-        {/* from xl up, on the right: the section links, then the G mark at the corner */}
+        {/* from xl up, on the right: the section links, then the G mark at the corner —
+            a link named Home (#130): the mark inside is decoration to it */}
         <div className="hidden items-center gap-[clamp(14px,1.8vw,26px)] xl:flex">
           {/* the words alone take the glass; the mark beside them stays bare */}
           <NavLinks className={`${GLASS} ${GLASS_CORNERS} px-[clamp(10px,1.2vw,18px)] py-2`} />
@@ -61,9 +64,10 @@ export default function SiteNav() {
             ref={revealRef("mark")}
             href="#hero"
             onClick={navigate("hero")}
+            aria-label={HOME_LABEL}
             className={navMark({ seat: "corner" })}
           >
-            <GMark size={NAV_MARK_SIZE} ruled />
+            <GMark size={NAV_MARK_SIZE} ruled decorative />
           </a>
         </div>
       </nav>
