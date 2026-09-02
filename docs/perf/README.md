@@ -8,6 +8,10 @@ renders.
 
 ## Baseline
 
+The batch's before/after, per slice, is in [`wire-batch.md`](wire-batch.md)
+(`wire-final.json`, `wire-final-webp.json`).
+
+
 `wire-baseline.json` is the run on main at `40d83b9` (2026-09-01), before any
 Wire slice landed. Every later Wire issue reports its before/after against it.
 
