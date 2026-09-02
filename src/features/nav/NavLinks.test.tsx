@@ -30,3 +30,27 @@ describe("NavLinks", () => {
     expect(followed).toBe(false);
   });
 });
+
+describe("NavLinks class lists", () => {
+  const tokens = (el: Element) => el.className.split(/\s+/);
+
+  it("a resting link carries the cream hover and the furled underline", () => {
+    const { container } = render(<NavLinks items={site.nav} activeId="beliefs" />);
+    const rest = tokens(container.querySelector("a[href='#faq']")!);
+    expect(rest).toContain("hover:text-cream");
+    expect(rest).toContain("after:scale-x-0");
+    expect(rest).not.toContain("text-seal");
+    expect(rest).not.toContain("hover:text-seal");
+    expect(rest).not.toContain("after:scale-x-100");
+  });
+
+  it("the active link swaps them for the seal hover and the drawn underline, carrying no cream hover", () => {
+    const { container } = render(<NavLinks items={site.nav} activeId="beliefs" />);
+    const active = tokens(container.querySelector("a[href='#beliefs']")!);
+    expect(active).toContain("text-seal");
+    expect(active).toContain("hover:text-seal");
+    expect(active).toContain("after:scale-x-100");
+    expect(active).not.toContain("hover:text-cream");
+    expect(active).not.toContain("after:scale-x-0");
+  });
+});

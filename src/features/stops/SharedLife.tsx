@@ -156,7 +156,7 @@ export default function SharedLife({
       data-columns={columns}
       viewBox={`0 0 ${viewW} ${viewH}`}
       preserveAspectRatio="xMidYMid meet"
-      className={cn("block text-cream", className)}
+      className={cn("text-cream", className)}
     >
       {rows.map((row) => {
         const { cx, cy } = restCentre(row, columns);

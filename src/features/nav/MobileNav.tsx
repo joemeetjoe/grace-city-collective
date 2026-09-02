@@ -100,8 +100,8 @@ export default function MobileNav({
                   aria-current={n.id === activeId ? "location" : undefined}
                   onClick={(e) => go(e, n.id)}
                   className={cn(
-                    `${serif} text-[clamp(30px,5.6svh,48px)] leading-[1.1] text-cream/90 transition-colors hover:text-cream`,
-                    n.id === activeId && "text-seal hover:text-seal",
+                    `${serif} text-[clamp(30px,5.6svh,48px)] leading-[1.1] transition-colors`,
+                    n.id === activeId ? "text-seal hover:text-seal" : "text-cream/90 hover:text-cream",
                   )}
                 >
                   {n.label}

@@ -46,9 +46,9 @@ export default function NavLinks({
               onNavigate?.(n.id);
             }}
             className={cn(
-              "relative rounded-sm transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:scale-x-0 after:bg-seal after:transition-transform after:duration-500 after:ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-cream hover:after:scale-x-100",
+              "relative rounded-sm transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:bg-seal after:transition-transform after:duration-500 after:ease-[cubic-bezier(0.16,1,0.3,1)] hover:after:scale-x-100",
               FOCUS_RING,
-              active && "text-seal after:scale-x-100 hover:text-seal",
+              active ? "text-seal after:scale-x-100 hover:text-seal" : "after:scale-x-0 hover:text-cream",
             )}
           >
             {n.label}
