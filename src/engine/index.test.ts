@@ -5,7 +5,8 @@ import PentecostParallax from "./PentecostParallax";
 
 describe("the engine barrel", () => {
   it("keeps three.js out of the shell: the scene arrives through loadParallax, the poster and vignette are static", () => {
-    expect(Object.keys(engine).sort()).toEqual(["StaticPoster", "loadParallax", "vignetteCss"]);
+    // loadParallaxFiber is the #134 spike's entry: a dynamic import behind a build literal, dropped by the default build
+    expect(Object.keys(engine).sort()).toEqual(["StaticPoster", "loadParallax", "loadParallaxFiber", "vignetteCss"]);
   });
 
   it("loadParallax resolves to the parallax scene component", async () => {

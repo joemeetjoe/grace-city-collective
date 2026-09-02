@@ -131,7 +131,8 @@ export function cutMaterial(o: MaterialOptions, ctx: MaterialContext): THREE.Sha
 }
 
 export type BuildContext = MaterialContext & {
-  scene: THREE.Scene;
+  /** where the planes go: the scene, or a group the fiber spike mounts as a primitive (#134) */
+  scene: THREE.Object3D;
   textures: TextureSet;
   /** every texture by its file name in the tier, at its hashed url */
   url: TextureResolver;

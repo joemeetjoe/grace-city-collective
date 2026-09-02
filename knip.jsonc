@@ -5,7 +5,8 @@
   // import nothing from src, so they are entries of their own. The Lighthouse
   // CI configs are loaded by `lhci --config` (tools/perf/lighthouse.mjs) and
   // reach lighthouseProfiles.cjs through their own require.
-  "entry": ["tools/**/*.mjs", "tools/perf/lighthouserc.*.cjs"],
+  // docs/design/issue-134/measure.mjs is the #134 spike's measurement script, run by hand like the tools.
+  "entry": ["tools/**/*.mjs", "tools/perf/lighthouserc.*.cjs", "docs/design/issue-134/measure.mjs"],
   // Tuning constants are exported for reading (an easing, a duration, a size)
   // and used only by the module that declares them. An export nothing else
   // imports and the module itself does not use is still reported.

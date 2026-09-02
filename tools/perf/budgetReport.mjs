@@ -20,7 +20,7 @@ export function wireSize(buffer, ext) {
 }
 
 /** the module whose dynamic import produces the engine chunk (src/device/enginePreload.ts) */
-export const ENGINE_ENTRY = "src/engine/PentecostParallax.tsx";
+export const ENGINE_ENTRY = process.env.GCC_ENGINE_ENTRY || "src/engine/PentecostParallax.tsx";
 
 /**
  * The shell's dynamic imports a first load still requests: only the engine,

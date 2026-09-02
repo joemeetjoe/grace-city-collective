@@ -342,7 +342,7 @@ export type EmberLayer = {
 };
 
 export type CreateEmbersOptions = {
-  scene: THREE.Scene;
+  scene: THREE.Object3D;
   camera: THREE.PerspectiveCamera;
   count: number;
   seed?: number;
