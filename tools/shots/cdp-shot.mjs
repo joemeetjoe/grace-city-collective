@@ -11,6 +11,7 @@
  *        [--labels Hero,About] [--scroll 0.5]   (fraction of a section)
  *        [--css "section{visibility:hidden}"]   (injected after load)
  *        [--mobile] [--dpr 3] [--reduced-motion] [--ids devotions,faq] [--menu]
+ *        [--no-avif]   (force the AVIF probe's verdict to false: the WebP path)
  *
  * --dpr sets the pixel ratio (desktop needs 2 for the desktop tier; headless is 1).
  * --mobile emulates a phone/tablet: the viewport is --size at --dpr with the
@@ -46,6 +47,10 @@ const reducedMotion = process.argv.includes("--reduced-motion");
 const ids = arg("ids", "")?.split(",").filter(Boolean) ?? [];
 // also open the mobile nav sheet at the top of the page and shoot it as menu.png
 const menu = process.argv.includes("--menu");
+// preset the verdict src/device/avif.ts keeps on the window, so the colour
+// textures load as WebP in a Chrome that decodes AVIF
+const noAvif = process.argv.includes("--no-avif");
+const AVIF_VERDICT_KEY = "__gccAvif";
 const chrome = arg(
   "chrome",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -123,6 +128,9 @@ try {
   await send("Page.addScriptToEvaluateOnNewDocument", {
     source: `try { sessionStorage.setItem("gcc:intro-played", "1"); } catch {}`,
   });
+  if (noAvif) {
+    await send("Page.addScriptToEvaluateOnNewDocument", { source: `window[${JSON.stringify(AVIF_VERDICT_KEY)}] = false;` });
+  }
   await send("Page.navigate", { url });
   // wait for the scene (or the static poster): the parallax container fades in once textures are ready
   for (let i = 0; i < 100; i++) {
@@ -145,12 +153,14 @@ try {
   );
   // what the page believes about itself, so a shot is never mistaken for another build's
   const state = [
-    await evaluate(`({
+    await evaluate(`(async () => ({
       viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
       poster: !!document.querySelector("[data-poster]"),
       canvas: !!document.querySelector("canvas"),
       bundle: (document.querySelector("script[type='module'][src*='/assets/']")?.getAttribute("src") ?? ""),
-    })`),
+      // the AVIF verdict the colour textures were requested under (src/device/avif.ts)
+      avif: await Promise.resolve(window[${JSON.stringify(AVIF_VERDICT_KEY)}]),
+    }))()`),
   ];
   for (let i = 0; i < labels.length; i++) {
     const label = labels[i];

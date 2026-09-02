@@ -19,6 +19,7 @@ import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
 import { PACING, createFramePacer, scrollMoved } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
+import { supportsAvif } from "@/device/avif";
 import { armGyroOnFirstTouch } from "@/device/gyro";
 import { bakeUv, maskBounds, type MaskBounds } from "@/device/maskBounds";
 import { TIERS, tierWidth, type Tier } from "@/device/tier";
@@ -47,7 +48,9 @@ import { VIGNETTE_GLSL } from "./vignette";
  * <section data-screen-label> on the page.
  *
  * Assets in src/assets/dore/<tier>/ (dore-recut pack_textures.py), served
- * content-hashed through textureManifest.ts:
+ * content-hashed through textureManifest.ts — the two colour textures below
+ * also ship as AVIF twins (#101), requested instead of the WebP once
+ * device/avif.ts has settled that the client decodes them:
  *   plate-backdrop.webp  the plate (the engraving, 2048x2519 in the desktop
  *                        tier) with every cutout inpainted back in
  *   map-<name>.webp      each cut's colour, a crop of the plate over its
@@ -338,8 +341,6 @@ export default function PentecostParallax({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const width = tierWidth(tierRef.current);
-    // every texture by its file name in the tier, at its hashed url
-    const url = (file: string) => textureUrl(width, file);
 
     // no MSAA (#62): every layer is an alpha-blended full-coverage quad, so
     // multisampling smooths nothing and doubles framebuffer bandwidth; low-power
@@ -382,12 +383,9 @@ export default function PentecostParallax({
       t.anisotropy = maxAniso;
       return t;
     };
-    const backdrop = sharpen(loader.load(url("plate-backdrop.webp")), true);
-    // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
-    const depthMap = loader.load(url("depth.webp"));
-    depthMap.generateMipmaps = false;
-    depthMap.minFilter = THREE.LinearFilter;
-    depthMap.magFilter = THREE.LinearFilter;
+    // requested in load(), once the format is known
+    let backdrop: THREE.Texture | null = null;
+    let depthMap: THREE.Texture | null = null;
 
     // masks come four to a texture, one per channel, so the same file backs up
     // to four materials. They must arrive unpremultiplied: an <img> upload may
@@ -476,7 +474,7 @@ export default function PentecostParallax({
       mask: THREE.Texture,
       isFlame: number,
       flat: number,
-      depth: THREE.Texture = depthMap,
+      depth: THREE.Texture,
       rect: UvRect = FULL_RECT,
       depthUv: UvRect = FULL_RECT,
       channel = 0,
@@ -523,7 +521,8 @@ export default function PentecostParallax({
     };
     const sectionProgress = () => sectionProgressAt(getScrollTop() + window.innerHeight * 0.5, sectionCache);
 
-    const start = (cuts: Cut[]) => {
+    /** the scene from its cuts, every texture resolved through `url` */
+    const start = (cuts: Cut[], url: (file: string) => string, backdrop: THREE.Texture, depthMap: THREE.Texture) => {
       if (disposed) return;
       sections = Array.from(document.querySelectorAll<HTMLElement>("section[data-screen-label]"));
       resize();
@@ -535,7 +534,7 @@ export default function PentecostParallax({
 
       // a complete backdrop, on a much larger plane at the same registration, so
       // a cut that moves reveals wall instead of a hole
-      const bgMat = material(backdrop, backdrop, 0, 1);
+      const bgMat = material(backdrop, backdrop, 0, 1, depthMap);
       bgMat.name = "backdrop";
       const bgMesh = new THREE.Mesh(geom(BACKDROP_Z, FIT_BG), bgMat);
       bgMesh.name = "backdrop";
@@ -909,22 +908,37 @@ export default function PentecostParallax({
     // iOS only delivers those events after a permission prompt raised from a touch
     const disarmGyro = armGyroOnFirstTouch(window);
 
-    // cuts.json is bundled, so the cut textures start loading with the
-    // backdrop and the manager's queue holds all of them before the first lands
-    start(parseCuts(tierCuts(width)));
-    // once per effect run; a run torn down by StrictMode is disposed and never reports
-    const reportReady = readyOnce(() => onReadyRef.current?.());
-    manager.onLoad = () => {
+    // every texture request waits on the AVIF verdict (#101): the colour
+    // textures resolve to their avif twins where the client decodes them,
+    // and nothing may be fetched twice
+    const load = (avif: boolean) => {
       if (disposed) return;
-      dirty = true;
-      reportReady();
+      // every texture by its file name in the tier, at its hashed url, in the client's format
+      const url = (file: string) => textureUrl(width, file, { avif });
+      backdrop = sharpen(loader.load(url("plate-backdrop.webp")), true);
+      // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
+      depthMap = loader.load(url("depth.webp"));
+      depthMap.generateMipmaps = false;
+      depthMap.minFilter = THREE.LinearFilter;
+      depthMap.magFilter = THREE.LinearFilter;
+      // cuts.json is bundled, so the cut textures start loading with the
+      // backdrop and the manager's queue holds all of them before the first lands
+      start(parseCuts(tierCuts(width)), url, backdrop, depthMap);
+      // once per effect run; a run torn down by StrictMode is disposed and never reports
+      const reportReady = readyOnce(() => onReadyRef.current?.());
+      manager.onLoad = () => {
+        if (disposed) return;
+        dirty = true;
+        reportReady();
+      };
+      manager.onProgress = (_url, loaded, total) => {
+        if (disposed) return;
+        // a texture that lands after the scene settles still gets painted
+        dirty = true;
+        onProgressRef.current?.(loaded, total);
+      };
     };
-    manager.onProgress = (_url, loaded, total) => {
-      if (disposed) return;
-      // a texture that lands after the scene settles still gets painted
-      dirty = true;
-      onProgressRef.current?.(loaded, total);
-    };
+    supportsAvif().then(load);
 
     return () => {
       disposed = true;
@@ -949,8 +963,8 @@ export default function PentecostParallax({
       emberLayer?.dispose();
       for (const t of cutMaps) t.dispose();
       for (const t of maskTextures.values()) t.dispose();
-      backdrop.dispose();
-      depthMap.dispose();
+      backdrop?.dispose();
+      depthMap?.dispose();
       renderer.dispose();
       frontRenderer?.dispose();
     };

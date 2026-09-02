@@ -60,8 +60,8 @@ export default defineConfig({
     manifest: true,
     // the Doré textures ship as hashed files whatever their size (#97): a
     // 150-byte mask pack inlined as a data URI would sit in the JS bundle
-    // and never in the tier's cache
-    assetsInlineLimit: (file) => (file.endsWith('.webp') ? false : undefined),
+    // and never in the tier's cache; the avif twins (#101) likewise
+    assetsInlineLimit: (file) => (/\.(webp|avif)$/.test(file) ? false : undefined),
   },
   test: {
     environment: 'jsdom',

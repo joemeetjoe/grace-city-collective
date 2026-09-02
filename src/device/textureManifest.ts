@@ -8,6 +8,12 @@
  * bundled rather than fetched. This module owns the one glob; everything
  * else resolves a tier's file name through `textureUrl`.
  *
+ * The colour textures — the backdrop and every cut map — ship twice (#101):
+ * the pack writes an AVIF twin beside each WebP, and cuts.json goes on
+ * naming the `.webp`. A resolver asked for `{ avif: true }` (device/avif.ts
+ * decides, once per client) hands out the twin where the tier has one; the
+ * masks and depths are lossless WebP and never swap.
+ *
  * Masks are packed four to a lossless RGBA WebP and referenced as
  * { file, channel }; the fragment shader reads the channel with
  * dot(texture2D(mask, uv), uMaskChannel), where uMaskChannel is
@@ -34,7 +40,7 @@ function tierKey(path: string): string {
   return `${m[1]}/${m[2]}`;
 }
 
-const hashedUrls = import.meta.glob("/src/assets/dore/*/*.webp", {
+const hashedUrls = import.meta.glob("/src/assets/dore/*/*.{webp,avif}", {
   eager: true,
   query: "?url",
   import: "default",
@@ -50,16 +56,34 @@ export const TEXTURE_TABLE: TextureTable = Object.fromEntries(
   Object.entries(hashedUrls).map(([path, url]) => [tierKey(path), url]),
 );
 
-/** Pure: a tier's file name to its url out of `table`; a file the tier lacks is an error */
-export function resolveTexture(table: TextureTable, width: TierWidth, file: string): string {
+/** which encoding the colour textures are requested in; the lossless masks and depths are unaffected */
+export type TextureFormat = { avif: boolean };
+
+const COLOUR_TEXTURE = /^(plate-backdrop|map-[^/.]+)\.webp$/;
+
+/** the backdrop and the cut maps — the lossy textures the pack writes in both formats */
+export function isColourTexture(file: string): boolean {
+  return COLOUR_TEXTURE.test(file);
+}
+
+/**
+ * Pure: a tier's file name to its url out of `table`; a file the tier lacks
+ * is an error. With `avif`, a colour texture resolves to its `.avif` twin
+ * when the tier has it and to the `.webp` otherwise.
+ */
+export function resolveTexture(table: TextureTable, width: TierWidth, file: string, format?: TextureFormat): string {
+  if (format?.avif && isColourTexture(file)) {
+    const twin = table[`${width}/${file.replace(/\.webp$/, ".avif")}`];
+    if (twin !== undefined) return twin;
+  }
   const url = table[`${width}/${file}`];
   if (url === undefined) throw new Error(`no texture ${width}/${file} in the manifest`);
   return url;
 }
 
-/** the hashed url of one of a tier's textures */
-export function textureUrl(width: TierWidth, file: string): string {
-  return resolveTexture(TEXTURE_TABLE, width, file);
+/** the hashed url of one of a tier's textures, in the format the client takes */
+export function textureUrl(width: TierWidth, file: string, format?: TextureFormat): string {
+  return resolveTexture(TEXTURE_TABLE, width, file, format);
 }
 
 /** the tier's cuts.json, bundled: raw, for parseCuts */

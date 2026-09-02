@@ -33,7 +33,23 @@ export const FIRST_LOAD_FONTS = ["geist-latin-wght-normal.woff2", "cormorant-gar
 /** unhashed files at the dist root that every first load requests, when present */
 const ROOT_FILES = ["index.html", "favicon.svg", "favicon.ico"];
 
-const TIER_TEXTURE = /^src\/assets\/dore\/(\d+)\/[^/]+\.webp$/;
+const TIER_TEXTURE = /^src\/assets\/dore\/(\d+)\/([^/]+)\.(webp|avif)$/;
+
+/**
+ * The texture files a tier's first load requests, one url per texture: a
+ * colour texture with an avif twin in the manifest (#101) counts as the
+ * twin — the budget is the AVIF path, which every current browser takes;
+ * the webp is fallback-only and never fetched alongside — while a colour
+ * texture without one, and the lossless masks and depths, count as webp.
+ */
+export function tierTextureFiles(manifest, width) {
+  const keys = Object.keys(manifest).filter((key) => TIER_TEXTURE.exec(key)?.[1] === String(width));
+  const chosen = keys.filter((key) => {
+    const [, , stem, ext] = TIER_TEXTURE.exec(key);
+    return ext === "avif" || !keys.includes(key.replace(new RegExp(`${stem}\\.webp$`), `${stem}.avif`));
+  });
+  return chosen.map((key) => manifest[key].file);
+}
 
 /**
  * The dist files (relative paths) a tier's first load requests, in request
@@ -41,7 +57,8 @@ const TIER_TEXTURE = /^src\/assets\/dore\/(\d+)\/[^/]+\.webp$/;
  * (dist/.vite/manifest.json) and the dist listing: the html and favicon,
  * the shell chunk and its css, every chunk the shell imports — the engine
  * chunk is a dynamic import, module-preloaded from the head (#98) — the
- * latin font files, and every texture of the tier's src/assets/dore/<width>/.
+ * latin font files, and every texture of the tier's src/assets/dore/<width>/
+ * on the AVIF path (tierTextureFiles).
  */
 export function firstLoadFiles(manifest, width, listing, fonts = FIRST_LOAD_FONTS) {
   const entry = manifest["index.html"];
@@ -64,9 +81,9 @@ export function firstLoadFiles(manifest, width, listing, fonts = FIRST_LOAD_FONT
     paths.push(hit[1].file);
   }
 
-  const textures = Object.entries(manifest).filter(([key]) => TIER_TEXTURE.exec(key)?.[1] === String(width));
+  const textures = tierTextureFiles(manifest, width);
   if (!textures.length) throw new Error(`no textures for the ${width} tier in the Vite manifest`);
-  paths.push(...textures.map(([, v]) => v.file));
+  paths.push(...textures);
 
   return paths.map((path) => ({ path, category: classify(`/${path}`) }));
 }

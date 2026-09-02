@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// pngdiff.mjs a.png b.png [tolerance] — pure-node PNG pixel diff.
+// pngdiff.mjs a.png b.png [tolerance] [--max pct] — pure-node PNG pixel diff.
 // Prints: size, % pixels with any channel delta > tolerance (default 8), max delta.
+// Exits 1 when that share is over --max (default 0.5 %, the shot gate's
+// threshold; tools/README.md says when a wider one is used).
 import { readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
@@ -50,7 +52,11 @@ function decode(path) {
   return { w, h, channels, data: out };
 }
 
-const [a, b, tolArg] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const maxAt = argv.indexOf("--max");
+const maxPct = maxAt > -1 ? Number(argv[maxAt + 1]) : 0.5;
+if (maxAt > -1) argv.splice(maxAt, 2);
+const [a, b, tolArg] = argv;
 const tol = Number(tolArg ?? 8);
 const A = decode(a), B = decode(b);
 if (A.w !== B.w || A.h !== B.h || A.channels !== B.channels) {
@@ -67,4 +73,4 @@ for (let i = 0; i < n; i++) {
 }
 const pct = (100 * bad) / n;
 console.log(`${(pct).toFixed(4)}% pixels > ${tol}, max delta ${maxd} (${A.w}x${A.h})`);
-process.exit(pct > 0.5 ? 1 : 0);
+process.exit(pct > maxPct ? 1 : 0);

@@ -17,6 +17,9 @@
  *        [--idle 1500]        (ms of network silence that counts as idle)
  *        [--throttle 1600]    (kbps down, 150 ms rtt: a slow connection, to see the
  *                              order things arrive in; --timeline prints it)
+ *        [--no-avif]          (force the AVIF probe's verdict to false before the page
+ *                              runs, so the WebP fallback path is measured in the same
+ *                              Chrome: src/device/avif.ts reads the preset verdict)
  *
  * Desktop is 1600×900 at DPR 2, mobile 390×844 at DPR 1.5 with the mobile
  * flag, so tierFor() picks the 2048 and 1024 tiers respectively.
@@ -42,6 +45,9 @@ const jsonOut = arg("json", "");
 const throttleKbps = Number(arg("throttle", 0));
 const timeline = process.argv.includes("--timeline");
 const tierNames = arg("tiers", "desktop,mobile").split(",").filter(Boolean);
+const noAvif = process.argv.includes("--no-avif");
+// the window property src/device/avif.ts keeps the verdict on (AVIF_VERDICT_KEY)
+const AVIF_VERDICT_KEY = "__gccAvif";
 const chrome = arg("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
 
 const PROFILES = {
@@ -136,7 +142,7 @@ function connect(page) {
     return () => listeners.set(method, (listeners.get(method) ?? []).filter((f) => f !== fn));
   };
   const evaluate = async (expression) =>
-    (await send("Runtime.evaluate", { expression, returnByValue: true })).result.value;
+    (await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true })).result.value;
   const open = new Promise((r) => (ws.onopen = r));
   return { ws, send, on, evaluate, open };
 }
@@ -150,6 +156,8 @@ async function loadOnce({ send, on, evaluate }, url) {
   const stamp = (t) => Math.round((t - t0) * 1000);
   const handlers = {
     "Network.requestWillBeSent": (p) => {
+      // the AVIF probe (src/device/avif.ts) is a data: URI: decoded, never sent
+      if (p.request.url.startsWith("data:")) return;
       if (t0 === null) t0 = p.timestamp;
       inflight.set(p.requestId, { url: p.request.url, mimeType: "", fromCache: false, startedAt: stamp(p.timestamp) });
       last = Date.now();
@@ -206,6 +214,19 @@ async function loadOnce({ send, on, evaluate }, url) {
   return { responses, traceAt, introDoneAt, idleAt: responses.at(-1)?.finishedAt ?? null };
 }
 
+/** how many texture responses came in each encoding, and their bytes */
+function textureFormats(responses) {
+  const out = {};
+  for (const r of responses) {
+    const ext = /\.(avif|webp|png|jpe?g)(\?|$)/.exec(r.url)?.[1];
+    if (!ext) continue;
+    out[ext] ??= { count: 0, bytes: 0 };
+    out[ext].count += 1;
+    out[ext].bytes += r.bytes;
+  }
+  return out;
+}
+
 async function measureTier(name, url, userDataDir) {
   const profile = PROFILES[name];
   const { proc, page } = await launchChrome(userDataDir);
@@ -220,6 +241,9 @@ async function measureTier(name, url, userDataDir) {
       ...(profile.mobile ? { screenWidth: profile.width, screenHeight: profile.height } : {}),
     });
     if (profile.mobile) await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    if (noAvif) {
+      await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `window[${JSON.stringify(AVIF_VERDICT_KEY)}] = false;` });
+    }
     if (throttleKbps) {
       await cdp.send("Network.emulateNetworkConditions", {
         offline: false, latency: 150, downloadThroughput: (throttleKbps * 1000) / 8, uploadThroughput: (throttleKbps * 1000) / 8,
@@ -228,10 +252,14 @@ async function measureTier(name, url, userDataDir) {
     const cold = await loadOnce(cdp, url);
     const viewport = await cdp.evaluate("({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })");
     const canvas = await cdp.evaluate('!!document.querySelector("canvas")');
+    const avif = await cdp.evaluate(`Promise.resolve(window[${JSON.stringify(AVIF_VERDICT_KEY)}])`);
     await cdp.send("Page.navigate", { url: "about:blank" });
     await sleep(300);
     const warm = await loadOnce(cdp, url);
-    return { profile, viewport, canvas, cold: { ...cold, ...summarise(cold.responses) }, warm: { ...warm, ...summarise(warm.responses) } };
+    return {
+      profile, viewport, canvas, avif, formats: textureFormats(cold.responses),
+      cold: { ...cold, ...summarise(cold.responses) }, warm: { ...warm, ...summarise(warm.responses) },
+    };
   } finally {
     cdp.ws.close();
     const exited = new Promise((r) => proc.once("exit", r));
@@ -245,7 +273,7 @@ const externalUrl = arg("url", "");
 const server = externalUrl ? null : await serveDist();
 const url = externalUrl || `http://127.0.0.1:${servePort}/`;
 const commit = (() => { try { return execSync("git rev-parse --short HEAD").toString().trim(); } catch { return ""; } })();
-const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, tiers: {} };
+const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, noAvif, tiers: {} };
 try {
   for (const name of tierNames) {
     if (!PROFILES[name]) throw new Error(`unknown tier ${name}`);
@@ -256,7 +284,8 @@ try {
       rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
     const t = run.tiers[name];
-    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    const formats = Object.entries(t.formats).map(([ext, f]) => `${f.count} ${ext} ${(f.bytes / 1024).toFixed(1)} kB`).join(", ");
+    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, avif ${t.avif}, textures ${formats}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
     if (timeline) console.log(`${name} cold load, ms from the first request\n${formatTimeline(t.cold.responses, { trace: t.cold.traceAt, gate: t.cold.gateAt })}\n`);
   }
 } finally {

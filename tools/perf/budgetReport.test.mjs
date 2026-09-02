@@ -26,7 +26,10 @@ const font = (name, ext = "woff2") => [
   `node_modules/.pnpm/x/node_modules/@fontsource/y/files/${name}.${ext}`,
   { file: `assets/${name}-H4sh.${ext}` },
 ];
-const texture = (width, name) => [`src/assets/dore/${width}/${name}.webp`, { file: `assets/${name}-${width}h.webp` }];
+const texture = (width, name, ext = "webp") => [
+  `src/assets/dore/${width}/${name}.${ext}`,
+  { file: `assets/${name}-${width}h.${ext}` },
+];
 
 const manifest = Object.fromEntries([
   [
@@ -46,15 +49,21 @@ const manifest = Object.fromEntries([
   font("cormorant-garamond-latin-400-normal", "woff"),
   font("cormorant-garamond-latin-300-normal"),
   ["src/assets/dore-pentecost-dark-2048.webp", { file: "assets/dore-pentecost-dark-2048-P0ster.webp" }],
-  texture(2048, "plate"),
+  texture(2048, "plate-backdrop"),
+  texture(2048, "plate-backdrop", "avif"),
+  texture(2048, "map-floor"),
+  texture(2048, "map-floor", "avif"),
+  texture(2048, "map-dove"),
   texture(2048, "masks-cut-0"),
-  texture(1024, "plate"),
+  texture(2048, "depth"),
+  texture(1024, "plate-backdrop"),
+  texture(1024, "plate-backdrop", "avif"),
   texture(1024, "masks-cut-0"),
 ]);
 const listing = ["index.html", "favicon.svg", "apple-touch-icon.png", "assets/index-Sh3ll.js", ".vite/manifest.json"];
 
 describe("firstLoadFiles", () => {
-  it("lists the html, favicon, shell, engine, css, latin fonts and the tier's own textures", () => {
+  it("lists the html, favicon, shell, engine, css, latin fonts and the tier's own textures on the avif path", () => {
     const files = firstLoadFiles(manifest, 2048, listing);
     expect(files).toEqual([
       { path: "index.html", category: "html" },
@@ -64,16 +73,23 @@ describe("firstLoadFiles", () => {
       { path: "assets/PentecostParallax-Eng1ne.js", category: "js" },
       { path: "assets/geist-latin-wght-normal-H4sh.woff2", category: "font" },
       { path: "assets/cormorant-garamond-latin-400-normal-H4sh.woff2", category: "font" },
-      { path: "assets/plate-2048h.webp", category: "texture" },
+      // a colour texture once, as its avif twin; the webp is fallback-only
+      { path: "assets/plate-backdrop-2048h.avif", category: "texture" },
+      { path: "assets/map-floor-2048h.avif", category: "texture" },
+      // a colour texture without a twin still ships as webp
+      { path: "assets/map-dove-2048h.webp", category: "texture" },
+      // the masks and depths are lossless webp on every path
       { path: "assets/masks-cut-0-2048h.webp", category: "texture" },
+      { path: "assets/depth-2048h.webp", category: "texture" },
     ]);
   });
 
   it("takes the other tier's textures for the other width, and never both", () => {
     const paths = firstLoadFiles(manifest, 1024, listing).map((f) => f.path);
-    expect(paths).toContain("assets/plate-1024h.webp");
+    expect(paths).toContain("assets/plate-backdrop-1024h.avif");
     expect(paths).toContain("assets/masks-cut-0-1024h.webp");
-    expect(paths.filter((p) => p.endsWith(".webp"))).toHaveLength(2);
+    expect(paths.filter((p) => /\.(webp|avif)$/.test(p))).toHaveLength(2);
+    expect(paths.some((p) => p.includes("2048h"))).toBe(false);
   });
 
   it("fails loudly when the manifest has no entry, no engine chunk or none of the tier's textures", () => {

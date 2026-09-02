@@ -7,10 +7,13 @@
  *
  * The files come from Vite's manifest (dist/.vite/manifest.json): the shell
  * chunk and its css, the engine chunk, the latin font files, every texture
- * of the tier's src/assets/dore/<width>/ — plus index.html and the favicon.
- * Bytes are what the CDN sends: brotli for html/js/css/svg, raw for
- * webp/woff2. The same categories and units as `pnpm transfer`, so the two
- * tables compare directly (docs/perf/README.md).
+ * of the tier's src/assets/dore/<width>/ — the colour textures as their
+ * AVIF twins (#101: the WebP files are fallback-only, for a browser without
+ * AVIF, and never fetched alongside), the masks and depths as lossless WebP
+ * — plus index.html and the favicon. Bytes are what the CDN sends: brotli
+ * for html/js/css/svg, raw for avif/webp/woff2. The same categories and
+ * units as `pnpm transfer`, so the two tables compare directly
+ * (docs/perf/README.md).
  *
  * Usage:
  *   pnpm build && pnpm budget [--dist dist] [--budget tools/perf/budget.json] [--files]

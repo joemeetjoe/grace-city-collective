@@ -2,10 +2,12 @@
  * The hero-critical textures, preloaded for the tier the device actually
  * gets. A static <link rel="preload"> in index.html can only name one tier,
  * so a phone would fetch the 2048 set on top of its own; these are injected
- * once the tier is decided instead.
+ * once the tier is decided instead — and once the AVIF verdict is in
+ * (device/avif.ts, a few ms): a link must name the very file the loader will
+ * request, so the colour textures follow the chosen format.
  */
 
-import { textureUrl } from "./textureManifest";
+import { textureUrl, type TextureFormat } from "./textureManifest";
 import { tierWidth, type Tier } from "./tier";
 
 export type PreloadLink = { href: string; as: "image" | "fetch"; type?: string };
@@ -26,22 +28,24 @@ const HERO_TEXTURES: ReadonlyArray<{ file: string; as: PreloadLink["as"] }> = [
   { file: "map-fig10.webp", as: "image" },
 ];
 
-/** the hero set's hashed urls for the tier; `url` is injectable for tests */
-export function preloadLinks(tier: Tier, url: typeof textureUrl = textureUrl): PreloadLink[] {
+/** the mime type of an image link, from the file the resolver chose */
+const imageType = (href: string): string => (href.endsWith(".avif") ? "image/avif" : "image/webp");
+
+/** the hero set's hashed urls for the tier in the client's format; `url` is injectable for tests */
+export function preloadLinks(tier: Tier, format: TextureFormat, url: typeof textureUrl = textureUrl): PreloadLink[] {
   const width = tierWidth(tier);
-  return HERO_TEXTURES.map(({ file, as }) => ({
-    href: url(width, file),
-    as,
-    ...(as === "image" ? { type: "image/webp" } : {}),
-  }));
+  return HERO_TEXTURES.map(({ file, as }) => {
+    const href = url(width, file, format);
+    return { href, as, ...(as === "image" ? { type: imageType(href) } : {}) };
+  });
 }
 
 const MARK = "data-tier-preload";
 
 /** add the tier's preloads to <head>; a second call is a no-op */
-export function injectPreloads(tier: Tier, doc: Document = document): void {
+export function injectPreloads(tier: Tier, format: TextureFormat, doc: Document = document): void {
   if (doc.head.querySelector(`link[${MARK}]`)) return;
-  for (const l of preloadLinks(tier)) {
+  for (const l of preloadLinks(tier, format)) {
     const link = doc.createElement("link");
     link.rel = "preload";
     link.setAttribute("as", l.as);
