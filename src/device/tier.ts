@@ -4,7 +4,7 @@
  * from the viewport, the pixel density and the Save-Data hint.
  */
 
-import { tierDir } from "./textureManifest";
+import type { TierWidth } from "./textureManifest";
 
 export type TierName = "mobile" | "desktop";
 
@@ -47,11 +47,11 @@ export function tierFor({ width, dpr, saveData }: TierInputs): Tier {
 }
 
 /**
- * The `public/` directory a tier's textures live in (relative; pass through
- * `assetUrl`): the 2048 or 1024 set written by dore-recut's pack_textures.py.
+ * The texture set a tier loads, by plate width: the 2048 or 1024 tier written
+ * by dore-recut's pack_textures.py (resolve a file with `textureUrl`).
  */
-export function textureDir(tier: Tier): string {
-  return tierDir(tier.textures === "1024" ? 1024 : 2048);
+export function tierWidth(tier: Tier): TierWidth {
+  return tier.textures === "1024" ? 1024 : 2048;
 }
 
 type NavigatorWithConnection = Navigator & { connection?: { saveData?: boolean } };

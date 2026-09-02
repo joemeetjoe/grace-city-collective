@@ -20,7 +20,7 @@
  * tuck against the figure itself rather than its bounding box.
  *
  * A figure's rect is its mask's bounding box (mask-bboxes.json: plate
- * fractions [u0, v0, u1, v1], read off public/dore/1024/masks-cut-*.webp
+ * fractions [u0, v0, u1, v1], read off src/assets/dore/1024/masks-cut-*.webp
  * with .venv-recut/bin/python at a threshold of 64/255) projected through
  * the live camera — its silhouette sits inside it, so a robe reads wider
  * than it is at a head's height. Same hardware headless Chrome as

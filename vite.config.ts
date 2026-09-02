@@ -31,6 +31,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    // the Doré textures ship as hashed files whatever their size (#97): a
+    // 150-byte mask pack inlined as a data URI would sit in the JS bundle
+    // and never in the tier's cache
+    assetsInlineLimit: (file) => (file.endsWith('.webp') ? false : undefined),
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],

@@ -5,9 +5,8 @@
  * once the tier is decided instead.
  */
 
-import { assetUrl } from "@/lib/assetBase";
-
-import { textureDir, type Tier } from "./tier";
+import { textureUrl } from "./textureManifest";
+import { tierWidth, type Tier } from "./tier";
 
 export type PreloadLink = { href: string; as: "image" | "fetch"; type?: string };
 
@@ -22,10 +21,11 @@ const HERO_TEXTURES: ReadonlyArray<{ file: string; as: PreloadLink["as"] }> = [
   { file: "map-fig10.webp", as: "image" },
 ];
 
-export function preloadLinks(tier: Tier, base: string = import.meta.env.BASE_URL): PreloadLink[] {
-  const dir = assetUrl(textureDir(tier), base);
+/** the hero set's hashed urls for the tier; `url` is injectable for tests */
+export function preloadLinks(tier: Tier, url: typeof textureUrl = textureUrl): PreloadLink[] {
+  const width = tierWidth(tier);
   return HERO_TEXTURES.map(({ file, as }) => ({
-    href: `${dir}/${file}`,
+    href: url(width, file),
     as,
     ...(as === "image" ? { type: "image/webp" } : {}),
   }));
@@ -34,9 +34,9 @@ export function preloadLinks(tier: Tier, base: string = import.meta.env.BASE_URL
 const MARK = "data-tier-preload";
 
 /** add the tier's preloads to <head>; a second call is a no-op */
-export function injectPreloads(tier: Tier, base?: string, doc: Document = document): void {
+export function injectPreloads(tier: Tier, doc: Document = document): void {
   if (doc.head.querySelector(`link[${MARK}]`)) return;
-  for (const l of preloadLinks(tier, base)) {
+  for (const l of preloadLinks(tier)) {
     const link = doc.createElement("link");
     link.rel = "preload";
     link.setAttribute("as", l.as);

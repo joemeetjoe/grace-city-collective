@@ -66,15 +66,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-      # Hashed bundles/fonts: filename changes when content does, so cache forever.
+      # Hashed bundles/fonts/Doré textures: filename changes when content does, so cache forever.
       - name: Sync hashed assets (immutable)
         run: >
           aws s3 sync dist/assets/ "s3://$S3_BUCKET/assets/"
           --delete
           --cache-control "public, max-age=31536000, immutable"
 
-      # Everything else that is not fingerprinted (Doré textures, icons):
-      # a day in cache, invalidated below when it changes.
+      # The few unfingerprinted files left (favicon, apple-touch-icon): a day
+      # in cache; they change so rarely that no invalidation is worth it.
       - name: Sync unhashed files (1 day)
         run: >
           aws s3 sync dist/ "s3://$S3_BUCKET/"
@@ -93,4 +93,4 @@ jobs:
         run: >
           aws cloudfront create-invalidation
           --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID"
-          --paths "/" "/index.html" "/dore/*"
+          --paths "/" "/index.html"

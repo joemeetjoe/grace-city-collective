@@ -15,20 +15,19 @@ import { readyOnce } from "./parallaxLoading";
 import { glslVec3, tokens } from "@/theme/tokens";
 import { createRenderGate } from "./renderGate";
 import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
-import { assetUrl } from "@/lib/assetBase";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
 import { PACING, createFramePacer, scrollMoved } from "./framePacer";
 import { portraitFactor, widenBand } from "./portraitBand";
 import { armGyroOnFirstTouch } from "@/device/gyro";
 import { bakeUv, maskBounds, type MaskBounds } from "@/device/maskBounds";
-import { TIERS, textureDir, type Tier } from "@/device/tier";
+import { TIERS, tierWidth, type Tier } from "@/device/tier";
 import { getScrollTop } from "@/scroll/position";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { SCROLL_DPR, createScrollDpr, movingDprFor } from "./scrollDpr";
-import { channelVector, maskRef } from "@/device/textureManifest";
+import { channelVector, maskRef, textureUrl, tierCuts } from "@/device/textureManifest";
 import { VIGNETTE_GLSL } from "./vignette";
 
 /**
@@ -36,7 +35,8 @@ import { VIGNETTE_GLSL } from "./vignette";
  * reassembled in three.js. Scroll drives a camera that visits one waypoint per
  * <section data-screen-label> on the page.
  *
- * Assets expected in /public/dore/<tier>/ (dore-recut pack_textures.py):
+ * Assets in src/assets/dore/<tier>/ (dore-recut pack_textures.py), served
+ * content-hashed through textureManifest.ts:
  *   plate.webp           the engraving (2048x2519 in the desktop tier)
  *   plate-backdrop.webp  the plate with every cutout inpainted back in
  *   cuts.json            [{ name, z, isFlame, relief?, parent?, at?, mask }] — a
@@ -323,7 +323,9 @@ export default function PentecostParallax({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const BASE = assetUrl(textureDir(tierRef.current));
+    const width = tierWidth(tierRef.current);
+    // every texture by its file name in the tier, at its hashed url
+    const url = (file: string) => textureUrl(width, file);
 
     // no MSAA (#62): every layer is an alpha-blended full-coverage quad, so
     // multisampling smooths nothing and doubles framebuffer bandwidth; low-power
@@ -366,10 +368,10 @@ export default function PentecostParallax({
       t.anisotropy = maxAniso;
       return t;
     };
-    const plate = sharpen(loader.load(`${BASE}/plate.webp`), true);
-    const backdrop = sharpen(loader.load(`${BASE}/plate-backdrop.webp`), true);
+    const plate = sharpen(loader.load(url("plate.webp")), true);
+    const backdrop = sharpen(loader.load(url("plate-backdrop.webp")), true);
     // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
-    const depthMap = loader.load(`${BASE}/depth.webp`);
+    const depthMap = loader.load(url("depth.webp"));
     depthMap.generateMipmaps = false;
     depthMap.minFilter = THREE.LinearFilter;
     depthMap.magFilter = THREE.LinearFilter;
@@ -533,16 +535,16 @@ export default function PentecostParallax({
       layers = bindFlames(cuts)
         .sort((a, b) => a.z - b.z)
         .map((cut, i) => {
-          const ref = maskRef(cut, BASE);
+          const ref = maskRef(cut, url);
           const mask = maskTexture(ref.url);
           // a cut with its own color map (the crowd: its plate region contains
           // the figures; a completed figure: its hidden pixels were generated)
           // samples that instead of the shared plate, over its mapRect
-          const map = cut.map ? sharpen(loader.load(`${BASE}/${cut.map}`), true) : plate;
+          const map = cut.map ? sharpen(loader.load(url(cut.map)), true) : plate;
           if (cut.map) cutMaps.push(map);
           let depth = depthMap;
           if (cut.depthMap) {
-            depth = loader.load(`${BASE}/${cut.depthMap}`);
+            depth = loader.load(url(cut.depthMap));
             depth.generateMipmaps = false;
             depth.minFilter = THREE.LinearFilter;
             depth.magFilter = THREE.LinearFilter;
@@ -892,16 +894,9 @@ export default function PentecostParallax({
     // iOS only delivers those events after a permission prompt raised from a touch
     const disarmGyro = armGyroOnFirstTouch(window);
 
-    // FileLoader calls onLoad before it reports itemEnd to the manager, so the
-    // cut textures requested inside start() are counted before the queue drains
-    const cutsLoader = new THREE.FileLoader(manager);
-    cutsLoader.setResponseType("json");
-    cutsLoader.load(
-      `${BASE}/cuts.json`,
-      (raw) => start(parseCuts(raw)),
-      undefined,
-      (err) => console.error("[PentecostParallax] could not load cuts.json", err),
-    );
+    // cuts.json is bundled, so the cut textures start loading with the plate
+    // and the manager's queue holds all of them before the first one lands
+    start(parseCuts(tierCuts(width)));
     // once per effect run; a run torn down by StrictMode is disposed and never reports
     const reportReady = readyOnce(() => onReadyRef.current?.());
     manager.onLoad = () => {
