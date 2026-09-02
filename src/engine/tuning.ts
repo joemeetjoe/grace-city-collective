@@ -7,7 +7,7 @@
  */
 
 /** the plate's pixel size in the desktop tier: every aspect and rect is measured against it */
-export const PLATE_PX = { width: 2048, height: 2519 } as const;
+const PLATE_PX = { width: 2048, height: 2519 } as const;
 
 /** the plate's world size at the registration camera: 16 units wide, its aspect tall */
 export const PLATE = { w: 16, h: 16 * (PLATE_PX.height / PLATE_PX.width) } as const;

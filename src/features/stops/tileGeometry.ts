@@ -14,8 +14,8 @@ import { TILE_STAGGER_MS } from "@/theme/motion";
  */
 
 /** how far out from its place a waiting tile sits, in its own heights, and how small */
-export const ENTER_OUT = 0.6;
-export const ENTER_SCALE = 0.55;
+export const TILE_ENTER_OUT = 0.6;
+export const TILE_ENTER_SCALE = 0.55;
 
 /** the properties a tile's transition may carry, in the order the utility lists them */
 export type TransitionProp =
@@ -69,15 +69,15 @@ export function pose(dx: number, dy: number, scale = 1): string {
 /** a tile in its place, unmoved */
 export const AT_REST = pose(0, 0, 1);
 
-/** a waiting tile's pose: out along (dx, dy) by ENTER_OUT of its height, and small */
+/** a waiting tile's pose: out along (dx, dy) by TILE_ENTER_OUT of its height, and small */
 export function enterPose(dx: number, dy: number, height: number): string {
-  const out = ENTER_OUT * height;
-  return pose(out * dx, out * dy, ENTER_SCALE);
+  const out = TILE_ENTER_OUT * height;
+  return pose(out * dx, out * dy, TILE_ENTER_SCALE);
 }
 
 /** how far up a waiting piece sits over its place, in the drawing's units */
 export function enterLift(height: number): number {
-  return -ENTER_OUT * height;
+  return -TILE_ENTER_OUT * height;
 }
 
 /** a tile's pose group's inline style: the pose about its own box, its turn in the stagger, and faded while it waits */

@@ -3,7 +3,7 @@ import { memo, type JSX, type Ref, type SVGProps } from "react";
 import { COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
 import { COLLECTIVE_D } from "./collectiveScriptPaths";
 
-export type CollectiveScriptProps = { className?: string; title?: string; ref?: Ref<SVGSVGElement> } & Omit<
+type CollectiveScriptProps = { className?: string; title?: string; ref?: Ref<SVGSVGElement> } & Omit<
   SVGProps<SVGSVGElement>,
   "width" | "height" | "viewBox" | "ref"
 >;

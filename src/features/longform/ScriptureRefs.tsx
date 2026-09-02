@@ -1,4 +1,5 @@
 import { lozengePath } from "@/theme/lozenge";
+import { splitRefs } from "./splitRefs";
 
 /** the small outer lozenge of an OrnateRule finial, in px */
 const W = 10;
@@ -17,15 +18,6 @@ function Divider() {
       <path d={lozengePath(W / 2, H / 2, W, H)} fill="none" stroke="currentColor" strokeWidth="1" />
     </svg>
   );
-}
-
-/** the separate passages of a refs string, as written in the content: one per `;` */
-// eslint-disable-next-line react-refresh/only-export-components
-export function splitRefs(refs: string): string[] {
-  return refs
-    .split(";")
-    .map((r) => r.trim())
-    .filter(Boolean);
 }
 
 /**

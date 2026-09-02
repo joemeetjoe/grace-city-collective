@@ -19,7 +19,7 @@ export const GUTTER: VwClamp = [20, 4.4, 60];
 /** the scene frame's inset from the viewport edge: the border, the nav bar and the brackets */
 export const FRAME_INSET: VwClamp = [9, 2.4, 26];
 /** a copy panel's padding, and the column its tuck clears less it */
-export const PANEL_PAD: VwClamp = [18, 2.6, 32];
+const PANEL_PAD: VwClamp = [18, 2.6, 32];
 /** the lockup's clearance at the hero's foot */
 export const LOCKUP_FOOT: VwClamp = [22, 4.2, 52];
 

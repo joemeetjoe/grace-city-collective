@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
-import { createWatch, useWatch } from "./watch";
+import { useWatch } from "./useWatch";
+import { createWatch } from "./watch";
 
 /**
  * How many of `count` things are on, when they come on one after the next:

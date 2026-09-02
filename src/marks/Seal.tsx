@@ -4,7 +4,7 @@ import { cssVar, mix, tokens, type Token } from "@/theme/tokens";
 
 import { BAND, FIELD, FLEUR, SEAL_VIEWBOX, WAX } from "./sealPaths";
 
-export type SealProps = {
+type SealProps = {
   /** css size of the square mark, e.g. 28, "clamp(36px,6vw,86px)" */
   size?: number | string;
   className?: string;

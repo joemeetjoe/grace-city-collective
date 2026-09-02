@@ -1,11 +1,9 @@
-import { useSyncExternalStore } from "react";
-
 /**
  * A value an outside source keeps current — an observer's report, a timer's
  * tick — in the shape `useSyncExternalStore` takes. The one primitive under
  * the ui hooks that watch something (useInView, useInTurn): each makes a
  * watch for its inputs, so a change of inputs is a fresh watch from its
- * initial value, and React subscribes and lets go with the mount.
+ * initial value, and React subscribes and lets go with the mount (useWatch).
  */
 export type Watch<T> = {
   /** start the source for the first subscriber, and tell each on every change */
@@ -43,9 +41,4 @@ export function createWatch<T>(initial: T, start: (set: (value: T) => void) => (
     },
     getSnapshot: () => value,
   };
-}
-
-/** the watch's current value, re-rendering on every change while mounted */
-export function useWatch<T>(watch: Watch<T>): T {
-  return useSyncExternalStore(watch.subscribe, watch.getSnapshot, watch.getSnapshot);
 }

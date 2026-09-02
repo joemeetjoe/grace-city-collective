@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { TILE_STAGGER_MS } from "@/theme/motion";
 import {
   AT_REST,
-  ENTER_OUT,
-  ENTER_SCALE,
+  TILE_ENTER_OUT,
+  TILE_ENTER_SCALE,
   TILE_TRANSITION,
   enterLift,
   enterPose,
@@ -31,9 +31,9 @@ describe("the tile engine's geometry", () => {
     expect(AT_REST).toBe(pose(0, 0, 1));
   });
 
-  it("a waiting tile sits out along its direction by ENTER_OUT of its height, at ENTER_SCALE", () => {
-    expect(ENTER_OUT).toBe(0.6);
-    expect(ENTER_SCALE).toBe(0.55);
+  it("a waiting tile sits out along its direction by TILE_ENTER_OUT of its height, at TILE_ENTER_SCALE", () => {
+    expect(TILE_ENTER_OUT).toBe(0.6);
+    expect(TILE_ENTER_SCALE).toBe(0.55);
     expect(enterPose(0, -1, 10)).toBe("translate(0px, -6px) scale(0.55)");
     expect(enterPose(1, 0, 10)).toBe("translate(6px, 0px) scale(0.55)");
     expect(enterPose(-1, -1, 20)).toBe("translate(-12px, -12px) scale(0.55)");

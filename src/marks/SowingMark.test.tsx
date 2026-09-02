@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { SOW_STEP_MS, SOW_TRAVEL_MS, TILE_STAGGER_MS } from "@/theme/motion";
 import SowingMark from "./SowingMark";
 import { arrives, departs, parent } from "./sowing";
-import { ROWS, TILES } from "./sowingMarkMetrics";
+import { SOW_ROWS, TILES } from "./sowingMarkMetrics";
 
 function tiles(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-tile]"));
@@ -53,7 +53,7 @@ describe("SowingMark", () => {
     for (const xs of rows.values()) {
       expect((xs[0] + xs[xs.length - 1]) / 2).toBeCloseTo(seedX);
     }
-    expect(ROWS).toBe(4);
+    expect(SOW_ROWS).toBe(4);
   });
 
   it("the seed alone is filled at rest, in the seal's red, with its grain in the middle; the rest wait hollow", () => {
@@ -133,12 +133,12 @@ describe("SowingMark", () => {
     expect(fillDelay(at(container, 1, 1))).toBe(arrives(1));
     expect(fillDelay(at(container, 2, 0))).toBe(arrives(2));
     expect(fillDelay(at(container, 3, 3))).toBe(arrives(3));
-    for (let row = 1; row < ROWS; row++) {
+    for (let row = 1; row < SOW_ROWS; row++) {
       for (let col = 0; col <= row; col++) {
         const a = grain(at(container, row, col))!.style.animation;
         expect(a).toContain(`sow-travel ${SOW_TRAVEL_MS}ms`);
         expect(a).toContain(` ${departs(row)}ms forwards`);
-        if (row < ROWS - 1) {
+        if (row < SOW_ROWS - 1) {
           expect(a).toContain(`sow-leave`);
           expect(a).toContain(` ${departs(row + 1)}ms forwards`);
         } else {

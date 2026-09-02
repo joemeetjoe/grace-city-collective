@@ -10,11 +10,11 @@ import { documentTop } from "./snap";
 gsap.registerPlugin(ScrollTrigger);
 
 /** the ScrollTrigger band a section is active in: while it spans the viewport's midpoint */
-export const ACTIVE_START = "top 50%";
-export const ACTIVE_END = "bottom 50%";
+const ACTIVE_START = "top 50%";
+const ACTIVE_END = "bottom 50%";
 
 /** a section and where it starts, document-relative, as of the last measure */
-export type SectionBox = WatchedSection & { top: number };
+type SectionBox = WatchedSection & { top: number };
 
 export type SectionWatch = {
   /** every watched section's document top, in page order, as of the last refresh */

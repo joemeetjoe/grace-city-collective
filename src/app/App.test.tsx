@@ -5,15 +5,15 @@ import App from "./App";
 import { gsap } from "@/lib/gsap";
 import { NAV_GLASS, STACK, STATE } from "@/theme/classes";
 import { sectionIds, site, wayInWords } from "@/content/site";
-import * as calendar from "@/features/stops/GatheringCalendar";
-import * as table from "@/features/stops/HouseTable";
-import * as life from "@/features/stops/SharedLife";
+import * as calendar from "@/features/stops/gatheringCalendarMetrics";
+import * as table from "@/features/stops/houseTableMetrics";
+import * as life from "@/features/stops/sharedLifeMetrics";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { SCENE_ERROR_PREFIX } from "@/engine/sceneError";
-import { MENU_LABEL } from "@/features/nav/MobileNav";
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
+import { MENU_LABEL } from "@/features/nav/mobileNavLabels";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
 import type { ScrollDriver } from "@/scroll/position";
 import { revealTargets } from "@/state/revealTargets";
 import { useAppStore } from "@/state/appStore";
@@ -510,7 +510,7 @@ describe("App gatherings calendar", () => {
   it("the calendar sits in the gatherings panel and lights for the gathering under the pointer", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#gatherings [data-copy-panel]")!;
-    const grid = drawing(panel, calendar.VIEW_W, calendar.VIEW_H);
+    const grid = drawing(panel, calendar.CALENDAR_VIEW_W, calendar.CALENDAR_VIEW_H);
     expect(grid).not.toHaveClass(STATE.lit);
     const homes = panel.querySelector("[data-gathering=homes]")!;
     const feast = panel.querySelector("[data-gathering=feast]")!;
@@ -530,7 +530,7 @@ describe("App gatherings calendar", () => {
     expect(litSundays()).toEqual(["var(--color-seal)"]);
     // two drawings, one per layout: the desktop's column first, then the
     // phone's month across, under the headline and before the gatherings
-    const drawings = [grid, drawing(panel, calendar.VIEW_W_ACROSS, calendar.VIEW_H_ACROSS)];
+    const drawings = [grid, drawing(panel, calendar.CALENDAR_VIEW_W_ACROSS, calendar.CALENDAR_VIEW_H_ACROSS)];
     expect(drawings[0].compareDocumentPosition(drawings[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const heading = panel.querySelector("h2")!;
     expect(
@@ -551,7 +551,7 @@ describe("App house churches table", () => {
   it("the table sits in the house churches panel and lights while the pointer is over the panel", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const standing = drawing(panel, table.VIEW_W, table.VIEW_H);
+    const standing = drawing(panel, table.TABLE_VIEW_W, table.TABLE_VIEW_H);
     expect(standing).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
     expect(standing).toHaveClass(STATE.lit);
@@ -560,7 +560,7 @@ describe("App house churches table", () => {
     // the words come first, the table after them, past the divider; on a
     // phone it lies across, under the words
     const kicker = panel.querySelector("p")!;
-    const across = drawing(panel, table.VIEW_H, table.VIEW_W);
+    const across = drawing(panel, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
     expect(kicker.compareDocumentPosition(across) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(across.compareDocumentPosition(standing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -571,8 +571,8 @@ describe("App shared life", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#about [data-copy-panel]")!;
     // two drawings, one per layout: the phone's two columns and the desktop's one
-    const twoColumns = drawing(panel, life.VIEW_W_2, life.VIEW_H_2);
-    const oneColumn = drawing(panel, life.VIEW_W, life.VIEW_H);
+    const twoColumns = drawing(panel, life.LIFE_VIEW_W_2, life.LIFE_VIEW_H_2);
+    const oneColumn = drawing(panel, life.LIFE_VIEW_W, life.LIFE_VIEW_H);
     expect(oneColumn).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
     expect(oneColumn).toHaveClass(STATE.lit);
@@ -607,8 +607,8 @@ describe("App stops below lg (#56)", () => {
     belowLg();
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const across = drawing(container, table.VIEW_H, table.VIEW_W);
-    const program = drawing(container, life.VIEW_W_2, life.VIEW_H_2);
+    const across = drawing(container, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
+    const program = drawing(container, life.LIFE_VIEW_W_2, life.LIFE_VIEW_H_2);
     const field = container.querySelector("[data-sowing-mark]")!;
     const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
     expect(marks.length).toBeGreaterThan(1);
@@ -625,7 +625,7 @@ describe("App stops below lg (#56)", () => {
     // the emblems light in turn, the first with the rest of the ornaments,
     // and the month across lights for whichever lit last: the homes' three
     // Sundays cream, the feast's first Sunday red
-    const month = drawing(container.querySelector("#gatherings")!, calendar.VIEW_W_ACROSS, calendar.VIEW_H_ACROSS);
+    const month = drawing(container.querySelector("#gatherings")!, calendar.CALENDAR_VIEW_W_ACROSS, calendar.CALENDAR_VIEW_H_ACROSS);
     const litSundays = () =>
       Array.from(month.querySelectorAll(`.${STATE.on} path`), (p) => p.getAttribute("fill"));
     const sundaysFor = (mark: string | null) =>
@@ -667,7 +667,7 @@ describe("App stops below lg (#56)", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
     expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
-    const across = drawing(container, table.VIEW_H, table.VIEW_W);
+    const across = drawing(container, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
     expect(across).not.toHaveClass(STATE.lit);
     await new Promise((r) => setTimeout(r, 1500));
     expect(across).not.toHaveClass(STATE.lit);

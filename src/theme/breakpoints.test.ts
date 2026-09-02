@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { TIER_NARROW_WIDTH } from "@/device/tierPolicy";
-import { BELOW_LG_QUERY, belowLg } from "@/layout/breakpoint";
-import { LG_PX } from "./breakpoints";
+import { belowLg } from "@/layout/useBelowLg";
+import { BELOW_LG_QUERY, LG_PX, LG_QUERY } from "./breakpoints";
 
 const indexCss = readFileSync(join(__dirname, "../index.css"), "utf8");
 
@@ -18,6 +18,7 @@ describe("the lg breakpoint", () => {
     expect(TIER_NARROW_WIDTH).toBe(LG_PX);
     expect(belowLg(LG_PX)).toBe(false);
     expect(belowLg(LG_PX - 1)).toBe(true);
+    expect(LG_QUERY).toBe(`(min-width: ${LG_PX}px)`);
     expect(BELOW_LG_QUERY).toBe(`(max-width: ${LG_PX - 0.02}px)`);
   });
 
@@ -26,7 +27,7 @@ describe("the lg breakpoint", () => {
     // the texture tiers' "1024" plate width is a different number, quoted
     const bare = /(?<!["'\d.])10(?:24|23\.98)(?!["'\d])/;
     expect(indexCss).not.toMatch(bare);
-    for (const file of ["../layout/breakpoint.ts", "../device/tierPolicy.ts", "./classes.ts", "./motion.ts"]) {
+    for (const file of ["../layout/useBelowLg.ts", "../device/tierPolicy.ts", "./classes.ts", "./motion.ts"]) {
       expect(readFileSync(join(__dirname, file), "utf8"), file).not.toMatch(bare);
     }
   });

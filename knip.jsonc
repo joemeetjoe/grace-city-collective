@@ -6,9 +6,11 @@
   // CI configs are loaded by `lhci --config` (tools/perf/lighthouse.mjs) and
   // reach lighthouseProfiles.cjs through their own require.
   "entry": ["tools/**/*.mjs", "tools/perf/lighthouserc.*.cjs"],
-  // Tuning constants are exported for reading (an easing, a duration, a size)
-  // and used only by the module that declares them. An export nothing else
-  // imports and the module itself does not use is still reported.
+  // An export only its own module uses is reported too, since #128 dropped
+  // the keyword from every such export outside features/intro; the eight
+  // left there (handoff.ts, introPolicy.ts, restingFade.ts, splashComposition.ts,
+  // splashMark.ts) wait for #124's rewrite. Set this false to see them, and
+  // remove it once they are gone.
   "ignoreExportsUsedInFile": true,
   // @fontsource-variable/geist ships no latin-only css to @import, so
   // src/index.css names its latin file in a url() (#105), which knip does

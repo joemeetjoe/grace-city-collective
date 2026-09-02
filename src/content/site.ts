@@ -19,12 +19,12 @@ export type Link = { label: string; href: string };
  * a reference or a position, so an item keeps its identity when its words
  * change or the list is reordered.
  */
-export type ContentId = string;
+type ContentId = string;
 
 /** a social link: a Link with an id, as every listed item carries one */
-export type Social = Link & { id: ContentId };
+type Social = Link & { id: ContentId };
 
-export type NavItem = { label: string; id: SectionId };
+type NavItem = { label: string; id: SectionId };
 
 /** one viewport of the parallax scene; `label` is its data-screen-label */
 export type SceneSection = {
@@ -49,7 +49,7 @@ export type LongformContent = {
 export const GATHERING_MARKS = ["homes", "feast"] as const;
 export type GatheringMark = (typeof GATHERING_MARKS)[number];
 
-export type Gathering = {
+type Gathering = {
   id: ContentId;
   /** absent in content published before the marks existed: the site falls back by position */
   mark?: GatheringMark;
@@ -63,14 +63,14 @@ export type Waymark = { id: ContentId; title: string; body: string };
 export type WayArrowWords = { label: string; word: string };
 /** the way in's own words: the list's name, and its two arrows' */
 export type WayInWords = { list: string; back: WayArrowWords; next: WayArrowWords };
-export type Devotion = { id: ContentId; title: string; refs: string; body: string };
-export type Belief = { id: ContentId; title: string; body: string; refs: string };
-export type BeliefPosture = { id: ContentId; line: string; quote: string; ref: string };
-export type FaqItem = { id: ContentId; question: string; answer: string };
-export type Message = { id: ContentId; title: string; date: string; passage: string; speaker: string; href: string };
+type Devotion = { id: ContentId; title: string; refs: string; body: string };
+type Belief = { id: ContentId; title: string; body: string; refs: string };
+type BeliefPosture = { id: ContentId; line: string; quote: string; ref: string };
+type FaqItem = { id: ContentId; question: string; answer: string };
+type Message = { id: ContentId; title: string; date: string; passage: string; speaker: string; href: string };
 /** the latest messages; `seriesLabel` stands over the series name in the heading ("Current series") */
-export type Messages = { seriesLabel: string; series: string; latest: Message[]; all: Link };
-export type Contact = {
+type Messages = { seriesLabel: string; series: string; latest: Message[]; all: Link };
+type Contact = {
   sunday: string;
   address: { street: string; suite: string; city: string };
   email: string;

@@ -30,7 +30,7 @@ export async function requestGyro(ctor: OrientationEventCtor | undefined = orien
 }
 
 /** the first of these is the gesture the prompt rides on */
-export const GYRO_GESTURES = ["pointerdown", "touchend"] as const;
+const GYRO_GESTURES = ["pointerdown", "touchend"] as const;
 
 /**
  * Raise the prompt once, on the first touch. Returns the teardown; the first

@@ -4,7 +4,7 @@ import { RULE_WEIGHT, gMarkAspect } from "./gMarkGeometry";
 import { G_MARK_D, G_MARK_RULE_D, G_MARK_RULED_VIEWBOX, G_MARK_VIEWBOX } from "./gMarkPaths";
 import { useSite } from "@/content/useSite";
 
-export type GMarkProps = {
+type GMarkProps = {
   /** rendered height: px as a number, or any CSS length (e.g. "0.63em") */
   size?: number | string;
   title?: string;

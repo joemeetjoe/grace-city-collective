@@ -5,7 +5,7 @@ import { useLayoutEffect, useState } from "react";
  * on every window resize where the observer is missing (very old engines,
  * jsdom); the returned function stops listening.
  */
-export function observeResize(el: Element, onResize: () => void): () => void {
+function observeResize(el: Element, onResize: () => void): () => void {
   if (typeof ResizeObserver === "undefined") {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);

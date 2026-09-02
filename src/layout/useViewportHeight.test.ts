@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readViewportHeight, useViewportHeight } from "./viewportHeight";
+import { readViewportHeight, useViewportHeight } from "./useViewportHeight";
 
 afterEach(() => vi.restoreAllMocks());
 

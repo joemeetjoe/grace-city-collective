@@ -25,7 +25,7 @@ export const PAGE_TOLERANCE = 10;
 export const REST_VELOCITY = 10;
 
 /** one gesture's ask: which way, and how far it had scrolled (for the notch that lets go) */
-export type Gesture = { direction: PageDirection; px: number };
+type Gesture = { direction: PageDirection; px: number };
 
 export type PagerState = {
   /** the wheel is held (prevented, paged): the native position is in the scene */

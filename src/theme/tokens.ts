@@ -29,7 +29,7 @@ function channel(hex: string, i: number): number {
 }
 
 /** WCAG 2.x relative luminance of a `#rrggbb` colour. */
-export function luminance(hex: string): number {
+function luminance(hex: string): number {
   return 0.2126 * channel(hex, 0) + 0.7152 * channel(hex, 1) + 0.0722 * channel(hex, 2);
 }
 

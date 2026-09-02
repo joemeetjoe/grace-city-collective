@@ -11,6 +11,18 @@ import { FONT_SERIF } from "@/theme/fonts";
 import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark } from "@/content/site";
 import { cn } from "@/lib/utils";
+import {
+  CALENDAR_BAND,
+  CALENDAR_GAP,
+  CALENDAR_GUTTER,
+  CALENDAR_HEAD,
+  CALENDAR_VIEW_H,
+  CALENDAR_VIEW_H_ACROSS,
+  CALENDAR_VIEW_W,
+  CALENDAR_VIEW_W_ACROSS,
+  DAYS,
+  WEEKS,
+} from "./gatheringCalendarMetrics";
 import Tile from "./Tile";
 import { AT_REST, enterPose, fadeStyle, stagger, tileTransition } from "./tileGeometry";
 
@@ -36,39 +48,21 @@ export type GatheringCalendarProps = {
   className?: string;
 };
 
-/** a month set on its side: four weeks across, the seven days down, Sundays on top */
-export const WEEKS = 4;
-export const DAYS = 7;
+/** the week numerals over the month */
 const NUMERALS = ["I", "II", "III", "IV"] as const;
 
-/** a day's box, in the logo's units, and the gap between neighbours */
+/** the month across: the head row over the days is the gutter's height (gatheringCalendarMetrics.ts) */
+const CALENDAR_HEAD_ACROSS = CALENDAR_GUTTER;
+
+/** a day's box, in the logo's units */
 const TILE = gMarkBox(0, CORNER);
 const TILE_TO_CENTRE = `translate(${-W / 2} ${-H / 2})`;
-const GAP = Math.round(H * 0.22);
-/** the week numerals' row above the month, and their size */
-const HEAD = Math.round(H * 0.8);
+/** the week numerals' size */
 const NUMERAL = Math.round(H * 0.42);
-/** the band between the Sundays and the week, with the rule through it */
-const BAND = Math.round(H * 0.7);
 /** the rule's lozenge finials */
 const FINIAL_W = Math.round(H * 0.22);
-/** the gutter on the left for the S at each end of the week, and its size */
-const GUTTER = Math.round(H * 0.9);
+/** the size of the S at each end of the week */
 const S_SIZE = Math.round(H * 0.62);
-
-/** the cascade: one diagonal of days after the next (TILE_STAGGER_MS), each from ENTER_OUT of a day back along it */
-
-/** the month's extent, in the logo's units */
-export const VIEW_W = GUTTER + WEEKS * W + (WEEKS - 1) * GAP;
-export const VIEW_H = HEAD + DAYS * H + (DAYS - 1) * GAP + BAND;
-/**
- * the month across: the head row over the days holds the S at each end of
- * the week, the gutter at the left the week numerals, and the band with the
- * rule stands between the Sundays' column and the six weekdays
- */
-const HEAD_ACROSS = GUTTER;
-export const VIEW_W_ACROSS = GUTTER + DAYS * W + (DAYS - 1) * GAP + BAND;
-export const VIEW_H_ACROSS = HEAD_ACROSS + WEEKS * H + (WEEKS - 1) * GAP;
 
 /** the days keep their stroke colour whatever their state, so it is left out of the transition */
 const TRANSITION = tileTransition(["fill", "fill-opacity", "stroke-opacity", "opacity", "transform"]);
@@ -88,13 +82,13 @@ function isLit(lit: GatheringMark | null, week: number, day: number): boolean {
 function centre(week: number, day: number, across: boolean): { cx: number; cy: number } {
   if (across) {
     return {
-      cx: GUTTER + day * (W + GAP) + W / 2 + (day > 0 ? BAND : 0),
-      cy: HEAD_ACROSS + week * (H + GAP) + H / 2,
+      cx: CALENDAR_GUTTER + day * (W + CALENDAR_GAP) + W / 2 + (day > 0 ? CALENDAR_BAND : 0),
+      cy: CALENDAR_HEAD_ACROSS + week * (H + CALENDAR_GAP) + H / 2,
     };
   }
   return {
-    cx: GUTTER + week * (W + GAP) + W / 2,
-    cy: HEAD + day * (H + GAP) + H / 2 + (day > 0 ? BAND : 0),
+    cx: CALENDAR_GUTTER + week * (W + CALENDAR_GAP) + W / 2,
+    cy: CALENDAR_HEAD + day * (H + CALENDAR_GAP) + H / 2 + (day > 0 ? CALENDAR_BAND : 0),
   };
 }
 
@@ -133,35 +127,35 @@ function furnish(across: boolean): Furniture {
     // the numerals run down the gutter at each week's row, the S marks stand
     // over the Sunday and Saturday columns, and the rule stands between the
     // Sundays' column and the week, its finials turned tall with it
-    const x = GUTTER + W + GAP + BAND / 2;
+    const x = CALENDAR_GUTTER + W + CALENDAR_GAP + CALENDAR_BAND / 2;
     return {
-      viewW: VIEW_W_ACROSS,
-      viewH: VIEW_H_ACROSS,
-      numerals: weeks.map((week) => ({ x: GUTTER / 2, y: centre(week, 0, true).cy })),
-      marks: ends.map((day) => ({ x: centre(0, day, true).cx, y: HEAD_ACROSS / 2 })),
+      viewW: CALENDAR_VIEW_W_ACROSS,
+      viewH: CALENDAR_VIEW_H_ACROSS,
+      numerals: weeks.map((week) => ({ x: CALENDAR_GUTTER / 2, y: centre(week, 0, true).cy })),
+      marks: ends.map((day) => ({ x: centre(0, day, true).cx, y: CALENDAR_HEAD_ACROSS / 2 })),
       rule: {
-        from: { x, y: HEAD_ACROSS + FINIAL_W * 1.5 },
-        to: { x, y: VIEW_H_ACROSS - FINIAL_W * 1.5 },
+        from: { x, y: CALENDAR_HEAD_ACROSS + FINIAL_W * 1.5 },
+        to: { x, y: CALENDAR_VIEW_H_ACROSS - FINIAL_W * 1.5 },
         finials: [
-          finialAt(x, HEAD_ACROSS + FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
-          finialAt(x, VIEW_H_ACROSS - FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
+          finialAt(x, CALENDAR_HEAD_ACROSS + FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
+          finialAt(x, CALENDAR_VIEW_H_ACROSS - FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
         ],
       },
       days,
     };
   }
-  const y = HEAD + H + GAP + BAND / 2;
+  const y = CALENDAR_HEAD + H + CALENDAR_GAP + CALENDAR_BAND / 2;
   return {
-    viewW: VIEW_W,
-    viewH: VIEW_H,
+    viewW: CALENDAR_VIEW_W,
+    viewH: CALENDAR_VIEW_H,
     numerals: weeks.map((week) => ({ x: centre(week, 0, false).cx, y: NUMERAL })),
-    marks: ends.map((day) => ({ x: GUTTER / 2 - FINIAL_W / 2, y: centre(0, day, false).cy })),
+    marks: ends.map((day) => ({ x: CALENDAR_GUTTER / 2 - FINIAL_W / 2, y: centre(0, day, false).cy })),
     rule: {
-      from: { x: GUTTER + FINIAL_W * 1.5, y },
-      to: { x: VIEW_W - FINIAL_W * 1.5, y },
+      from: { x: CALENDAR_GUTTER + FINIAL_W * 1.5, y },
+      to: { x: CALENDAR_VIEW_W - FINIAL_W * 1.5, y },
       finials: [
-        finialAt(GUTTER + FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
-        finialAt(VIEW_W - FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
+        finialAt(CALENDAR_GUTTER + FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
+        finialAt(CALENDAR_VIEW_W - FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
       ],
     },
     days,

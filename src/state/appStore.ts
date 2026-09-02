@@ -52,7 +52,7 @@ export type AppProfile = Pick<AppState, "intro" | "reducedMotion" | "tier" | "fa
   activeId?: SectionId | null;
 };
 
-export type AppActions = {
+type AppActions = {
   /** a mount's decisions in, and every live fact back to its rest value */
   init: (profile: AppProfile) => void;
   /** the handoff has landed (features/intro/introMachine.ts): the splash unmounts and the reveals follow */

@@ -9,10 +9,8 @@ import { useSite } from "@/content/useSite";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/state/appStore";
 import { revealRef } from "@/state/revealTargets";
+import { CLOSE_LABEL, MENU_LABEL } from "./mobileNavLabels";
 import { useNavigate } from "./useNavigate";
-
-export const MENU_LABEL = "Menu";
-export const CLOSE_LABEL = "Close menu";
 
 export type MobileNavProps = {
   className?: string;

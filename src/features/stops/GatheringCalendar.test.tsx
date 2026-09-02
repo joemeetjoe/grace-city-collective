@@ -3,14 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import { STATE } from "@/theme/classes";
 import { TILE_STAGGER_MS } from "@/theme/motion";
-import GatheringCalendar, {
+import GatheringCalendar from "./GatheringCalendar";
+import {
+  CALENDAR_VIEW_H,
+  CALENDAR_VIEW_H_ACROSS,
+  CALENDAR_VIEW_W,
+  CALENDAR_VIEW_W_ACROSS,
   DAYS,
-  VIEW_H,
-  VIEW_H_ACROSS,
-  VIEW_W,
-  VIEW_W_ACROSS,
   WEEKS,
-} from "./GatheringCalendar";
+} from "./gatheringCalendarMetrics";
 
 /** the days' pose groups: each a tile posed about its own box */
 function days(container: HTMLElement): HTMLElement[] {
@@ -159,9 +160,9 @@ describe("GatheringCalendar", () => {
     it("transposes the month for a phone card: a wide, short drawing, the days across and the weeks down, the Sundays at the left", () => {
       const { container } = render(<GatheringCalendar across />);
       const svg = container.querySelector("svg")!;
-      expect(svg).toHaveAttribute("viewBox", `0 0 ${VIEW_W_ACROSS} ${VIEW_H_ACROSS}`);
-      expect(VIEW_W_ACROSS).toBeGreaterThan(VIEW_H_ACROSS);
-      expect(VIEW_W).toBeLessThan(VIEW_H);
+      expect(svg).toHaveAttribute("viewBox", `0 0 ${CALENDAR_VIEW_W_ACROSS} ${CALENDAR_VIEW_H_ACROSS}`);
+      expect(CALENDAR_VIEW_W_ACROSS).toBeGreaterThan(CALENDAR_VIEW_H_ACROSS);
+      expect(CALENDAR_VIEW_W).toBeLessThan(CALENDAR_VIEW_H);
       expect(days(container)).toHaveLength(WEEKS * DAYS);
       // the Sunday stands left of the Monday in its week, level with it
       const sunday = centreOf(container, 0, 0);
@@ -174,7 +175,7 @@ describe("GatheringCalendar", () => {
       expect(nextSunday.x).toBe(sunday.x);
       // the desktop's month is the other way up
       const upright = render(<GatheringCalendar />).container;
-      expect(upright.querySelector("svg")).toHaveAttribute("viewBox", `0 0 ${VIEW_W} ${VIEW_H}`);
+      expect(upright.querySelector("svg")).toHaveAttribute("viewBox", `0 0 ${CALENDAR_VIEW_W} ${CALENDAR_VIEW_H}`);
       expect(centreOf(upright, 0, 0).y).toBeLessThan(centreOf(upright, 0, 1).y);
     });
 

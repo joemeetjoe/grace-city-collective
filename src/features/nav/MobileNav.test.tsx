@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import MobileNav, { MENU_LABEL } from "./MobileNav";
-import { JumpProvider } from "@/app/jumpContext";
+import MobileNav from "./MobileNav";
+import { MENU_LABEL } from "./mobileNavLabels";
+import { JumpProvider } from "@/app/JumpProvider";
 import { site } from "@/content/site";
 import { REST_STATE, useAppStore } from "@/state/appStore";
 import { revealTargets } from "@/state/revealTargets";

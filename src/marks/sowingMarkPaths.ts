@@ -1,7 +1,7 @@
 import { G_MARK_CORNER as CORNER, G_MARK_W as W, gMarkBox } from "./gMarkGeometry";
 import { lozengePath } from "@/theme/lozenge";
 import { parent } from "./sowing";
-import { ROWS, centre } from "./sowingMarkMetrics";
+import { SOW_ROWS, centre } from "./sowingMarkMetrics";
 
 /**
  * The sown field's artwork (SowingMark.tsx), settled once: a tile's box,
@@ -30,7 +30,7 @@ export type Tile = {
 /** the ten tiles, a row at a time, each row left to right */
 export const TILE_LAYOUT: readonly Tile[] = (() => {
   const tiles: Tile[] = [];
-  for (let row = 0; row < ROWS; row++) {
+  for (let row = 0; row < SOW_ROWS; row++) {
     for (let col = 0; col <= row; col++) {
       const { cx, cy } = centre(row, col);
       const tile: Tile = { id: `r${row}c${col}`, row, col, cx, cy };

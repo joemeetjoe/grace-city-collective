@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export type RuleEnds = "both" | "start" | "end";
 
-export type OrnateRuleProps = {
+type OrnateRuleProps = {
   /** which ends carry the lozenges; a corner arm carries one at its free end only */
   ends?: RuleEnds;
   /** run top to bottom instead of left to right */

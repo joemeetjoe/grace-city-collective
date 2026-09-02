@@ -14,7 +14,7 @@ import {
   sealPeriodShiftEm,
   showScript,
 } from "./lockupMetrics";
-import { useBelowLg } from "@/layout/breakpoint";
+import { useBelowLg } from "@/layout/useBelowLg";
 import { cn } from "@/lib/utils";
 import { useMeasure } from "@/ui/useMeasure";
 

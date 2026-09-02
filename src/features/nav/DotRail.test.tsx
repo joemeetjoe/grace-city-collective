@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { JumpProvider } from "@/app/jumpContext";
+import { JumpProvider } from "@/app/JumpProvider";
 import { site } from "@/content/site";
 import { sectionMarkers } from "@/scroll/markers";
 import { REST_STATE, useAppStore } from "@/state/appStore";

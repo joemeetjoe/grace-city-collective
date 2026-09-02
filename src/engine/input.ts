@@ -30,7 +30,7 @@ export type SceneInput = {
 const clamp1 = (v: number) => Math.max(-1, Math.min(1, v));
 
 /** the gyro's angles as a pointer: gamma across, beta (less the resting pitch) down */
-export function tiltToPointer(gamma: number, beta: number | null, g = GYRO): [number, number] {
+function tiltToPointer(gamma: number, beta: number | null, g = GYRO): [number, number] {
   return [clamp1(gamma / g.gammaSpan), clamp1(((beta ?? g.betaRest) - g.betaRest) / g.betaSpan)];
 }
 

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export type { Emblem } from "./gatheringMarkPaths";
 
-export type GatheringMarkProps = {
+type GatheringMarkProps = {
   mark: Emblem;
   /** rendered size, px (the drawing is 44 square) */
   size?: number;

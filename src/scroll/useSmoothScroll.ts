@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
-import { useBelowLg } from "@/layout/breakpoint";
+import { useBelowLg } from "@/layout/useBelowLg";
 import { useAppStore } from "@/state/appStore";
 import { attachPager } from "./attachPager";
 import { readScrollTop, type ScrollDriver } from "./position";
@@ -26,7 +26,7 @@ export type ScrollMode = "native" | "paged";
 export type ScrollModeInputs = {
   /** the visitor prefers reduced motion */
   reducedMotion: boolean;
-  /** the viewport is narrower than Tailwind's lg (layout/breakpoint.ts) */
+  /** the viewport is narrower than Tailwind's lg (layout/useBelowLg.ts) */
   belowLg: boolean;
 };
 

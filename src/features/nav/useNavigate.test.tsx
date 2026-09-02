@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 
-import { JumpProvider } from "@/app/jumpContext";
+import { JumpProvider } from "@/app/JumpProvider";
 
 import { useNavigate } from "./useNavigate";
 

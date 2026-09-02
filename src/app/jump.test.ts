@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { SectionId } from "@/content/site";
+import type { ScrollDriver } from "@/scroll/position";
 import { jumpTo } from "./jump";
-import type { ScrollDriver } from "./position";
 
 function section(id: string, top: number, scrollMarginTop = 0) {
   const el = document.createElement("section");
@@ -59,7 +60,7 @@ describe("jumpTo", () => {
   it("does nothing for an id that is not on the page", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-    expect(jumpTo("nowhere", driver)).toBe(false);
+    expect(jumpTo("nowhere" as SectionId, driver)).toBe(false);
     expect(driver.scrollTo).not.toHaveBeenCalled();
     expect(scrollTo).not.toHaveBeenCalled();
   });

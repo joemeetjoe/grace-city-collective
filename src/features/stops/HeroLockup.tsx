@@ -1,6 +1,6 @@
 import { STACK } from "@/theme/classes";
 import Lockup from "@/marks/Lockup";
-import { useBelowLg } from "@/layout/breakpoint";
+import { useBelowLg } from "@/layout/useBelowLg";
 
 /**
  * The hero's lockup, rendered once: from lg up pinned in the sticky chrome's

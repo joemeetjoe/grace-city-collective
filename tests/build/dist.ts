@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** absolute path of dist/ */
-export const DIST_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../dist");
+const DIST_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../dist");
 
 /** absolute path of a file under dist/ */
 export const distPath = (rel: string): string => path.join(DIST_DIR, rel);

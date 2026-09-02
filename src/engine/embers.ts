@@ -57,16 +57,16 @@ export const EMBER_SIZE = { min: 0.012, max: 0.11 } as const;
  * how the size draw is shaped: `skew` raises the uniform draw (higher skews
  * smaller), and `depth` is the share of the ramp the mote's nearness adds
  */
-export const EMBER_SIZE_SHAPE = { skew: 3, depth: 0.2 } as const;
+const EMBER_SIZE_SHAPE = { skew: 3, depth: 0.2 } as const;
 
 /** lateral sway amplitude in world units */
-export const EMBER_WOBBLE = { min: 0.008, max: 0.03 } as const;
+const EMBER_WOBBLE = { min: 0.008, max: 0.03 } as const;
 
 /** radians per second of the sway */
-export const WOBBLE_RATE = 0.22;
+const WOBBLE_RATE = 0.22;
 
 /** dust catching the light: the cream, a little grey */
-export const EMBER_TINT: [number, number, number] = [0.9, 0.86, 0.78];
+const EMBER_TINT: [number, number, number] = [0.9, 0.86, 0.78];
 
 /** a mote's alpha, steady — dust does not flicker; a sharp glint gets `sharp`, a bokeh blob `soft` */
 export const EMBER_ALPHA = { sharp: 0.5, soft: 0.2 } as const;
@@ -75,7 +75,7 @@ export const EMBER_ALPHA = { sharp: 0.5, soft: 0.2 } as const;
 export const EMBER_FIBRE = { share: 0.25, stretch: { min: 1.8, max: 3.5 } } as const;
 
 /** the wrap window overshoots the frustum by this factor so re-entries happen off screen */
-export const EMBER_MARGIN = 1.15;
+const EMBER_MARGIN = 1.15;
 
 export const EMBER_COUNT = {
   min: 70,
@@ -85,7 +85,7 @@ export const EMBER_COUNT = {
   refArea: 1280 * 720,
 } as const;
 
-export type EmberTier = "desktop" | "mobile";
+type EmberTier = "desktop" | "mobile";
 
 export type EmberCountInputs = {
   width: number;
@@ -322,7 +322,7 @@ void main() {
   gl_FragColor = vec4(col, a * vAlpha * uOpacity * v);
 }`;
 
-export type EmberFrame = {
+type EmberFrame = {
   /** scene seconds */
   t: number;
   /** unclamped section progress: index + fraction through it */

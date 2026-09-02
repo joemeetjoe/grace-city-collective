@@ -28,25 +28,25 @@ export const LOZENGE_MS = 500;
 /** a block's height settles on new words (SmoothHeight) */
 export const SETTLE_MS = 700;
 /** a button lifts, a link's underline sweeps */
-export const LIFT_MS = 500;
+const LIFT_MS = 500;
 /** a colour answers the pointer; the mobile nav sheet fades in */
-export const QUICK_MS = 300;
+const QUICK_MS = 300;
 /** a pressed button settles */
-export const PRESS_MS = 120;
+const PRESS_MS = 120;
 /** the mobile nav sheet fades out */
-export const SHEET_OUT_MS = 150;
+const SHEET_OUT_MS = 150;
 /** the wait between one revealed child and the next, and the words' lead over their hairline */
 export const REVEAL_STAGGER_MS = 110;
-export const REVEAL_LEAD_MS = 200;
+const REVEAL_LEAD_MS = 200;
 /** the way in: a step's words rise; its emblem slides in below lg */
-export const WAY_RISE_MS = 800;
-export const WAY_SLIDE_MS = 600;
+const WAY_RISE_MS = 800;
+const WAY_SLIDE_MS = 600;
 /** one round of the tour's house calls */
-export const HOUSE_CALL_MS = 2500;
+const HOUSE_CALL_MS = 2500;
 /** the sown field's hand-off (sowing.ts): a grain travels, a row fills, holds, and leaves; one step of the sequence is the three together */
 export const SOW_TRAVEL_MS = 400;
-export const SOW_FILL_MS = 300;
-export const SOW_HOLD_MS = 100;
+const SOW_FILL_MS = 300;
+const SOW_HOLD_MS = 100;
 export const SOW_LEAVE_MS = 200;
 export const SOW_STEP_MS = SOW_TRAVEL_MS + SOW_FILL_MS + SOW_HOLD_MS;
 

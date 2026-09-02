@@ -15,9 +15,9 @@ export type Tier = {
   name: TierName;
   /** width of the plate texture set, in px */
   textures: "1024" | "2048";
-  /** ember particle count, consumed by #38 */
+  /** ember particle count (engine/embers.ts) */
   embers: number;
-  /** ray planes in the light beam, consumed by #37 */
+  /** ray planes in the light beam (engine/rayPlanes.ts) */
   rays: number;
   /** devicePixelRatio ceiling for the renderers (#62): a phone rasterises at 1.5 */
   dprCap: number;

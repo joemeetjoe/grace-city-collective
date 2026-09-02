@@ -1,11 +1,8 @@
 import { useAppStore } from "@/state/appStore";
-import {
-  PANEL_SHOWN_BELOW_LG,
-  PANEL_SHOWN_DESKTOP,
-} from "@/ui/panel/Bracketed";
+import { PANEL_SHOWN_BELOW_LG, PANEL_SHOWN_DESKTOP } from "@/ui/panel/panelShown";
 import { useInTurn } from "@/ui/useInTurn";
 import { useInView } from "@/ui/useInView";
-import { useBelowLg } from "@/layout/breakpoint";
+import { useBelowLg } from "@/layout/useBelowLg";
 import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 import type { HoverHandlers, PanelWatch } from "./Stop";
 import { useHoverLit } from "./useHoverLit";

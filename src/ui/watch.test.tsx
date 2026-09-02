@@ -1,7 +1,8 @@
 import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { createWatch, useWatch } from "./watch";
+import { useWatch } from "./useWatch";
+import { createWatch } from "./watch";
 
 describe("createWatch", () => {
   it("starts the source for the first subscriber, tells each of a change, and stops after the last", () => {

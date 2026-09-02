@@ -4,11 +4,11 @@ import { G_MARK_H as H, G_MARK_W as W } from "./gMarkGeometry";
 import { cssVars } from "@/theme/cssVars";
 import { EASE_SITE, SOW_LEAVE_MS, SOW_TRAVEL_MS, TILE_STAGGER_MS } from "@/theme/motion";
 import { arrives, departs } from "./sowing";
-import { ENTER_OUT, ENTER_SCALE, ROWS, VIEW_H, VIEW_W } from "./sowingMarkMetrics";
+import { SOW_ENTER_OUT, SOW_ENTER_SCALE, SOW_ROWS, SOW_VIEW_H, SOW_VIEW_W } from "./sowingMarkMetrics";
 import { DOT, TILE, TILE_LAYOUT } from "./sowingMarkPaths";
 import { cn } from "@/lib/utils";
 
-export type SowingMarkProps = {
+type SowingMarkProps = {
   /** whether the reader is over the giving: the seed is handed down the rows */
   lit?: boolean;
   /**
@@ -20,7 +20,7 @@ export type SowingMarkProps = {
   ref?: Ref<SVGSVGElement>;
 };
 
-const VIEWBOX = `0 0 ${VIEW_W} ${VIEW_H}`;
+const VIEWBOX = `0 0 ${SOW_VIEW_W} ${SOW_VIEW_H}`;
 
 /** the cascade: one diagonal of tiles after the next (TILE_STAGGER_MS) */
 const TRANSITION =
@@ -28,16 +28,16 @@ const TRANSITION =
 
 /** a tile's transform about its own centre, in the logo's units: in place, or waiting out along the diagonal */
 const POSE_HOME = "translate(0px, 0px) scale(1)";
-const POSE_WAITING = `translate(${-ENTER_OUT * H}px, ${-ENTER_OUT * H}px) scale(${ENTER_SCALE})`;
+const POSE_WAITING = `translate(${-SOW_ENTER_OUT * H}px, ${-SOW_ENTER_OUT * H}px) scale(${SOW_ENTER_SCALE})`;
 
 /** a tile's path is drawn about the group's origin */
 const TILE_TRANSFORM = `translate(${-W / 2} ${-H / 2})`;
 
 /** the hand-off, by row: a grain travels down (sow-travel) and, unless the row is the last, leaves once its row has handed on (sow-leave); index.css */
-const HANDOFF: readonly string[] = Array.from({ length: ROWS }, (_, row) => {
+const HANDOFF: readonly string[] = Array.from({ length: SOW_ROWS }, (_, row) => {
   const travel = `sow-travel ${SOW_TRAVEL_MS}ms ${EASE_SITE} ${departs(row)}ms forwards`;
   const leave = `sow-leave ${SOW_LEAVE_MS}ms ease ${departs(row + 1)}ms forwards`;
-  return row === ROWS - 1 ? travel : `${travel}, ${leave}`;
+  return row === SOW_ROWS - 1 ? travel : `${travel}, ${leave}`;
 });
 
 /**

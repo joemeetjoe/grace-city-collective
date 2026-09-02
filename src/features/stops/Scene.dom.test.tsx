@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { site } from "@/content/site";
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
 import { useAppStore } from "@/state/appStore";
 import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 import Scene from "./Scene";

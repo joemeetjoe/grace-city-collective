@@ -1,6 +1,6 @@
 /**
  * The location hash as the page's section address (#133): `#give` names a
- * section, the bare path names the top. Pure over string ids, like jump.ts;
+ * section, the bare path names the top. Pure over section ids, DOM-free;
  * the app's hook (app/useHashSync.ts) reads the store and decides when to
  * write. Every write is a replaceState — the history never gains an entry
  * for a scroll, so the back button leaves the page rather than stepping

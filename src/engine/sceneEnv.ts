@@ -17,9 +17,9 @@ export type Renderer = Pick<
   "setPixelRatio" | "setClearColor" | "setSize" | "getDrawingBufferSize" | "dispose" | "initTexture" | "render"
 > & { capabilities: { getMaxAnisotropy(): number } };
 
-export type RendererParams = typeof GL_FLAGS & { alpha?: boolean };
+type RendererParams = typeof GL_FLAGS & { alpha?: boolean };
 
-export type Viewport = { width: number; height: number; dpr: number };
+type Viewport = { width: number; height: number; dpr: number };
 
 export type SceneEnv = {
   /** one renderer per canvas; the WebGL context it takes is the canvas's own */

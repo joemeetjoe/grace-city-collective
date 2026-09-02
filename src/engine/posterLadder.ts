@@ -1,8 +1,7 @@
 /**
  * The still poster's width ladder (#109): the rungs tools/poster/ladder.py
  * cuts from the 2048 plate, in AVIF with a WebP fallback, and the pure pick
- * a viewport makes among them. Three-free: StaticPoster imports this and
- * the head script may share it later (#113).
+ * a viewport makes among them. Three-free: StaticPoster imports this.
  */
 
 /** rung widths in px, ascending — a srcset lists them in this order with `w` descriptors */

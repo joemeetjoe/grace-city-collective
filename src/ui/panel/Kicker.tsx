@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { between, kicker } from "@/theme/classes";
 import { DRAW_MS, KICKER_RULE_AT_MS } from "@/theme/motion";
-import { usePanelShown } from "./Bracketed";
+import { usePanelShown } from "./usePanelShown";
 
 /**
  * A section's kicker with the hairline rule under it, both between the

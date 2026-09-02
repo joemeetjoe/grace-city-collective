@@ -7,7 +7,7 @@ import { useInViewOnce } from "./useInViewOnce";
 /** how much of the block must be on screen before it comes in */
 const REVEAL_THRESHOLD = 0.2;
 
-export type RevealTag = "div" | "header" | "footer" | "ol" | "ul" | "dl" | "li" | "p";
+type RevealTag = "div" | "header" | "footer" | "ol" | "ul" | "dl" | "li" | "p";
 
 export type RevealProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
   as?: RevealTag;

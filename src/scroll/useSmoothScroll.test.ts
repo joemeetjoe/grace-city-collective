@@ -4,7 +4,7 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
 import { REST_STATE, useAppStore } from "@/state/appStore";
 import { createSectionRegistry } from "./sections";
 import { SMOOTH_SCROLL_ATTR } from "./smoother";

@@ -1,15 +1,15 @@
 import { lazy, Suspense, useMemo, useState, type RefObject } from "react";
 
 import CornerOrnaments from "@/ui/CornerOrnaments";
-import { FRAME_ARM, FRAME_INSET } from "@/ui/cornerOrnamentsMetrics";
+import { FRAME_ARM, FRAME_BRACKET_INSET } from "@/ui/cornerOrnamentsMetrics";
 import { STACK } from "@/theme/classes";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
 import LongformGate from "@/features/longform/LongformGate";
 import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
-import { useBelowLg } from "@/layout/breakpoint";
-import { useViewportHeight } from "@/layout/viewportHeight";
+import { useBelowLg } from "@/layout/useBelowLg";
+import { useViewportHeight } from "@/layout/useViewportHeight";
 import type { SectionRegistry } from "@/scroll/sections";
 import type { PageScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
@@ -161,7 +161,7 @@ export default function HomePage({
         (a border and the lockup, no canvas geometry), and on desktop
         dvh and lvh agree. Browsers step dvh in coarse jumps while the
         bar animates, so below lg the height is measured in px instead
-        (layout/viewportHeight.ts) and the transition glides between the
+        (layout/useViewportHeight.ts) and the transition glides between the
         steps — dvh stands as the no-measure fallback */}
         <div
           ref={frameRef}
@@ -177,7 +177,7 @@ export default function HomePage({
           {/* not on a phone, where the lockup sits right in the bottom-left corner */}
           <CornerOrnaments
             arm={FRAME_ARM}
-            inset={FRAME_INSET}
+            inset={FRAME_BRACKET_INSET}
             shown={!intro}
             className="hidden md:block"
           />

@@ -1,13 +1,19 @@
 import type { CSSProperties } from "react";
 
-import {
-  G_MARK_CORNER as CORNER,
-  G_MARK_H as H,
-  G_MARK_W as W,
-  markBox,
-} from "@/marks/gMarkGeometry";
+import { markBox } from "@/marks/gMarkGeometry";
 import { STATE } from "@/theme/classes";
 import { cn } from "@/lib/utils";
+import {
+  COLUMN_GAP,
+  HUDDLE_SCALE,
+  LIFE_GAP,
+  LIFE_ROWS,
+  LIFE_VIEW_W,
+  LINE_W,
+  SLOT_CORNER,
+  SLOT_H,
+  SLOT_W,
+} from "./sharedLifeMetrics";
 import Tile from "./Tile";
 import { AT_REST, TILE_TRANSITION, enterLift, enterPose, pose, stagger } from "./tileGeometry";
 
@@ -31,28 +37,13 @@ export type SharedLifeProps = {
   className?: string;
 };
 
-export type Columns = 1 | 2;
+type Columns = 1 | 2;
 
-/** the lines of the program, a house church's dozen */
-export const ROWS = 12;
-
-/** a slot: the G mark's box, at this scale of the mark — the table's seats' size */
-const SLOT = 0.45;
-const SLOT_W = Math.round(W * SLOT);
-const SLOT_H = Math.round(H * SLOT);
-const SLOT_CORNER = Math.round(CORNER * SLOT);
-/** the gap between rows, and between a slot and its line */
-const GAP = Math.round(H * 0.2);
-/** the lines' longest run, in the mark's width, and how they shorten and lengthen down the page like words */
-const LINE_W = Math.round(W * 2.2);
+/** how the lines shorten and lengthen down the page like words, in LINE_W */
 const LINE_RUNS = [
   1, 0.72, 0.88, 0.6, 0.94, 0.68, 0.8, 1, 0.64, 0.86, 0.74, 0.56,
 ];
 
-/** the rows print in one after the next from the top (TILE_STAGGER_MS), each from ENTER_OUT of a slot up */
-
-/** a slot grows this much leaving its row: a line item is smaller than a person */
-export const HUDDLE_SCALE = 1.6;
 /** the huddle's rings round the middle, in a grown slot's heights: close enough that every slot overlaps the ring within */
 const INNER_RING = 0.7;
 const OUTER_RING = 1.35;
@@ -60,15 +51,6 @@ const OUTER_RING = 1.35;
 const HUDDLE_Y = 0.3;
 /** a little unevenness in the ring, so the huddle reads as a crowd and not a pattern */
 const JITTER = 0.09;
-
-/** the drawing's extent in one column, in the logo's units */
-export const VIEW_W = SLOT_W + GAP + LINE_W;
-export const VIEW_H = ROWS * SLOT_H + (ROWS - 1) * GAP;
-/** the gap between two columns, in the mark's width */
-const COLUMN_GAP = Math.round(W * 0.9);
-/** the drawing's extent in two columns: six rows down each, side by side */
-export const VIEW_W_2 = 2 * VIEW_W + COLUMN_GAP;
-export const VIEW_H_2 = (ROWS / 2) * SLOT_H + (ROWS / 2 - 1) * GAP;
 
 const BOX = markBox(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, SLOT_CORNER);
 
@@ -94,22 +76,22 @@ const WAITING = enterPose(0, -1, SLOT_H);
 
 /** the drawing laid out in a number of columns: its extent, and every row's places */
 function layout(columns: Columns): Layout {
-  const perColumn = ROWS / columns;
-  const viewW = columns * VIEW_W + (columns - 1) * COLUMN_GAP;
-  const viewH = perColumn * SLOT_H + (perColumn - 1) * GAP;
+  const perColumn = LIFE_ROWS / columns;
+  const viewW = columns * LIFE_VIEW_W + (columns - 1) * COLUMN_GAP;
+  const viewH = perColumn * SLOT_H + (perColumn - 1) * LIFE_GAP;
   // one column: up in the top third; two: in the middle, between the columns
   const mid = { cx: viewW / 2, cy: Math.round(viewH * (columns === 1 ? HUDDLE_Y : 0.5)) };
-  const rows = Array.from({ length: ROWS }, (_, row): Row => {
+  const rows = Array.from({ length: LIFE_ROWS }, (_, row): Row => {
     // at rest, down the first column, then the next
     const column = Math.floor(row / perColumn);
     const r = row % perColumn;
-    const cx = column * (VIEW_W + COLUMN_GAP) + SLOT_W / 2;
-    const cy = r * (SLOT_H + GAP) + SLOT_H / 2;
+    const cx = column * (LIFE_VIEW_W + COLUMN_GAP) + SLOT_W / 2;
+    const cy = r * (SLOT_H + LIFE_GAP) + SLOT_H / 2;
     // in the huddle: the first row's in the middle, the next five in a ring
     // round it, the last six in a ring round those, each nudged a little
     const to = huddleCentre(row, mid);
     const delay = stagger(row + 1);
-    const x1 = cx + SLOT_W / 2 + GAP;
+    const x1 = cx + SLOT_W / 2 + LIFE_GAP;
     const lift = `translateY(${enterLift(SLOT_H)}px)`;
     return {
       cx,
@@ -147,7 +129,7 @@ function huddleCentre(row: number, mid: { cx: number; cy: number }): { cx: numbe
 const LAYOUTS: Record<Columns, Layout> = { 1: layout(1), 2: layout(2) };
 
 /** the slots in drawing order: the heart is drawn last, so its red sits over the cream of the rest */
-const DRAW_ORDER = [...Array.from({ length: ROWS - 1 }, (_, i) => i + 1), 0];
+const DRAW_ORDER = [...Array.from({ length: LIFE_ROWS - 1 }, (_, i) => i + 1), 0];
 
 /**
  * A life shared, not a program, drawn in the G mark's box — rounded

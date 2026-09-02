@@ -2,7 +2,6 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { site } from "@/content/site";
-import { BELOW_LG_QUERY as BREAKPOINT_BELOW_LG } from "@/layout/breakpoint";
 import { LG_PX } from "@/theme/breakpoints";
 import { gutter, kicker as kickerCls } from "@/theme/classes";
 import { GUTTER, vwClamp } from "@/theme/measures";
@@ -55,6 +54,6 @@ describe("heroMetrics", () => {
 
   it("writes Tailwind's lg as the same width the breakpoint hook uses", () => {
     expect(LG_QUERY).toBe(`(min-width: ${LG_PX}px)`);
-    expect(BELOW_LG_QUERY).toBe(BREAKPOINT_BELOW_LG);
+    expect(BELOW_LG_QUERY).toBe(`(max-width: ${LG_PX - 0.02}px)`);
   });
 });

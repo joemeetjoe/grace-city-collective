@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { STATE } from "@/theme/classes";
 import { TILE_STAGGER_MS } from "@/theme/motion";
-import HouseTable, { SEATS, SIDE_SEATS, VIEW_H, VIEW_W } from "./HouseTable";
+import HouseTable from "./HouseTable";
+import { SEATS, SIDE_SEATS, TABLE_VIEW_H, TABLE_VIEW_W } from "./houseTableMetrics";
 
 /** the seats' pose groups, in order round the table: each a tile posed about its own box */
 function seats(container: HTMLElement): HTMLElement[] {
@@ -119,14 +120,14 @@ describe("HouseTable", () => {
   it("on its side, the box turns: the long axis runs across, the head to the left", () => {
     const { container } = render(<HouseTable across />);
     const svg = container.querySelector("svg")!;
-    expect(svg).toHaveAttribute("viewBox", `0 0 ${VIEW_H} ${VIEW_W}`);
-    const turned = svg.querySelector(`g[transform="translate(0 ${VIEW_W}) rotate(-90)"]`);
+    expect(svg).toHaveAttribute("viewBox", `0 0 ${TABLE_VIEW_H} ${TABLE_VIEW_W}`);
+    const turned = svg.querySelector(`g[transform="translate(0 ${TABLE_VIEW_W}) rotate(-90)"]`);
     expect(turned).not.toBeNull();
     expect(seats(turned as HTMLElement).length).toBe(SEATS);
     // standing, the box is tall
     const standing = render(<HouseTable />).container.querySelector("svg")!;
-    expect(standing).toHaveAttribute("viewBox", `0 0 ${VIEW_W} ${VIEW_H}`);
-    expect(VIEW_H).toBeGreaterThan(VIEW_W);
+    expect(standing).toHaveAttribute("viewBox", `0 0 ${TABLE_VIEW_W} ${TABLE_VIEW_H}`);
+    expect(TABLE_VIEW_H).toBeGreaterThan(TABLE_VIEW_W);
   });
 
   it("carries no data attributes: its states are classes", () => {

@@ -14,15 +14,15 @@
 import { WHEEL_REST_MS } from "@/theme/motion";
 
 /** a delta this many times the previous one is a rise */
-export const WHEEL_RISE = 1.2;
+const WHEEL_RISE = 1.2;
 /** rises in a row, in a tail, that make a new swipe */
-export const WHEEL_RISES = 2;
+const WHEEL_RISES = 2;
 /** px a rising delta must reach to count: keeps a tail's own jitter out */
-export const WHEEL_GROWTH_FLOOR = 10;
+const WHEEL_GROWTH_FLOOR = 10;
 /** px an event after a rest must reach to count inside a tail: a mouse notch, not a coalesced spike */
-export const WHEEL_NOTCH = 50;
+const WHEEL_NOTCH = 50;
 /** the tail begins once the deltas have fallen to this share of the gesture's peak */
-export const WHEEL_TAIL_RATIO = 0.5;
+const WHEEL_TAIL_RATIO = 0.5;
 
 export type WheelGesture = {
   /** the previous event's signed delta */

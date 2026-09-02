@@ -1,11 +1,11 @@
 import { memo, useMemo, type CSSProperties, type Ref } from "react";
 
 import OrnateRule, { type RuleEnds } from "./OrnateRule";
-import { COPY_ARM, ENTER_OFFSET, ENTER_SCALE } from "./cornerOrnamentsMetrics";
+import { BRACKET_ENTER_OFFSET, BRACKET_ENTER_SCALE, COPY_ARM } from "./cornerOrnamentsMetrics";
 import { BRACKET_STAGGER_MS, ENTER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
-export type CornerOrnamentsProps = {
+type CornerOrnamentsProps = {
   /** an arm's length */
   arm?: string;
   /** how far inside the box's edges the arms sit (negative: outside) */
@@ -66,11 +66,11 @@ function arm(
       transitionDuration: `${ENTER_MS}ms`,
       transitionDelay: `${order * BRACKET_STAGGER_MS}ms`,
     },
-    waiting: { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(${ENTER_SCALE})` },
+    waiting: { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(${BRACKET_ENTER_SCALE})` },
   };
 }
 
-const o = ENTER_OFFSET;
+const o = BRACKET_ENTER_OFFSET;
 /**
  * The four arms in drawing order. Top-right: one running left along the
  * top, one running down the side, both growing from the corner. Bottom-left:

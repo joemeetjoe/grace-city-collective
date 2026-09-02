@@ -1,15 +1,21 @@
 import type { CSSProperties } from "react";
 
-import {
-  G_MARK_CORNER as CORNER,
-  G_MARK_H as H,
-  G_MARK_W as W,
-  markBox,
-} from "@/marks/gMarkGeometry";
+import { G_MARK_CORNER as CORNER, markBox } from "@/marks/gMarkGeometry";
 import { STATE } from "@/theme/classes";
 import { cn } from "@/lib/utils";
+import {
+  SEAT_CORNER,
+  SEAT_H,
+  SEAT_W,
+  SIDE_SEATS,
+  TABLE_GAP,
+  TABLE_H,
+  TABLE_VIEW_H,
+  TABLE_VIEW_W,
+  TABLE_W,
+} from "./houseTableMetrics";
 import Tile from "./Tile";
-import { AT_REST, ENTER_SCALE, TILE_TRANSITION, enterPose, pose, stagger } from "./tileGeometry";
+import { AT_REST, TILE_ENTER_SCALE, TILE_TRANSITION, enterPose, pose, stagger } from "./tileGeometry";
 
 export type HouseTableProps = {
   /** whether the reader is over the house churches: the seats draw in and fill, and the table fills */
@@ -28,27 +34,8 @@ export type HouseTableProps = {
   className?: string;
 };
 
-/** seats down each long side of the table; with the head and the foot, a house church's dozen */
-export const SIDE_SEATS = 5;
-export const SEATS = SIDE_SEATS * 2 + 2;
-
-/** a seat: the G mark's box, at this scale of the mark */
-const SEAT = 0.45;
-const SEAT_W = Math.round(W * SEAT);
-const SEAT_H = Math.round(H * SEAT);
-const SEAT_CORNER = Math.round(CORNER * SEAT);
-/** the gap between a seat and the table, and between neighbours down a side */
-const GAP = Math.round(H * 0.2);
-/** the table: the mark's box drawn long, with the mark's own corners, sized to seat a side */
-const TABLE_W = W;
-const TABLE_H = SIDE_SEATS * SEAT_H + (SIDE_SEATS + 1) * GAP;
-
 /** the seats come in one after the next, round the table from the head (TILE_STAGGER_MS); lit, each draws in toward the table this far, in its own heights */
 const DRAW_IN = 0.16;
-
-/** the drawing's extent, in the logo's units */
-export const VIEW_W = TABLE_W + 2 * (GAP + SEAT_W);
-export const VIEW_H = TABLE_H + 2 * (GAP + SEAT_H);
 
 const TABLE = markBox(-TABLE_W / 2, -TABLE_H / 2, TABLE_W, TABLE_H, CORNER);
 const CHAIR = markBox(-SEAT_W / 2, -SEAT_H / 2, SEAT_W, SEAT_H, SEAT_CORNER);
@@ -58,16 +45,16 @@ type Seat = { cx: number; cy: number; dx: number; dy: number; head: boolean; del
 
 /** the seats in order round the table: the head, down the right, the foot, up the left */
 function placeSeats(): Seat[] {
-  const mid = VIEW_W / 2;
-  const top = SEAT_H + GAP;
-  const row = (i: number) => top + GAP + i * (SEAT_H + GAP) + SEAT_H / 2;
+  const mid = TABLE_VIEW_W / 2;
+  const top = SEAT_H + TABLE_GAP;
+  const row = (i: number) => top + TABLE_GAP + i * (SEAT_H + TABLE_GAP) + SEAT_H / 2;
   const places: Array<Omit<Seat, "delay">> = [
     { cx: mid, cy: SEAT_H / 2, dx: 0, dy: -1, head: true },
   ];
   for (let i = 0; i < SIDE_SEATS; i++) {
-    places.push({ cx: VIEW_W - SEAT_W / 2, cy: row(i), dx: 1, dy: 0, head: false });
+    places.push({ cx: TABLE_VIEW_W - SEAT_W / 2, cy: row(i), dx: 1, dy: 0, head: false });
   }
-  places.push({ cx: mid, cy: VIEW_H - SEAT_H / 2, dx: 0, dy: 1, head: false });
+  places.push({ cx: mid, cy: TABLE_VIEW_H - SEAT_H / 2, dx: 0, dy: 1, head: false });
   for (let i = SIDE_SEATS - 1; i >= 0; i--) {
     places.push({ cx: SEAT_W / 2, cy: row(i), dx: -1, dy: 0, head: false });
   }
@@ -94,7 +81,7 @@ const TABLE_SHOWN: CSSProperties = {
 };
 const TABLE_WAITING: CSSProperties = {
   ...TABLE_SHOWN,
-  transform: `scale(${ENTER_SCALE})`,
+  transform: `scale(${TILE_ENTER_SCALE})`,
   opacity: 0,
 };
 
@@ -120,14 +107,14 @@ export default function HouseTable({
   return (
     <svg
       aria-hidden
-      viewBox={across ? `0 0 ${VIEW_H} ${VIEW_W}` : `0 0 ${VIEW_W} ${VIEW_H}`}
+      viewBox={across ? `0 0 ${TABLE_VIEW_H} ${TABLE_VIEW_W}` : `0 0 ${TABLE_VIEW_W} ${TABLE_VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
       className={cn("text-cream", className, lit && STATE.lit)}
     >
       {/* on its side the whole drawing turns a quarter anticlockwise about the
           box, so the head comes to the left; the seats' own poses turn with it */}
-      <g transform={across ? `translate(0 ${VIEW_W}) rotate(-90)` : undefined}>
-      <g transform={`translate(${VIEW_W / 2} ${VIEW_H / 2})`}>
+      <g transform={across ? `translate(0 ${TABLE_VIEW_W}) rotate(-90)` : undefined}>
+      <g transform={`translate(${TABLE_VIEW_W / 2} ${TABLE_VIEW_H / 2})`}>
         <path
           d={TABLE}
           fill="var(--color-seal)"

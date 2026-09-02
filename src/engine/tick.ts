@@ -108,7 +108,7 @@ export type TickInput = {
 };
 
 /** a frame to draw, and everything the factory writes to the scene for it */
-export type FramePlan = {
+type FramePlan = {
   render: true;
   /** the ratio to draw at: reduced while the scroll flies (scrollDpr.ts) */
   dpr: number;

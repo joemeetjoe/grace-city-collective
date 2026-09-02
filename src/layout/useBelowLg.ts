@@ -1,7 +1,7 @@
 /**
  * The one layout switch the phone/tablet treatment hangs off: the viewport
  * is narrower than Tailwind's `lg`. Below it the scene scrolls natively, the
- * copy sits on the scene, the lockup stacks (#52, #53, #55, #56). It is the
+ * copy sits on the scene, the lockup stacks. It is the
  * breakpoint the sections' classes already key on (`lg:flex-row`, `lg:py-0`,
  * TUCK), so CSS and script agree by construction — and it is deliberately
  * not the asset tier (scene/tier.ts, which also flips on DPR and Save-Data)
@@ -10,10 +10,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { LG_PX } from "@/theme/breakpoints";
-
-/** the media query for "below lg", the complement of Tailwind's `lg:` variant */
-export const BELOW_LG_QUERY = `(max-width: ${LG_PX - 0.02}px)`;
+import { BELOW_LG_QUERY, LG_PX } from "@/theme/breakpoints";
 
 /** Pure: whether a viewport width takes the phone/tablet layout. */
 export function belowLg(width: number): boolean {

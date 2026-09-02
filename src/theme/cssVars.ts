@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 /** a CSS custom property's name */
-export type CssVarName = `--${string}`;
+type CssVarName = `--${string}`;
 
 /**
  * A React style object that may carry CSS custom properties beside the

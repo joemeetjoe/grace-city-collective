@@ -178,11 +178,12 @@ describe("types in src", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("take a section id as SectionId, never string (scroll/jump.ts is a DOM utility by element id; #128 folds it into app/jump.ts)", () => {
+  it("take a section id as SectionId, never string", () => {
     // where section ids flow: the marks' and the engine's tables name their own parts
     const SECTIONS = /^(app|content|features|scroll|state)\//;
-    const offenders = matches(/\b(id|sectionId|section)\??: string\b/, (file) => !SECTIONS.test(file) || file === "scroll/jump.ts");
+    const offenders = matches(/\b(id|sectionId|section)\??: string\b/, (file) => !SECTIONS.test(file));
     expect(offenders).toEqual([]);
-    expect(matches(/\bid: string\b/, (file) => file !== "scroll/jump.ts")).toHaveLength(1);
+    // the marks' tables name their own parts by string ids
+    expect(matches(/\bid: string\b/)).toHaveLength(2);
   });
 });

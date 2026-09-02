@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
-import { createWatch, useWatch } from "./watch";
+import { useWatch } from "./useWatch";
+import { createWatch } from "./watch";
 
 /**
  * The band of the viewport a scene stop plays in on a phone, as shares of

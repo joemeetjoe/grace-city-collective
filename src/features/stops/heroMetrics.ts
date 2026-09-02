@@ -10,7 +10,7 @@
  * DOM-free, with relative imports: the static splash is built under the node
  * tsconfig (vite.config.ts).
  */
-import { LG_PX } from "../../theme/breakpoints";
+import { BELOW_LG_QUERY, LG_QUERY } from "../../theme/breakpoints";
 import { GUTTER, vwClamp } from "../../theme/measures";
 
 /** the stop's top padding, above the kicker: pt-[…] on the hero section */
@@ -38,6 +38,5 @@ export const HERO_HEADLINE_STYLE = {
   measure: "7.155em",
 } as const;
 
-/** Tailwind's lg, as the media queries the static splash's style writes (theme/breakpoints.ts LG_PX; layout/breakpoint.ts) */
-export const LG_QUERY = `(min-width: ${LG_PX}px)`;
-export const BELOW_LG_QUERY = `(max-width: ${LG_PX - 0.02}px)`;
+/** Tailwind's lg, as the media queries the static splash's style writes: the theme's, passed on until #124 takes them from there */
+export { BELOW_LG_QUERY, LG_QUERY };

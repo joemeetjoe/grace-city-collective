@@ -75,7 +75,7 @@ export function layerGeometry(l: Pick<Layer, "z" | "fit" | "relief" | "bounds">,
   return planeGeometry(l.z, baseZ, l.fit ?? FIT, segmentsFor(l.relief), l.bounds);
 }
 
-export type MaterialOptions = {
+type MaterialOptions = {
   map: THREE.Texture;
   mask: THREE.Texture;
   depth: THREE.Texture;
@@ -88,7 +88,7 @@ export type MaterialOptions = {
   side?: CanvasSide;
 };
 
-export type MaterialContext = {
+type MaterialContext = {
   baseZ: number;
   /** the drawing buffer's size, for the front layers' vignette; one vector shared by every material */
   resolution: THREE.Vector2;
@@ -98,7 +98,7 @@ export type MaterialContext = {
   warmOn: (t: THREE.Texture, side: CanvasSide) => void;
 };
 
-export function cutMaterial(o: MaterialOptions, ctx: MaterialContext): THREE.ShaderMaterial {
+function cutMaterial(o: MaterialOptions, ctx: MaterialContext): THREE.ShaderMaterial {
   const side = o.side ?? "back";
   for (const t of [o.map, o.mask, o.depth]) ctx.warmOn(t, side);
   return new THREE.ShaderMaterial({

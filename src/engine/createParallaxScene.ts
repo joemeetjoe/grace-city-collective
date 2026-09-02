@@ -100,7 +100,7 @@ export type SceneConfig = {
 };
 
 /** what a debug build exposes: the layers, the scene graph and the camera */
-export type SceneDebug = { layers: Layer[]; scene: THREE.Scene; camera: THREE.Camera };
+type SceneDebug = { layers: Layer[]; scene: THREE.Scene; camera: THREE.Camera };
 
 export type SceneHandle = {
   /** live options; a change marks a frame and wakes a parked loop */

@@ -5,7 +5,7 @@ import { useAppStore, type AppProfile } from "@/state/appStore";
 import { seam } from "@/state/seam";
 
 /** what a mount decides once: whether the splash plays, and the device's verdicts */
-export function readAppProfile(): AppProfile {
+function readAppProfile(): AppProfile {
   // once per session, and never under reduced motion
   const policy = readPolicyInputs();
   const { fallback, tier } = readDeviceProfile(policy.reducedMotion);

@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import { STATE } from "@/theme/classes";
 import { TILE_STAGGER_MS } from "@/theme/motion";
-import SharedLife, { HUDDLE_SCALE, ROWS, VIEW_H, VIEW_H_2, VIEW_W, VIEW_W_2 } from "./SharedLife";
+import SharedLife from "./SharedLife";
+import { HUDDLE_SCALE, LIFE_ROWS, LIFE_VIEW_H, LIFE_VIEW_H_2, LIFE_VIEW_W, LIFE_VIEW_W_2 } from "./sharedLifeMetrics";
 
 /** the slots' pose groups in drawing order: the heart last */
 function drawn(container: HTMLElement): HTMLElement[] {
@@ -43,14 +44,14 @@ describe("SharedLife", () => {
     expect(svg).toHaveAttribute("aria-hidden", "true");
     expect(svg).not.toHaveClass(STATE.lit);
     const all = slots(container);
-    expect(all).toHaveLength(ROWS);
+    expect(all).toHaveLength(LIFE_ROWS);
     expect(all.filter((s) => s.classList.contains(STATE.on))).toHaveLength(0);
     const paths = all.map((s) => s.querySelector("path")!);
     const d = paths[0].getAttribute("d")!;
     expect(d.match(/A/g)).toHaveLength(2);
     expect(paths.every((p) => p.getAttribute("d") === d)).toBe(true);
     const ls = lines(container);
-    expect(ls).toHaveLength(ROWS);
+    expect(ls).toHaveLength(LIFE_ROWS);
     expect(ls.every((l) => l.style.opacity === "1")).toBe(true);
     // each line runs from beside its row's slot, level with it
     ls.forEach((l, row) => {
@@ -61,7 +62,7 @@ describe("SharedLife", () => {
 
   it("at rest the slots stand in one column down the page, in place, with the first row's a little brighter", () => {
     const { container } = render(<SharedLife />);
-    for (let row = 1; row < ROWS; row++) {
+    for (let row = 1; row < LIFE_ROWS; row++) {
       expect(at(container, row).x).toBe(at(container, 0).x);
       expect(at(container, row).y).toBeGreaterThan(at(container, row - 1).y);
     }
@@ -75,7 +76,7 @@ describe("SharedLife", () => {
           .getAttribute("stroke-opacity")!,
       );
     expect(opacity(0)).toBeGreaterThan(opacity(1));
-    expect(opacity(1)).toBe(opacity(ROWS - 1));
+    expect(opacity(1)).toBe(opacity(LIFE_ROWS - 1));
   });
 
   it("lit, the lines fade and the slots leave their rows to huddle up the column, the first row's at the heart in the seal's red", () => {
@@ -87,8 +88,8 @@ describe("SharedLife", () => {
     // every slot moves right off its column; the top row comes down a little, the bottom rows come far up
     expect(all.every((s) => shift(s).x > 0)).toBe(true);
     expect(shift(slot(container, 0)).y).toBeGreaterThan(0);
-    expect(shift(slot(container, ROWS - 1)).y).toBeLessThan(0);
-    expect(-shift(slot(container, ROWS - 1)).y).toBeGreaterThan(
+    expect(shift(slot(container, LIFE_ROWS - 1)).y).toBeLessThan(0);
+    expect(-shift(slot(container, LIFE_ROWS - 1)).y).toBeGreaterThan(
       shift(slot(container, 0)).y,
     );
     // and every slot grows as it goes
@@ -127,7 +128,7 @@ describe("SharedLife", () => {
       parseFloat(slot(container, row).style.transitionDelay);
     expect(delay(0)).toBe(TILE_STAGGER_MS);
     expect(delay(1)).toBe(2 * TILE_STAGGER_MS);
-    expect(delay(ROWS - 1)).toBe(ROWS * TILE_STAGGER_MS);
+    expect(delay(LIFE_ROWS - 1)).toBe(LIFE_ROWS * TILE_STAGGER_MS);
     const ls = lines(container);
     expect(ls.every((l) => l.style.opacity === "0")).toBe(true);
     expect(ls[0].style.transform).toMatch(/translateY\(-\d/);
@@ -136,17 +137,17 @@ describe("SharedLife", () => {
   it("in two columns the rows run six and six side by side, in a wider, shorter box", () => {
     const { container } = render(<SharedLife columns={2} />);
     const svg = container.querySelector("svg")!;
-    expect(VIEW_W_2).toBeGreaterThan(2 * VIEW_W);
-    expect(VIEW_H_2).toBeLessThan(VIEW_H / 2 + 1);
-    expect(svg).toHaveAttribute("viewBox", `0 0 ${VIEW_W_2} ${VIEW_H_2}`);
-    expect(slots(container)).toHaveLength(ROWS);
+    expect(LIFE_VIEW_W_2).toBeGreaterThan(2 * LIFE_VIEW_W);
+    expect(LIFE_VIEW_H_2).toBeLessThan(LIFE_VIEW_H / 2 + 1);
+    expect(svg).toHaveAttribute("viewBox", `0 0 ${LIFE_VIEW_W_2} ${LIFE_VIEW_H_2}`);
+    expect(slots(container)).toHaveLength(LIFE_ROWS);
     // the seventh row starts the second column: level with the first, well to its right
     expect(at(container, 6).y).toBe(at(container, 0).y);
-    expect(at(container, 6).x).toBeGreaterThan(VIEW_W);
+    expect(at(container, 6).x).toBeGreaterThan(LIFE_VIEW_W);
     expect(at(container, 5).y).toBeGreaterThan(at(container, 4).y);
     // one column is the tall box
     const one = render(<SharedLife />).container.querySelector("svg")!;
-    expect(one).toHaveAttribute("viewBox", `0 0 ${VIEW_W} ${VIEW_H}`);
+    expect(one).toHaveAttribute("viewBox", `0 0 ${LIFE_VIEW_W} ${LIFE_VIEW_H}`);
   });
 
   it("carries no data attributes: its states are classes", () => {

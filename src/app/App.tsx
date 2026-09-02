@@ -6,8 +6,8 @@ import SiteNav from "@/features/nav/SiteNav";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { initApp } from "./initApp";
-import { useJump } from "./jump";
-import { JumpProvider } from "./jumpContext";
+import { JumpProvider } from "./JumpProvider";
+import { useJump } from "./useJump";
 import HomePage from "./HomePage";
 import { useHashSync } from "./useHashSync";
 import { useSceneLayers } from "./useSceneLayers";
@@ -64,7 +64,7 @@ export default function App() {
       {intro && <IntroSplash />}
 
       {/* the fixed chrome's links jump through the page's scroll: the jump
-          reaches them by context (jumpContext.tsx), the active section by the store */}
+          reaches them by context (JumpProvider.tsx), the active section by the store */}
       <JumpProvider jump={jump}>
         {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
         <SiteNav />
