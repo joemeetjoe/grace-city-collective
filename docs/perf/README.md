@@ -8,7 +8,7 @@ renders.
 
 ## Baseline
 
-The batch's before/after, per slice, is in [`wire-batch.md`](wire-batch.md)
+The Wire batch's before/after is in [`wire-batch.md`](wire-batch.md) and the Vitals batch's (Lighthouse, both profiles) in [`vitals.md`](vitals.md)
 (`wire-final.json`, `wire-final-webp.json`).
 
 

@@ -1,0 +1,2516 @@
+{
+  "commit": "87498a7",
+  "date": "2026-09-02T03:24:46.241Z",
+  "url": "http://127.0.0.1:4416/",
+  "idleMs": 1500,
+  "throttleKbps": 0,
+  "noAvif": false,
+  "reducedMotion": false,
+  "scrollTo": null,
+  "tiers": {
+    "desktop": {
+      "profile": {
+        "width": 1600,
+        "height": 900,
+        "dpr": 2,
+        "mobile": false
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 900,
+        "dpr": 2
+      },
+      "canvas": true,
+      "avif": true,
+      "formats": {
+        "webp": {
+          "count": 21,
+          "bytes": 305650
+        },
+        "avif": {
+          "count": 33,
+          "bytes": 1289620
+        }
+      },
+      "cold": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4416/",
+            "mimeType": "text/html",
+            "fromCache": false,
+            "startedAt": 0,
+            "status": 200,
+            "bytes": 8903,
+            "finishedAt": 35
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-1zsM8AVZ.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "startedAt": 37,
+            "status": 200,
+            "bytes": 139396,
+            "finishedAt": 669
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-CvhFkEL9.css",
+            "mimeType": "text/css",
+            "fromCache": false,
+            "startedAt": 37,
+            "status": 200,
+            "bytes": 9009,
+            "finishedAt": 714
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "startedAt": 37,
+            "status": 200,
+            "bytes": 23080,
+            "finishedAt": 717
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/PentecostParallax-Bg99eXEy.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "startedAt": 42,
+            "status": 200,
+            "bytes": 116424,
+            "finishedAt": 1335
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "startedAt": 37,
+            "status": 200,
+            "bytes": 29604,
+            "finishedAt": 1336
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-0-Bfvv4ZsH.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 25414,
+            "finishedAt": 1337
+          },
+          {
+            "url": "http://127.0.0.1:4416/favicon.svg",
+            "mimeType": "image/svg+xml",
+            "fromCache": false,
+            "startedAt": 731,
+            "status": 200,
+            "bytes": 576,
+            "finishedAt": 1341
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-floor-BAWmYP6w.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 123634,
+            "finishedAt": 1342
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig13-ClHzu8_d.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 51512,
+            "finishedAt": 1342
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig5-UCmvgsi8.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 56261,
+            "finishedAt": 1343
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig0-DkHP6mrO.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 8475,
+            "finishedAt": 1344
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/plate-backdrop-HV9sIx90.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 360473,
+            "finishedAt": 1344
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig10-Dgen7sDm.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 57647,
+            "finishedAt": 1345
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig10-Cj8R3TIA.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 13628,
+            "finishedAt": 1346
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig12-C0LLQ5iD.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 6267,
+            "finishedAt": 1347
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig2-BPb8dm3L.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 9761,
+            "finishedAt": 1348
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig3-sKEHy3e4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 13230,
+            "finishedAt": 1349
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig5-C6GKq35x.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 15654,
+            "finishedAt": 1349
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig4-C2yoWyeM.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 11068,
+            "finishedAt": 1350
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig6-Cev11T62.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 11024,
+            "finishedAt": 1351
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig7-Cmfw6qCx.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 10694,
+            "finishedAt": 1351
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig8-s7xApZlG.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 13928,
+            "finishedAt": 1352
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig9-CNthjpJW.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 6543,
+            "finishedAt": 1353
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-CNG7zbw7.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 72684,
+            "finishedAt": 1353
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-arch-Co-AgcaN.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 56110,
+            "finishedAt": 1353
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-dove-Lxd3JKhd.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 2547,
+            "finishedAt": 1354
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-crowd-CXplALPp.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 129857,
+            "finishedAt": 1354
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig0-0jlYwi3e.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 40140,
+            "finishedAt": 1355
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig1-DcEUa81e.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 50389,
+            "finishedAt": 1356
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig12-DpF0Bzxz.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 35105,
+            "finishedAt": 1356
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig2-C1tYN3QA.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 37145,
+            "finishedAt": 1357
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig3-By4COcFW.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 46846,
+            "finishedAt": 1358
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig4-bBJNYIQ5.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 51710,
+            "finishedAt": 1358
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig6-_1Oyj3nF.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 40563,
+            "finishedAt": 1359
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig7-Cumw2EA6.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 51515,
+            "finishedAt": 1362
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig8-hSSOtW6E.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 55191,
+            "finishedAt": 1363
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig9-B4IwPxiX.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 18629,
+            "finishedAt": 1363
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame0-DH0P7fRT.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1428,
+            "finishedAt": 1363
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame1-CubH8fDv.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1400,
+            "finishedAt": 1364
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame10-CEhEj-hU.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1790,
+            "finishedAt": 1364
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame11-DMYSszUF.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 2061,
+            "finishedAt": 1365
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame12-DtF5n9P6.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1559,
+            "finishedAt": 1365
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame13-BH_WinIj.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1923,
+            "finishedAt": 1365
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame14-JssMRQvd.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1241,
+            "finishedAt": 1365
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame2-B_XrWdHf.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 2188,
+            "finishedAt": 1366
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame3-Cnki3Oz8.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 682,
+            "finishedAt": 1367
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame4-5eTI6qTj.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 44,
+            "status": 200,
+            "bytes": 1410,
+            "finishedAt": 1368
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame5-BofE6Cj_.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2084,
+            "finishedAt": 1368
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-4-BG4iVY6j.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 520,
+            "finishedAt": 1368
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame6-BDNOYqBR.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2161,
+            "finishedAt": 1369
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-3-LdXKe-2E.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 29828,
+            "finishedAt": 1369
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-2-DwQNzB6K.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2681,
+            "finishedAt": 1370
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-3-CiFoCRk4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2153,
+            "finishedAt": 1370
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame7-Civngm9v.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 1199,
+            "finishedAt": 1371
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-2-Bf9J_BcT.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 23780,
+            "finishedAt": 1371
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-0-CYRhWKqU.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2025,
+            "finishedAt": 1371
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-1-BxNPbeGa.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 23674,
+            "finishedAt": 1372
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame8-Cwk5sA4N.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 1891,
+            "finishedAt": 1373
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame9-k26Yistz.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 1329,
+            "finishedAt": 1373
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-1-DSiVE0k0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 45,
+            "status": 200,
+            "bytes": 2619,
+            "finishedAt": 1373
+          }
+        ],
+        "t0": 133169.283901,
+        "traceAt": 1562,
+        "introDoneAt": 3212,
+        "idleAt": 1373,
+        "gateAt": 1373,
+        "toGate": {
+          "html": {
+            "bytes": 8903,
+            "count": 1
+          },
+          "js": {
+            "bytes": 255820,
+            "count": 2
+          },
+          "css": {
+            "bytes": 9009,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 1595270,
+            "count": 54
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 1922262
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 8903,
+            "count": 1
+          },
+          "js": {
+            "bytes": 255820,
+            "count": 2
+          },
+          "css": {
+            "bytes": 9009,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 1595270,
+            "count": 54
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 1922262
+        },
+        "cached": 0,
+        "poster": [],
+        "tiers": [
+          "2048"
+        ],
+        "shell": {
+          "firstTextureAt": 44,
+          "shellDoneAt": 669,
+          "beforeShell": true
+        }
+      },
+      "warm": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4416/",
+            "mimeType": "text/html",
+            "fromCache": true,
+            "startedAt": 0,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 1
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-CvhFkEL9.css",
+            "mimeType": "text/css",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 9
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 9
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 11
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-1zsM8AVZ.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "startedAt": 6,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 12
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/plate-backdrop-HV9sIx90.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 19
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-0-Bfvv4ZsH.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 19
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/PentecostParallax-Bg99eXEy.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "startedAt": 16,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 19
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-floor-BAWmYP6w.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig13-ClHzu8_d.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig5-UCmvgsi8.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig10-Dgen7sDm.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig0-DkHP6mrO.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig10-Cj8R3TIA.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig12-C0LLQ5iD.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig2-BPb8dm3L.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig4-C2yoWyeM.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig3-sKEHy3e4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig6-Cev11T62.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig5-C6GKq35x.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig7-Cmfw6qCx.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig9-CNthjpJW.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig8-s7xApZlG.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-CNG7zbw7.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-arch-Co-AgcaN.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-crowd-CXplALPp.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-dove-Lxd3JKhd.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig0-0jlYwi3e.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig1-DcEUa81e.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig12-DpF0Bzxz.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig3-By4COcFW.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig2-C1tYN3QA.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig4-bBJNYIQ5.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig6-_1Oyj3nF.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig7-Cumw2EA6.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig8-hSSOtW6E.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig9-B4IwPxiX.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame0-DH0P7fRT.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame1-CubH8fDv.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame10-CEhEj-hU.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame11-DMYSszUF.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame12-DtF5n9P6.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame13-BH_WinIj.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame14-JssMRQvd.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame2-B_XrWdHf.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame3-Cnki3Oz8.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame5-BofE6Cj_.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame4-5eTI6qTj.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame6-BDNOYqBR.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame7-Civngm9v.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame8-Cwk5sA4N.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame9-k26Yistz.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-1-BxNPbeGa.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-2-Bf9J_BcT.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-4-BG4iVY6j.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-3-LdXKe-2E.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-0-CYRhWKqU.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-1-DSiVE0k0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-2-DwQNzB6K.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-3-CiFoCRk4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          }
+        ],
+        "t0": 133172.806843,
+        "traceAt": null,
+        "introDoneAt": 106,
+        "idleAt": 27,
+        "gateAt": 27,
+        "toGate": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 2
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 54
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 2
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 54
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "cached": 60,
+        "poster": []
+      }
+    },
+    "mobile": {
+      "profile": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1.5,
+        "mobile": true
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1.5
+      },
+      "canvas": true,
+      "avif": true,
+      "formats": {
+        "avif": {
+          "count": 33,
+          "bytes": 489210
+        },
+        "webp": {
+          "count": 21,
+          "bytes": 140093
+        }
+      },
+      "cold": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4416/",
+            "mimeType": "text/html",
+            "fromCache": false,
+            "startedAt": 0,
+            "status": 200,
+            "bytes": 8903,
+            "finishedAt": 2
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-CvhFkEL9.css",
+            "mimeType": "text/css",
+            "fromCache": false,
+            "startedAt": 5,
+            "status": 200,
+            "bytes": 9009,
+            "finishedAt": 13
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-1zsM8AVZ.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "startedAt": 5,
+            "status": 200,
+            "bytes": 139396,
+            "finishedAt": 15
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "startedAt": 5,
+            "status": 200,
+            "bytes": 29604,
+            "finishedAt": 16
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "startedAt": 5,
+            "status": 200,
+            "bytes": 23080,
+            "finishedAt": 16
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/PentecostParallax-Bg99eXEy.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "startedAt": 30,
+            "status": 200,
+            "bytes": 116424,
+            "finishedAt": 34
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/plate-backdrop-B3knwuMt.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 126454,
+            "finishedAt": 35
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-0-C-WQP_Bt.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 13152,
+            "finishedAt": 37
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-floor-BKC5izDw.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 44276,
+            "finishedAt": 38
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig13-CDjxAEBN.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 20929,
+            "finishedAt": 38
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig5-DZuPR1Ow.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 20304,
+            "finishedAt": 38
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig10-Db5OsWTN.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 21717,
+            "finishedAt": 39
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig0-BIIrQ1jk.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 3389,
+            "finishedAt": 40
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig12-BVhEv76k.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 2465,
+            "finishedAt": 40
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig2-9JwGyydD.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 3969,
+            "finishedAt": 40
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig10-nqhHWz6P.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 5503,
+            "finishedAt": 41
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig3-DgWsT7x-.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 5155,
+            "finishedAt": 41
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig4-CRnWfF7K.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 4981,
+            "finishedAt": 42
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig5-ifBYtl-c.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 6325,
+            "finishedAt": 42
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig6-dJevDeod.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 4525,
+            "finishedAt": 42
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig7-BVzziCde.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 31,
+            "status": 200,
+            "bytes": 4573,
+            "finishedAt": 43
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig8-DDFwiaRs.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 5615,
+            "finishedAt": 43
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig9-D9wIhGEt.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 2825,
+            "finishedAt": 43
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-Ds9I3OUz.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 33818,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-arch-wbKNYgzj.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 22473,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-crowd-B0OJxe4n.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 52121,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-dove-DLQnlsT0.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1453,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig0-hWrH31Tt.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 14595,
+            "finishedAt": 45
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig1-zNes6xQ3.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 20879,
+            "finishedAt": 45
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig12-Sz4I6DGG.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 13348,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig2-CJBNjypY.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 14494,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig3-DrTyoM66.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 18619,
+            "finishedAt": 47
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig4-BARnJPl1.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 18781,
+            "finishedAt": 47
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig6-BvUDPJdp.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 16490,
+            "finishedAt": 47
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig7-B2GaLQoB.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 19851,
+            "finishedAt": 48
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig8-Cvyfzg3p.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 20099,
+            "finishedAt": 48
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig9-BHwe38ZO.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 7408,
+            "finishedAt": 48
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame0-Be0GgkPd.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 930,
+            "finishedAt": 48
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame1-Dqpmj3a4.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 903,
+            "finishedAt": 49
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame10-DB48TV0A.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 990,
+            "finishedAt": 49
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame11-_snwhH9c.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1242,
+            "finishedAt": 50
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame12-DsF80gJG.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 949,
+            "finishedAt": 50
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame13-DWdYMH0g.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1113,
+            "finishedAt": 50
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame14-gjw6cMbl.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 869,
+            "finishedAt": 51
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame2-B5dt_KzL.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1261,
+            "finishedAt": 52
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame3-BQGyK_ES.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 583,
+            "finishedAt": 52
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame4-De9gcJ2h.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 883,
+            "finishedAt": 53
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame5-BkSvIo-p.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1130,
+            "finishedAt": 54
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame8-OUJG4J60.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1144,
+            "finishedAt": 55
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame9-DJgL-oNL.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 864,
+            "finishedAt": 55
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame6-pfoUvrT9.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1227,
+            "finishedAt": 55
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame7-Cpy_BjJ3.avif",
+            "mimeType": "image/avif",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 831,
+            "finishedAt": 56
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-1-BFHpCRZ8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 12170,
+            "finishedAt": 56
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-2-CvygYGK8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 11828,
+            "finishedAt": 58
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-3-CekGo096.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 14112,
+            "finishedAt": 58
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-4-dVZnxcdi.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 348,
+            "finishedAt": 58
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-0-D7ztLpuM.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1140,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-1-D1BQMqkc.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1489,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-2-f_JMgbYv.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1525,
+            "finishedAt": 60
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-3-CeG3frca.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "startedAt": 32,
+            "status": 200,
+            "bytes": 1186,
+            "finishedAt": 60
+          },
+          {
+            "url": "http://127.0.0.1:4416/favicon.svg",
+            "mimeType": "image/svg+xml",
+            "fromCache": false,
+            "startedAt": 88,
+            "status": 200,
+            "bytes": 576,
+            "finishedAt": 89
+          }
+        ],
+        "t0": 133174.933207,
+        "traceAt": 106,
+        "introDoneAt": 2456,
+        "idleAt": 89,
+        "gateAt": 60,
+        "toGate": {
+          "html": {
+            "bytes": 8903,
+            "count": 1
+          },
+          "js": {
+            "bytes": 255820,
+            "count": 2
+          },
+          "css": {
+            "bytes": 9009,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 629303,
+            "count": 54
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 955719
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 8903,
+            "count": 1
+          },
+          "js": {
+            "bytes": 255820,
+            "count": 2
+          },
+          "css": {
+            "bytes": 9009,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 629303,
+            "count": 54
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 956295
+        },
+        "cached": 0,
+        "poster": [],
+        "tiers": [
+          "1024"
+        ],
+        "shell": {
+          "firstTextureAt": 31,
+          "shellDoneAt": 15,
+          "beforeShell": false
+        }
+      },
+      "warm": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4416/",
+            "mimeType": "text/html",
+            "fromCache": true,
+            "startedAt": 0,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 1
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-CvhFkEL9.css",
+            "mimeType": "text/css",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 9
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 10
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 12
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/index-1zsM8AVZ.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "startedAt": 7,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 12
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/plate-backdrop-B3knwuMt.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-floor-BKC5izDw.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig13-CDjxAEBN.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig10-Db5OsWTN.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig5-DZuPR1Ow.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-0-C-WQP_Bt.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/PentecostParallax-Bg99eXEy.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "startedAt": 17,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 20
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig0-BIIrQ1jk.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig10-nqhHWz6P.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig12-BVhEv76k.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig2-9JwGyydD.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig4-CRnWfF7K.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig3-DgWsT7x-.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 21
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig5-ifBYtl-c.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig6-dJevDeod.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig7-BVzziCde.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig8-DDFwiaRs.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-fig9-D9wIhGEt.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 18,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 22
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/depth-Ds9I3OUz.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-crowd-B0OJxe4n.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-arch-wbKNYgzj.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-dove-DLQnlsT0.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig0-hWrH31Tt.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig12-Sz4I6DGG.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig1-zNes6xQ3.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig2-CJBNjypY.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 23
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig3-DrTyoM66.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig4-BARnJPl1.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig6-BvUDPJdp.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig7-B2GaLQoB.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig8-Cvyfzg3p.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame0-Be0GgkPd.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame1-Dqpmj3a4.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 24
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-fig9-BHwe38ZO.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame11-_snwhH9c.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame10-DB48TV0A.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame12-DsF80gJG.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame13-DWdYMH0g.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame14-gjw6cMbl.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame2-B5dt_KzL.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame3-BQGyK_ES.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 25
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame4-De9gcJ2h.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame5-BkSvIo-p.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame6-pfoUvrT9.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame7-Cpy_BjJ3.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame9-DJgL-oNL.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/map-flame8-OUJG4J60.avif",
+            "mimeType": "image/avif",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-1-BFHpCRZ8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-2-CvygYGK8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-3-CekGo096.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-0-D7ztLpuM.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 26
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-cut-4-dVZnxcdi.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-1-D1BQMqkc.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-2-f_JMgbYv.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          },
+          {
+            "url": "http://127.0.0.1:4416/assets/masks-flame-3-CeG3frca.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "startedAt": 19,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 27
+          }
+        ],
+        "t0": 133177.701765,
+        "traceAt": null,
+        "introDoneAt": 106,
+        "idleAt": 27,
+        "gateAt": 27,
+        "toGate": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 2
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 54
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 2
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 54
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "cached": 60,
+        "poster": []
+      }
+    }
+  }
+}

@@ -25,31 +25,31 @@ const errors = {
 };
 
 /**
- * Warnings: the timing metrics, in ms, ceilinged at the first run's median
- * plus roughly 20 % so ordinary noise stays quiet and a regression shows in
- * the log. A warning does not fail the workflow. To raise a ceiling
- * deliberately, change the number in the same PR as the change that needs
- * it and say why in the PR; #115 tightens them to errors once the Vitals
- * batch has landed.
+ * The timing metrics, in ms, are errors too since #115: each ceiling is the
+ * post-batch median (docs/perf/vitals.md) plus a stated margin — roughly
+ * 20 % on LCP and Speed Index, a noise floor on TBT (runs spread 0–7 ms on
+ * desktop and 50–210 ms on mobile). To raise a ceiling deliberately, change
+ * the number in the same PR as the change that needs it and say why in the
+ * PR; to see the drift without failing, run `pnpm lighthouse` locally.
  *
  * @param {{ lcp: number, tbt: number, si: number }} ceilings
  */
-const warnings = ({ lcp, tbt, si }) => ({
+const timings = ({ lcp, tbt, si }) => ({
   // Largest Contentful Paint: on a first visit this is the splash headline
   // (#107); raise it only for a change that paints more before the gate.
-  "largest-contentful-paint": ["warn", { maxNumericValue: lcp }],
+  "largest-contentful-paint": ["error", { maxNumericValue: lcp }],
   // Total Blocking Time: main-thread work between FCP and TTI; raise it only
-  // with the long task named (docs/perf/lighthouse-baseline.md lists them).
-  "total-blocking-time": ["warn", { maxNumericValue: tbt }],
+  // with the long task named (docs/perf/main-thread-slices.md lists them).
+  "total-blocking-time": ["error", { maxNumericValue: tbt }],
   // Speed Index: how quickly the viewport fills; the splash holds it up on a
   // first visit, so raise it only alongside a splash or hero change.
-  "speed-index": ["warn", { maxNumericValue: si }],
+  "speed-index": ["error", { maxNumericValue: si }],
 });
 
 /**
  * @param {string} name the profile, also the report directory under .lighthouseci/
  * @param {object} [settings] Lighthouse settings; none means the mobile default
- * @param {{ lcp: number, tbt: number, si: number }} warn the warning ceilings
+ * @param {{ lcp: number, tbt: number, si: number }} warn the timing ceilings
  */
 const profile = (name, settings, warn) => ({
   ci: {
@@ -62,7 +62,7 @@ const profile = (name, settings, warn) => ({
     },
     assert: {
       aggregationMethod: "median-run",
-      assertions: { ...errors, ...warnings(warn) },
+      assertions: { ...errors, ...timings(warn) },
     },
     upload: {
       target: "filesystem",
@@ -73,7 +73,9 @@ const profile = (name, settings, warn) => ({
 
 module.exports = {
   /** Lighthouse's default: a mid-tier phone on slow 4G, DPR 2.625 */
-  mobile: profile("mobile", undefined, { lcp: 5000, tbt: 220, si: 4600 }),
+  // #115: medians 2855 / 53 / 4510 ms on 87498a7
+  mobile: profile("mobile", undefined, { lcp: 3400, tbt: 150, si: 5200 }),
   /** Lighthouse's desktop preset: no CPU/network throttling beyond its defaults */
-  desktop: profile("desktop", { preset: "desktop" }, { lcp: 750, tbt: 50, si: 1700 }),
+  // #115: medians 908 / 0 / 1547 ms on 87498a7
+  desktop: profile("desktop", { preset: "desktop" }, { lcp: 1100, tbt: 50, si: 1850 }),
 };
