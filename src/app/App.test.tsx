@@ -88,6 +88,16 @@ const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
 /** a phone or tablet: the viewport is below Tailwind's lg */
 const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
+/**
+ * the long-form wrapper once its chunk has filled the sections in (#111):
+ * jsdom has no IntersectionObserver, so the gate asks for it at mount and
+ * the words follow a tick later
+ */
+async function longformIn(container: HTMLElement): Promise<Element> {
+  await waitFor(() => expect(container.querySelector("[data-longform] footer")).not.toBeNull());
+  return container.querySelector("[data-longform]")!;
+}
+
 beforeEach(() => {
   engineLoads.count = 0;
   window.sessionStorage.clear();
@@ -280,6 +290,71 @@ describe("App content", () => {
   });
 });
 
+describe("App nav jumps to the long-form (#111)", () => {
+  /** an observer that never fires: the in-view trigger stays quiet, so only a jump can ask for the chunk */
+  function quietObserver() {
+    class IO {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", IO);
+  }
+
+  // the gate's store remembers the page's one request: a fresh module graph
+  // per test, with the scroll driver installed on the same graph the app reads
+  const freshPage = async () => {
+    vi.resetModules();
+    const [{ default: FreshApp }, position] = await Promise.all([import("./App"), import("@/scroll/position")]);
+    return { FreshApp, installScrollDriver: position.installScrollDriver };
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a nav link to a long-form section asks for the chunk and lands once its words have mounted", async () => {
+    quietObserver();
+    const { FreshApp, installScrollDriver } = await freshPage();
+    const { container } = render(<FreshApp />);
+    const faq = container.querySelector("#faq")!;
+    expect(faq).not.toBeNull();
+    expect(faq.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("#faq dl")).toBeNull();
+    let wordsAtLanding: Element | null = null;
+    const driver: ScrollDriver = {
+      scrollTop: () => 0,
+      scrollTo: vi.fn(() => {
+        wordsAtLanding = container.querySelector("#faq dl");
+      }),
+    };
+    installScrollDriver(driver);
+    fireEvent.click(container.querySelector("nav a[href='#faq']")!);
+    // not yet: the chunk is in flight
+    expect(driver.scrollTo).not.toHaveBeenCalled();
+    await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledTimes(1));
+    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
+    expect(wordsAtLanding).not.toBeNull();
+    // the same section element, now full: nothing the nav or the watch holds went stale
+    expect(container.querySelector("#faq")).toBe(faq);
+    expect(faq.getAttribute("aria-busy")).toBeNull();
+    installScrollDriver(null);
+  });
+
+  it("a nav link to a scene stop goes at once, whatever the chunk is doing", async () => {
+    quietObserver();
+    const { FreshApp, installScrollDriver } = await freshPage();
+    const { container } = render(<FreshApp />);
+    const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    installScrollDriver(driver);
+    fireEvent.click(container.querySelector("nav a[href='#give']")!);
+    expect(driver.scrollTo).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("#faq dl")).toBeNull();
+    installScrollDriver(null);
+  });
+});
+
 describe("App gatherings calendar", () => {
   it("the calendar sits in the gatherings panel and lights for the gathering under the pointer", () => {
     const { container } = render(<App />);
@@ -462,7 +537,7 @@ describe("App section markers", () => {
     expect(rail.querySelector("[aria-current='location']")).not.toBeNull();
   });
 
-  it("the rail sits outside the smoother's content, and its dots jump through the driver", () => {
+  it("the rail sits outside the smoother's content, and its dots jump through the driver", async () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     const { container } = render(<App />);
     const rail = container.querySelector("[data-dot-rail]")!;
@@ -471,7 +546,8 @@ describe("App section markers", () => {
     );
     installScrollDriver(driver);
     fireEvent.click(rail.querySelector("a[href='#faq']")!);
-    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
+    // a long-form dot waits for the chunk (App nav jumps, below); at once once it is in
+    await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true));
   });
 });
 
@@ -491,9 +567,9 @@ describe("App page structure", () => {
     ]);
   });
 
-  it("the long-form lists reveal per item, the list itself plain (#58)", () => {
+  it("the long-form lists reveal per item, the list itself plain (#58)", async () => {
     const { container } = render(<App />);
-    const longform = container.querySelector("[data-longform]")!;
+    const longform = await longformIn(container);
     const lists = [
       ["#devotions ol", site.devotions.length],
       ["#beliefs ul", site.beliefPosture.length],
@@ -516,10 +592,9 @@ describe("App page structure", () => {
       expect(item.hasAttribute("data-reveal")).toBe(true);
   });
 
-  it("the long-form sections carry no screen label and sit after the scene", () => {
+  it("the long-form sections carry no screen label and sit after the scene", async () => {
     const { container } = render(<App />);
-    const longform = container.querySelector("[data-longform]")!;
-    expect(longform).not.toBeNull();
+    const longform = await longformIn(container);
     expect(longform.querySelector("[data-screen-label]")).toBeNull();
     for (const id of ["devotions", "beliefs", "faq", "messages"]) {
       expect(longform.querySelector(`#${id}`), `#${id}`).not.toBeNull();
@@ -630,8 +705,9 @@ describe("App canvas split", () => {
     expect(layers[2].querySelector("[data-scene-frame]")).not.toBeNull();
   });
 
-  it("the frame's square corners carry red brackets; each long-form section opens with a rule", () => {
+  it("the frame's square corners carry red brackets; each long-form section opens with a rule", async () => {
     const { container } = render(<App />);
+    await longformIn(container);
     const corners = container.querySelector(
       "[data-scene-frame] ~ [data-corner-ornaments]",
     )!;

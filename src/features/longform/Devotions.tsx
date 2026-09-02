@@ -3,13 +3,13 @@ import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import ScriptureRefs from "./ScriptureRefs";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "./section";
+import { longform } from "./section";
 
 export default function Devotions() {
   const site = useSite();
   const devotions = longform(site, "devotions");
   return (
-    <section id={devotions.id} className={LONGFORM_SECTION}>
+    <>
       <SectionRule />
       <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
         <Reveal
@@ -48,6 +48,6 @@ export default function Devotions() {
           ))}
         </ol>
       </div>
-    </section>
+    </>
   );
 }

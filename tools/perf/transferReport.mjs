@@ -80,24 +80,42 @@ const pad = (s, n) => String(s).padStart(n);
 
 /**
  * The per-tier table: a row per category, the bytes on the wire by the gate
- * opening, by idle, and on a warm second load (idle).
+ * opening, by idle, then — for a run that scrolled on after idle
+ * (`--scroll-to`, #111) — what that scroll fetched, and on a warm second
+ * load (idle).
  */
 export function formatTable(tiers) {
   const lines = [];
-  for (const [name, { cold, warm }] of Object.entries(tiers)) {
+  const anyLate = Object.values(tiers).some((t) => t.late);
+  for (const [name, { cold, warm, late }] of Object.entries(tiers)) {
+    const columns = (of) => [of(cold.toGate), of(cold.toIdle), ...(anyLate ? [of(late?.toIdle)] : []), of(warm?.toIdle)];
     lines.push(`${name}  (kB on the wire)`);
-    lines.push(`  ${pad("", 8)} ${pad("gate", 9)} ${pad("idle", 9)} ${pad("warm", 9)}`);
+    lines.push(`  ${pad("", 8)} ${["gate", "idle", ...(anyLate ? ["late"] : []), "warm"].map((h) => pad(h, 9)).join(" ")}`);
     for (const cat of [...CATEGORIES, "total"]) {
       const at = (s) => (s ? (cat === "total" ? s.total : s[cat].bytes) : 0);
-      lines.push(
-        `  ${pad(cat, 8)} ${pad(kb(at(cold.toGate)), 9)} ${pad(kb(at(cold.toIdle)), 9)} ${pad(kb(warm ? at(warm.toIdle) : 0), 9)}`,
-      );
+      lines.push(`  ${pad(cat, 8)} ${columns((s) => pad(kb(at(s)), 9)).join(" ")}`);
     }
     const files = (s) => (s ? Object.values(s).reduce((n, v) => n + (v.count ?? 0), 0) : 0);
-    lines.push(`  ${pad("files", 8)} ${pad(files(cold.toGate), 9)} ${pad(files(cold.toIdle), 9)} ${pad(warm ? files(warm.toIdle) : 0, 9)}`);
+    lines.push(`  ${pad("files", 8)} ${columns((s) => pad(files(s), 9)).join(" ")}`);
     lines.push("");
   }
   return lines.join("\n");
+}
+
+/**
+ * The expression that scrolls the page to `#id` at once, through the
+ * smoother's instant scroll when one is running (the same way the shots
+ * reach a stop, tools/shots/cdp-shot.mjs), and reports the page's own
+ * clock at that moment: the mark the late phase (#111) starts from.
+ */
+export function scrollToScript(id) {
+  return `(() => {
+    const s = document.getElementById(${JSON.stringify(id)});
+    if (!s) throw new Error("no element #" + ${JSON.stringify(id)});
+    const top = s.getBoundingClientRect().top + window.scrollY;
+    if (window.__gccScrollTo) window.__gccScrollTo(top); else window.scrollTo({ top, behavior: "instant" });
+    return Math.round(performance.now());
+  })()`;
 }
 
 /**

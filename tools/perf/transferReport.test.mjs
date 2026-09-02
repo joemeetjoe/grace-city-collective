@@ -107,3 +107,38 @@ describe("posterResponses", () => {
     expect(posterResponses([r("http://h/", 900, 10), r("http://h/dore/2048/plate.webp", 378_000, 1200)])).toEqual([]);
   });
 });
+
+import { scrollToScript } from "./transferReport.mjs";
+
+describe("scrollToScript", () => {
+  it("is the page-side expression that scrolls an id into view, through the smoother when there is one", () => {
+    const js = scrollToScript("faq");
+    expect(js).toContain('getElementById("faq")');
+    expect(js).toContain("__gccScrollTo");
+    expect(js).toContain("scrollTo(");
+    // quoted as a string literal, so an odd id cannot break out of the script
+    expect(scrollToScript('a"b')).toContain(JSON.stringify('a"b'));
+  });
+});
+
+describe("the late phase", () => {
+  const cold = summarise([r("http://h/", 900, 10), r("http://h/assets/index-A.js", 300_000, 200), r("http://h/dore/2048/plate.webp", 378_000, 900)]);
+  const warm = summarise([r("http://h/", 900, 10)]);
+  const late = { id: "faq", at: 3000, responses: [r("http://h/assets/Longform-B.js", 20_480, 3400, { startedAt: 3010 })], ...summarise([r("http://h/assets/Longform-B.js", 20_480, 3400)]) };
+
+  it("adds a late column to the table when a tier scrolled on after idle, and none otherwise", () => {
+    const text = formatTable({ desktop: { cold, warm, late } });
+    expect(text).toMatch(/gate\s+idle\s+late\s+warm/);
+    expect(text).toMatch(/js\s+293\.0\s+293\.0\s+20\.0\s+0\.0/);
+    expect(text).toMatch(/total\s+663\.0\s+663\.0\s+20\.0\s+0\.9/);
+    expect(text).toMatch(/files\s+3\s+3\s+1\s+1/);
+    expect(formatTable({ desktop: { cold, warm } })).not.toContain("late");
+  });
+
+  it("the timeline slots the scroll mark and the late responses after the cold load", () => {
+    const text = formatTimeline([...cold.responses ?? [], ...late.responses], { gate: 900, "scroll #faq": late.at });
+    const lines = text.split("\n");
+    expect(lines.at(-2)).toMatch(/^\s+3000\s+-- scroll #faq$/);
+    expect(lines.at(-1)).toMatch(/^\s+3010\s+3400\s+20\.0\s+\/assets\/Longform-B\.js$/);
+  });
+});

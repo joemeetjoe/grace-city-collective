@@ -38,11 +38,12 @@ const manifest = Object.fromEntries([
       file: "assets/index-Sh3ll.js",
       isEntry: true,
       css: ["assets/index-Sty1e.css"],
-      dynamicImports: ["src/engine/PentecostParallax.tsx"],
+      dynamicImports: ["src/engine/PentecostParallax.tsx", "src/features/longform/Longform.tsx"],
       assets: ["assets/plate-2048h.webp"],
     },
   ],
   ["src/engine/PentecostParallax.tsx", { file: "assets/PentecostParallax-Eng1ne.js", isDynamicEntry: true }],
+  ["src/features/longform/Longform.tsx", { file: "assets/Longform-L0ng.js", isDynamicEntry: true }],
   font("geist-latin-wght-normal"),
   font("geist-cyrillic-wght-normal"),
   font("cormorant-garamond-latin-400-normal"),
@@ -85,6 +86,12 @@ describe("firstLoadFiles", () => {
       { path: "assets/masks-cut-0-2048h.webp", category: "texture" },
       { path: "assets/depth-2048h.webp", category: "texture" },
     ]);
+  });
+
+  it("leaves out a dynamic import the head does not module-preload: the long-form chunk arrives on demand (#111)", () => {
+    const paths = firstLoadFiles(manifest, 2048, listing).map((f) => f.path);
+    expect(paths).not.toContain("assets/Longform-L0ng.js");
+    expect(paths.filter((p) => p.endsWith(".js"))).toEqual(["assets/index-Sh3ll.js", "assets/PentecostParallax-Eng1ne.js"]);
   });
 
   it("takes the other tier's textures for the other width, and never both", () => {

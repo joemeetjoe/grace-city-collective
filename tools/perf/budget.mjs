@@ -6,15 +6,17 @@
  * it on every pull request and push to main (.github/workflows/ci.yml).
  *
  * The files come from Vite's manifest (dist/.vite/manifest.json): the shell
- * chunk and its css, the engine chunk, the latin font files, every texture
- * of the tier's src/assets/dore/<width>/ — the colour textures as their
- * AVIF twins (#101: the WebP files are fallback-only, for a browser without
- * AVIF, and never fetched alongside), the masks and depths as lossless WebP
- * — plus index.html and the favicon. A separate poster row holds the
- * fallback path's one image (the ladder rung the tier's viewport picks, in
- * AVIF; #109) against its own ceiling. Bytes are what the CDN sends: brotli
- * for html/js/css/svg, raw for avif/webp/woff2. The same categories and
- * units as `pnpm transfer`, so the two tables compare directly
+ * chunk and its css, the engine chunk (module-preloaded from the head; a
+ * dynamic import that is not, like the long-form chunk, is on demand and
+ * not counted), the latin font files, every texture of the tier's
+ * src/assets/dore/<width>/ — the colour textures as their AVIF twins (#101:
+ * the WebP files are fallback-only, for a browser without AVIF, and never
+ * fetched alongside), the masks and depths as lossless WebP — plus
+ * index.html and the favicon. A separate poster row holds the fallback
+ * path's one image (the ladder rung the tier's viewport picks, in AVIF;
+ * #109) against its own ceiling. Bytes are what the CDN sends: brotli for
+ * html/js/css/svg, raw for avif/webp/woff2. The same categories and units
+ * as `pnpm transfer`, so the two tables compare directly
  * (docs/perf/README.md).
  *
  * Usage:

@@ -3,13 +3,13 @@ import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "./section";
+import { longform } from "./section";
 
 export default function Messages() {
   const site = useSite();
   const messages = longform(site, "messages");
   return (
-    <section id={messages.id} className={LONGFORM_SECTION}>
+    <>
       <SectionRule />
       <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
         <Reveal as="header" className="flex flex-col gap-5">
@@ -56,6 +56,6 @@ export default function Messages() {
           </p>
         </Reveal>
       </div>
-    </section>
+    </>
   );
 }

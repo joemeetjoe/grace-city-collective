@@ -23,6 +23,14 @@ export function wireSize(buffer, ext) {
 export const ENGINE_ENTRY = "src/engine/PentecostParallax.tsx";
 
 /**
+ * The shell's dynamic imports a first load still requests: only the engine,
+ * module-preloaded by the head script (#98). Every other dynamic import — the
+ * long-form chunk (#111) — is asked for on demand, well after the gate, and
+ * is not first-load bytes.
+ */
+const PRELOADED_DYNAMIC = new Set([ENGINE_ENTRY]);
+
+/**
  * The font files the first screen takes, hash-insensitive: the latin faces
  * the transfer baseline (docs/perf/wire-baseline.json) saw load for both
  * tiers. The other unicode ranges and the woff fallbacks ship in dist/ but
@@ -70,10 +78,11 @@ export function firstLoadPoster(manifest, rung, format = "avif") {
  * The dist files (relative paths) a tier's first load requests, in request
  * order, each with its transfer category, read out of Vite's manifest
  * (dist/.vite/manifest.json) and the dist listing: the html and favicon,
- * the shell chunk and its css, every chunk the shell imports — the engine
- * chunk is a dynamic import, module-preloaded from the head (#98) — the
- * latin font files, and every texture of the tier's src/assets/dore/<width>/
- * on the AVIF path (tierTextureFiles).
+ * the shell chunk and its css, every chunk the shell imports statically
+ * plus the engine chunk — a dynamic import, but module-preloaded from the
+ * head (#98); the other dynamic imports arrive on demand and are left out
+ * (PRELOADED_DYNAMIC) — the latin font files, and every texture of the
+ * tier's src/assets/dore/<width>/ on the AVIF path (tierTextureFiles).
  */
 export function firstLoadFiles(manifest, width, listing, fonts = FIRST_LOAD_FONTS) {
   const entry = manifest["index.html"];
@@ -81,7 +90,7 @@ export function firstLoadFiles(manifest, width, listing, fonts = FIRST_LOAD_FONT
 
   const paths = ROOT_FILES.filter((p) => listing.includes(p));
 
-  const chunkKeys = [...(entry.imports ?? []), ...(entry.dynamicImports ?? [])];
+  const chunkKeys = [...(entry.imports ?? []), ...(entry.dynamicImports ?? []).filter((k) => PRELOADED_DYNAMIC.has(k))];
   if (!chunkKeys.includes(ENGINE_ENTRY)) throw new Error(`the shell no longer imports ${ENGINE_ENTRY}: no engine chunk to count`);
   paths.push(entry.file, ...(entry.css ?? []));
   for (const key of chunkKeys) {

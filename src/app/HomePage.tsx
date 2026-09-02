@@ -7,11 +7,7 @@ import CornerOrnaments, {
 import { STACK } from "@/theme/layerSplit";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
-import Beliefs from "@/features/longform/Beliefs";
-import Devotions from "@/features/longform/Devotions";
-import Faq from "@/features/longform/Faq";
-import Messages from "@/features/longform/Messages";
-import SiteFooter from "@/features/longform/SiteFooter";
+import LongformGate from "@/features/longform/LongformGate";
 import { IntroPendingContext, ReducedMotionContext } from "./contexts";
 import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
@@ -180,14 +176,10 @@ export default function HomePage({
         </div>
       </div>
 
-      {/* long-form: ordinary scrolling on ink, no waypoints */}
-      <div data-longform="" className="relative z-10 bg-ink">
-        <Devotions />
-        <Beliefs />
-        <Faq />
-        <Messages />
-        <SiteFooter />
-      </div>
+      {/* long-form: ordinary scrolling on ink, no waypoints. Its words come
+      in their own chunk once the reader nears (#111); the sections stand
+      from the first render */}
+      <LongformGate />
     </>
   );
 }

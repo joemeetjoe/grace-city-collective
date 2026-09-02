@@ -2,13 +2,13 @@ import { kickerCls, serif } from "@/app/styles";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
-import { LONGFORM_SECTION, longform } from "./section";
+import { longform } from "./section";
 
 export default function Faq() {
   const site = useSite();
   const faq = longform(site, "faq");
   return (
-    <section id={faq.id} className={LONGFORM_SECTION}>
+    <>
       <SectionRule />
       <div className="mx-auto flex max-w-[1080px] flex-col gap-10 md:flex-row md:gap-16">
         <Reveal as="header" className="flex flex-col gap-5 md:w-1/3">
@@ -35,6 +35,6 @@ export default function Faq() {
           ))}
         </dl>
       </div>
-    </section>
+    </>
   );
 }
