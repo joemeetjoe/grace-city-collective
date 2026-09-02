@@ -23,7 +23,14 @@ describe("tierFor", () => {
   it("Save-Data forces the mobile tier", () => {
     expect(tierFor({ width: 1920, dpr: 2, saveData: true })).toBe(TIERS.mobile);
   });
+});
 
+describe("TIERS.warmPerFrame", () => {
+  it("names how many textures each tier uploads per frame behind the splash: a phone fewer", () => {
+    expect(TIERS.mobile.warmPerFrame).toBe(3);
+    expect(TIERS.desktop.warmPerFrame).toBe(6);
+    expect(TIERS.mobile.warmPerFrame).toBeLessThan(TIERS.desktop.warmPerFrame);
+  });
 });
 
 describe("tierWidth", () => {

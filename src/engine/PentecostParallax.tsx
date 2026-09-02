@@ -14,6 +14,7 @@ import {
 import { readyOnce } from "./parallaxLoading";
 import { glslVec3, tokens } from "@/theme/tokens";
 import { createRenderGate } from "./renderGate";
+import { createTextureWarmer } from "./textureWarm";
 import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { budgetYaw, chase, orbitPose, reliefGain } from "./cameraOrbit";
 import { ascentProgress, flamePose } from "./flamePose";
@@ -373,6 +374,42 @@ export default function PentecostParallax({
     const manager = new THREE.LoadingManager();
     const loader = new THREE.TextureLoader(manager);
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
+    // once per effect run; a run torn down by StrictMode is disposed and never reports
+    const reportReady = readyOnce(() => onReadyRef.current?.());
+    // the manager's queue has drained: every texture has landed
+    let loaded = false;
+
+    // each texture warms behind the splash (#104, textureWarm.ts): a few per
+    // frame through initTexture on the renderer(s) whose materials sample it
+    // — a mask pack serves cuts on both canvases — so the first drawn frame
+    // after the handoff uploads nothing. The ready signal waits for the
+    // queue to drain; the render loop, its pacer and its gate are untouched.
+    const warmTargets = new Map<THREE.Texture, Set<THREE.WebGLRenderer>>();
+    const warmOn = (t: THREE.Texture, side: CanvasSide) => {
+      let targets = warmTargets.get(t);
+      if (!targets) warmTargets.set(t, (targets = new Set()));
+      targets.add(side === "front" && frontRenderer ? frontRenderer : renderer);
+    };
+    const warmer = createTextureWarmer<THREE.Texture>({
+      initTexture: (t) => {
+        for (const r of warmTargets.get(t) ?? [renderer]) r.initTexture(t);
+      },
+      perFrame: tierRef.current.warmPerFrame,
+    });
+    let warmRaf = 0;
+    const warmTick = () => {
+      warmRaf = 0;
+      if (disposed) return;
+      warmer.tick();
+      if (warmer.pending()) warmRaf = requestAnimationFrame(warmTick);
+      else if (loaded) reportReady();
+    };
+    /** a texture has landed: queue its upload */
+    const warm = (t: THREE.Texture) => {
+      if (disposed) return;
+      warmer.add(t);
+      if (!warmRaf && warmer.pending()) warmRaf = requestAnimationFrame(warmTick);
+    };
     const sharpen = (t: THREE.Texture, srgb = false) => {
       if (srgb) t.colorSpace = THREE.SRGBColorSpace;
       // the engraving is thousands of fine lines — without mipmaps and
@@ -404,6 +441,7 @@ export default function PentecostParallax({
         bitmaps.load(url, (bitmap) => {
           t!.image = bitmap;
           t!.needsUpdate = true;
+          warm(t!);
         });
       }
       return t;
@@ -479,8 +517,9 @@ export default function PentecostParallax({
       depthUv: UvRect = FULL_RECT,
       channel = 0,
       side: CanvasSide = "back",
-    ) =>
-      new THREE.ShaderMaterial({
+    ) => {
+      for (const t of [map, mask, depth]) warmOn(t, side);
+      return new THREE.ShaderMaterial({
         uniforms: {
           uVignette: { value: side === "front" ? 1 : 0 },
           uResolution: { value: resolution },
@@ -507,6 +546,7 @@ export default function PentecostParallax({
         depthTest: false,
         depthWrite: false,
       });
+    };
 
     /**
      * where we are in the scene's section stack: an index plus the fraction
@@ -554,11 +594,11 @@ export default function PentecostParallax({
           // every cut's colour is its own crop of the plate over its mapRect
           // (a completed figure's holds the generated hidden pixels; the
           // crowd's the figures in front of it, inpainted over)
-          const map = sharpen(loader.load(url(cut.map)), true);
+          const map = sharpen(loader.load(url(cut.map), warm), true);
           cutMaps.push(map);
           let depth = depthMap;
           if (cut.depthMap) {
-            depth = loader.load(url(cut.depthMap));
+            depth = loader.load(url(cut.depthMap), warm);
             depth.generateMipmaps = false;
             depth.minFilter = THREE.LinearFilter;
             depth.magFilter = THREE.LinearFilter;
@@ -915,21 +955,22 @@ export default function PentecostParallax({
       if (disposed) return;
       // every texture by its file name in the tier, at its hashed url, in the client's format
       const url = (file: string) => textureUrl(width, file, { avif });
-      backdrop = sharpen(loader.load(url("plate-backdrop.webp")), true);
+      backdrop = sharpen(loader.load(url("plate-backdrop.webp"), warm), true);
       // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
-      depthMap = loader.load(url("depth.webp"));
+      depthMap = loader.load(url("depth.webp"), warm);
       depthMap.generateMipmaps = false;
       depthMap.minFilter = THREE.LinearFilter;
       depthMap.magFilter = THREE.LinearFilter;
       // cuts.json is bundled, so the cut textures start loading with the
       // backdrop and the manager's queue holds all of them before the first lands
       start(parseCuts(tierCuts(width)), url, backdrop, depthMap);
-      // once per effect run; a run torn down by StrictMode is disposed and never reports
-      const reportReady = readyOnce(() => onReadyRef.current?.());
       manager.onLoad = () => {
         if (disposed) return;
         dirty = true;
-        reportReady();
+        loaded = true;
+        // the last texture's own callback ran before this, so it is queued;
+        // the warm tick reports once the queue has drained
+        if (!warmer.pending()) reportReady();
       };
       manager.onProgress = (_url, loaded, total) => {
         if (disposed) return;
@@ -946,6 +987,7 @@ export default function PentecostParallax({
       observer?.disconnect();
       gate?.dispose();
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(warmRaf);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onMove);
