@@ -119,7 +119,12 @@ verdict each capture ran under.
   poster path instead of the scene. Baseline and how to read the table
   in [`docs/perf/README.md`](../docs/perf/README.md).
 - `transferReport.mjs` — the pure helpers (`classify`, `summarise`,
-  `posterResponses`); their tests run in the unit project.
+  `posterResponses`, `textureTiers`, `textureStartVsShell`); their tests run
+  in the unit project. Against a `dist/`, each cold load is read back
+  through the Vite manifest: which tier its textures came from, and
+  whether the first texture request went out before the shell chunk had
+  landed — the head script's preloads (#113, `src/device/tierPreload.ts`)
+  put it on the wire while the shell is still downloading.
 - `budget.mjs` (`pnpm budget`) — the static byte budget from `dist/` against
   `budget.json`, with a poster row for the fallback path's one image.
 

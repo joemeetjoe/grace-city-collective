@@ -152,3 +152,48 @@ export function posterResponses(responses) {
   }
   return list;
 }
+
+/** a tier texture's source in the Vite manifest: `src/assets/dore/<width>/<file>` */
+const TIER_SOURCE = /^src\/assets\/dore\/(\d+)\/[^/]+\.(webp|avif)$/;
+
+/**
+ * Which plate widths a load's textures came from, read back through the
+ * Vite manifest (dist/.vite/manifest.json maps each source to its hashed
+ * file): `["2048"]` on a desktop load that stayed within its tier, two
+ * widths where something fetched across. A texture the manifest does not
+ * know is listed under "?".
+ */
+export function textureTiers(responses, manifest) {
+  const widthOf = new Map();
+  for (const [src, entry] of Object.entries(manifest)) {
+    const m = TIER_SOURCE.exec(src);
+    if (m) widthOf.set(`/${entry.file}`, m[1]);
+  }
+  const widths = new Set();
+  for (const res of responses) {
+    const path = new URL(res.url, "http://x").pathname;
+    if (!/\.(webp|avif)$/.test(path) || /dore-pentecost-dark-/.test(path)) continue;
+    widths.add(widthOf.get(path) ?? "?");
+  }
+  return [...widths].sort();
+}
+
+/**
+ * When the first texture request went out against the shell chunk landing:
+ * `{ firstTextureAt, shellDoneAt, beforeShell }` in ms from the first
+ * request, with nulls where a load had no texture or no shell. The head
+ * script's preloads (#113) put the first texture on the wire while the
+ * shell is still downloading; the bundle's own injector could only ask
+ * once the shell had run.
+ */
+export function textureStartVsShell(responses, shellFile) {
+  const textures = responses.filter((r) => classify(r.url, r.mimeType) === "texture" && r.startedAt != null);
+  const shell = responses.find((r) => new URL(r.url, "http://x").pathname === `/${shellFile}`);
+  const firstTextureAt = textures.length ? Math.min(...textures.map((r) => r.startedAt)) : null;
+  const shellDoneAt = shell?.finishedAt ?? null;
+  return {
+    firstTextureAt,
+    shellDoneAt,
+    beforeShell: firstTextureAt !== null && shellDoneAt !== null && firstTextureAt < shellDoneAt,
+  };
+}

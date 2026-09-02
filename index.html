@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- the hero textures are preloaded from main.tsx once the asset tier is
-         known (src/scene/preload.ts) -->
+    <!-- the build puts an inline script here, ahead of the bundle, that
+         preloads every texture of the device's tier and the engine chunk
+         (the head-preload plugin in vite.config.ts, src/device/tierPreload.ts) -->
     <title>Grace City Collective</title>
   </head>
   <body>

@@ -142,3 +142,55 @@ describe("the late phase", () => {
     expect(lines.at(-1)).toMatch(/^\s+3010\s+3400\s+20\.0\s+\/assets\/Longform-B\.js$/);
   });
 });
+
+import { textureStartVsShell, textureTiers } from "./transferReport.mjs";
+
+const manifest = {
+  "index.html": { file: "assets/index-A.js", isEntry: true },
+  "src/assets/dore/2048/map-fig5.avif": { file: "assets/map-fig5-D.avif" },
+  "src/assets/dore/2048/masks-cut-0.webp": { file: "assets/masks-cut-0-E.webp" },
+  "src/assets/dore/1024/map-fig5.avif": { file: "assets/map-fig5-M.avif" },
+  "src/assets/poster/dore-pentecost-dark-640.avif": { file: "assets/dore-pentecost-dark-640-P.avif" },
+};
+
+describe("textureTiers", () => {
+  it("names the plate widths a load's textures came from, through the manifest, posters aside", () => {
+    expect(textureTiers([r("http://h/assets/map-fig5-D.avif", 1, 10), r("http://h/assets/masks-cut-0-E.webp", 1, 20)], manifest)).toEqual(["2048"]);
+    expect(textureTiers([r("http://h/assets/map-fig5-D.avif", 1, 10), r("http://h/assets/map-fig5-M.avif", 1, 20)], manifest)).toEqual(["1024", "2048"]);
+    expect(textureTiers([r("http://h/assets/dore-pentecost-dark-640-P.avif", 1, 10), r("http://h/assets/index-A.js", 1, 5)], manifest)).toEqual([]);
+    expect(textureTiers([r("http://h/assets/stray-Z.webp", 1, 10)], manifest)).toEqual(["?"]);
+  });
+});
+
+describe("textureStartVsShell", () => {
+  it("compares the first texture request's start with the shell chunk landing", () => {
+    const early = textureStartVsShell(
+      [
+        r("http://h/", 900, 40, { startedAt: 0 }),
+        r("http://h/assets/index-A.js", 300_000, 900, { startedAt: 45 }),
+        r("http://h/assets/plate-backdrop-B.avif", 200_000, 700, { startedAt: 60 }),
+        r("http://h/assets/map-fig5-D.avif", 40_000, 1400, { startedAt: 950 }),
+      ],
+      "assets/index-A.js",
+    );
+    expect(early).toEqual({ firstTextureAt: 60, shellDoneAt: 900, beforeShell: true });
+    const late = textureStartVsShell(
+      [r("http://h/assets/index-A.js", 300_000, 900, { startedAt: 45 }), r("http://h/assets/map-fig5-D.avif", 40_000, 1400, { startedAt: 950 })],
+      "assets/index-A.js",
+    );
+    expect(late).toEqual({ firstTextureAt: 950, shellDoneAt: 900, beforeShell: false });
+  });
+
+  it("has nulls, and is not before the shell, where a load had no texture or no shell", () => {
+    expect(textureStartVsShell([r("http://h/assets/index-A.js", 1, 900, { startedAt: 45 })], "assets/index-A.js")).toEqual({
+      firstTextureAt: null,
+      shellDoneAt: 900,
+      beforeShell: false,
+    });
+    expect(textureStartVsShell([r("http://h/assets/map-fig5-D.avif", 1, 10, { startedAt: 5 })], "assets/index-A.js")).toEqual({
+      firstTextureAt: 5,
+      shellDoneAt: null,
+      beforeShell: false,
+    });
+  });
+});

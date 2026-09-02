@@ -7,11 +7,12 @@
     "mobile 913.7 kB (textures 603.8). The AVIF path is what is budgeted; the WebP fallback path is measured in docs/perf/wire-final-webp.json.",
     "js counts the shell chunk and the engine chunk only: the engine is a dynamic import the head script module-preloads (#98), so it is first-load bytes;",
     "any other dynamic import of the shell (the long-form chunk, #111) is requested on demand, after the gate, and is left out (PRELOADED_DYNAMIC in budgetReport.mjs).",
+    "html raised again 2026-09-01 (#113) to 7.8 kB measured plus ~15%: the inline head script carries both tiers' hashed texture names, so every texture of the device's tier is preloaded from the HTML.",
     "poster: the fallback path's one image (no WebGL, reduced motion, Save-Data), outside the total — the AVIF rung the tier's",
     "transfer profile picks from the ladder (tools/poster/ladder.py; #109): desktop 2048 at 486.1 kB, mobile 640 at 76.6 kB, plus ~15%.",
     "html raised 2026-09-01 (#108) to 5.7 kB measured plus ~15%: index.html now carries the noscript block and the JSON-LD generated from the site content.",
     "To raise a ceiling deliberately: change the number in the same PR as the change that needs it, and say why in the PR."
   ],
-  "desktop": { "total": 1950, "html": 6.6, "js": 262, "css": 10, "font": 54, "texture": 1625, "other": 0.5, "poster": 560 },
-  "mobile": { "total": 960, "html": 6.6, "js": 262, "css": 10, "font": 54, "texture": 635, "other": 0.5, "poster": 90 }
+  "desktop": { "total": 1950, "html": 9.0, "js": 262, "css": 10, "font": 54, "texture": 1625, "other": 0.5, "poster": 560 },
+  "mobile": { "total": 960, "html": 9.0, "js": 262, "css": 10, "font": 54, "texture": 635, "other": 0.5, "poster": 90 }
 }

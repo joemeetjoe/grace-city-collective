@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   TEXTURE_TABLE,
   channelVector,
-  isColourTexture,
   maskRef,
   resolveTexture,
   textureUrl,
   tierCuts,
   type TextureTable,
 } from "./textureManifest";
+import { isColourTexture } from "./textureKinds";
 
 const table: TextureTable = {
   "2048/plate-backdrop.webp": "/assets/plate-backdrop-a1b2c3.webp",
@@ -55,19 +55,6 @@ describe("resolveTexture", () => {
 
   it("falls back to the webp of a colour texture whose avif twin the tier lacks", () => {
     expect(resolveTexture(table, 2048, "map-dove.webp", { avif: true })).toBe("/assets/map-dove-222222.webp");
-  });
-});
-
-describe("isColourTexture", () => {
-  it("names the backdrop and the cut maps, not the masks or depths", () => {
-    expect(isColourTexture("plate-backdrop.webp")).toBe(true);
-    expect(isColourTexture("map-fig5.webp")).toBe(true);
-    expect(isColourTexture("map-flame12.webp")).toBe(true);
-    expect(isColourTexture("masks-cut-0.webp")).toBe(false);
-    expect(isColourTexture("masks-flame-1.webp")).toBe(false);
-    expect(isColourTexture("depth.webp")).toBe(false);
-    expect(isColourTexture("depth-fig5.webp")).toBe(false);
-    expect(isColourTexture("cut-arch.png")).toBe(false);
   });
 });
 

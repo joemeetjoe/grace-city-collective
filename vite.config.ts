@@ -4,7 +4,8 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { STATIC_SPLASH_ATTR, staticSplashTags } from './src/features/intro/staticSplash'
-import { engineChunkHref, enginePreloadScript } from './src/device/enginePreload'
+import { engineChunkHref } from './src/device/enginePreload'
+import { tierPreloadScript, tierTextureAssets, withHeadScript } from './src/device/tierPreload'
 import { asyncCssLinks } from './src/lib/asyncCss'
 import { fontPreloadTags } from './src/lib/fontPreload'
 import { site } from './src/content/site'
@@ -44,23 +45,22 @@ const staticSplash = (): Plugin => ({
   },
 })
 
-// The engine chunk (three.js + the parallax scene, behind the dynamic import
-// in src/engine/index.ts) module-preloaded from the HTML by an inline head
-// script, so it downloads alongside the shell — unless the device will take
-// the static poster (src/device/enginePreload.ts).
-const enginePreload = (): Plugin => ({
-  name: 'gcc:engine-preload',
+// One inline head script, the first script in the page, emitted with both
+// tiers' hashed texture names and the engine chunk's url (src/device/
+// tierPreload.ts): it starts the AVIF probe, stands down where the device
+// takes the static poster, module-preloads the engine chunk (three.js + the
+// parallax scene, behind the dynamic import in src/engine/index.ts) and
+// preloads every texture of the device's tier, so they download alongside
+// the shell rather than after it has run. Inserted ahead of Vite's module
+// script and stylesheet link, after the splash's inline style.
+const headPreload = (): Plugin => ({
+  name: 'gcc:head-preload',
   transformIndexHtml: {
     order: 'post',
-    handler(_html, ctx) {
+    handler(html, ctx) {
       if (!ctx.filename.endsWith('index.html') || !ctx.bundle) return
-      return [
-        {
-          tag: 'script',
-          children: enginePreloadScript(engineChunkHref(ctx.bundle, base)),
-          injectTo: 'head',
-        },
-      ]
+      const script = tierPreloadScript({ ...tierTextureAssets(ctx.bundle, base), engineHref: engineChunkHref(ctx.bundle, base) })
+      return { html: withHeadScript(html, script), tags: [] }
     },
   },
 })
@@ -130,7 +130,7 @@ const fontPreload = (): Plugin => ({
 
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload(), fontPreload(), asyncCss()],
+  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), headPreload(), fontPreload(), asyncCss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
