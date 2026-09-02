@@ -76,7 +76,7 @@ function GatheringMark({
         if (called) style.animationDelay = `${i * HOUSE_CALL_STAGGER_MS}ms`;
         return (
           <path
-            key={p.d}
+            key={p.id}
             data-called={called ? "" : undefined}
             d={p.d}
             fill="currentColor"

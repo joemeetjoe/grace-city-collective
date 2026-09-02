@@ -37,7 +37,7 @@ export type SceneSection = {
 };
 
 /** the heading of a long-form block; its list lives in its own field below */
-export type LongformSection = {
+export type LongformContent = {
   id: LongformId;
   kicker: string;
   heading: string;
@@ -85,7 +85,7 @@ export type SiteContent = {
   /** absent in content published before the way in existed: the site falls back to its own */
   wayIn?: Waymark[];
   wayInWords?: WayInWords;
-  longform: LongformSection[];
+  longform: LongformContent[];
   devotions: Devotion[];
   beliefPosture: BeliefPosture[];
   beliefs: Belief[];
@@ -99,7 +99,7 @@ export type SiteContent = {
 
 /** the way in, from the content or, where none was published, the built-in words */
 export function wayIn(content: SiteContent): Waymark[] {
-  return content.wayIn ?? site.wayIn!;
+  return content.wayIn ?? WAY_IN;
 }
 
 /** the way in's words, from the content or, where none were published, the built-in ones */
@@ -113,6 +113,39 @@ export function sectionIds(content: SiteContent): SectionId[] {
 }
 
 const LIVE = "https://www.gracecitycollective.com";
+
+/**
+ * The way in the site ships: five steps from a first hello to a house church
+ * of your own, and what `wayIn` falls back to where the content published
+ * none. WayIn draws one emblem per step by position, so keep them five.
+ */
+const WAY_IN: Waymark[] = [
+  {
+    id: "say-hello",
+    title: "Say hello.",
+    body: "Write to us and tell us a little about yourself — who you are, where you live, what brought you here. That's all it takes to start.",
+  },
+  {
+    id: "pastor-writes-back",
+    title: "A pastor writes back.",
+    body: "One of our house church pastors will reach out — a real person, not an office — to say hello, and to answer whatever you're wondering.",
+  },
+  {
+    id: "dinner",
+    title: "Dinner.",
+    body: "They'll set up a meal with you and yours, at their table or somewhere you like, so you know a few faces before you ever walk into a room.",
+  },
+  {
+    id: "first-sunday",
+    title: "First Sunday, all together.",
+    body: "Come to the all-church gathering, when the five rooms become one, and meet the whole family at once.",
+  },
+  {
+    id: "make-the-rounds",
+    title: "Make the rounds.",
+    body: "Then spend a Sunday in each of the house churches, until one of them feels like home. Stay there.",
+  },
+];
 
 export const site: SiteContent = {
   name: "Grace City Collective",
@@ -205,35 +238,7 @@ export const site: SiteContent = {
     },
   ],
 
-  // the way in: five steps from a first hello to a house church of your own;
-  // WayIn draws one emblem per step by position, so keep them five
-  wayIn: [
-    {
-      id: "say-hello",
-      title: "Say hello.",
-      body: "Write to us and tell us a little about yourself — who you are, where you live, what brought you here. That's all it takes to start.",
-    },
-    {
-      id: "pastor-writes-back",
-      title: "A pastor writes back.",
-      body: "One of our house church pastors will reach out — a real person, not an office — to say hello, and to answer whatever you're wondering.",
-    },
-    {
-      id: "dinner",
-      title: "Dinner.",
-      body: "They'll set up a meal with you and yours, at their table or somewhere you like, so you know a few faces before you ever walk into a room.",
-    },
-    {
-      id: "first-sunday",
-      title: "First Sunday, all together.",
-      body: "Come to the all-church gathering, when the five rooms become one, and meet the whole family at once.",
-    },
-    {
-      id: "make-the-rounds",
-      title: "Make the rounds.",
-      body: "Then spend a Sunday in each of the house churches, until one of them feels like home. Stay there.",
-    },
-  ],
+  wayIn: WAY_IN,
   // the way in's own words: the arrows tell the story on ("and then") and back ("before that")
   wayInWords: {
     list: "The way in",

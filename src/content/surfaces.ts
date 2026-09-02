@@ -9,7 +9,7 @@
  * tsconfig) injects the tags and emits the files (the gcc:surfaces plugin).
  * Strings in, strings out.
  */
-import type { SiteContent } from "./site";
+import type { SceneId, SiteContent } from "./site";
 import { tokens } from "../theme/tokens";
 
 /** where the site is served from: the deployment origin and Vite's base path */
@@ -41,7 +41,7 @@ export function siteFile(opts: SurfaceOptions, file: string): string {
   return new URL(file, siteUrl(opts)).href;
 }
 
-const scene = (site: SiteContent, id: string) => site.scene.find((s) => s.id === id);
+const scene = (site: SiteContent, id: SceneId) => site.scene.find((s) => s.id === id);
 
 /** the hero's kicker, "A house church collective · West Georgia", as a phrase: "a house church collective in West Georgia" */
 function whatAndWhere(site: SiteContent): string {

@@ -15,7 +15,8 @@
  *
  * Node-safe and relatively imported, like enginePreload.ts: vite.config.ts
  * loads this under the node tsconfig, so nothing here names the DOM types —
- * the window and Image are reached through globalThis with local shapes.
+ * the window and Image are reached through globalThis, narrowed by what is
+ * found there.
  */
 
 /** the window property the verdict lives on */
@@ -29,9 +30,31 @@ export const AVIF_PROBE_SRC =
 export type AvifVerdict = boolean | Promise<boolean>;
 
 type ImageLike = { onload: null | (() => void); onerror: null | (() => void); src: string; width: number };
-type Host = { [AVIF_VERDICT_KEY]?: AvifVerdict; Image?: new () => ImageLike };
+type ImageCtor = new () => ImageLike;
 
-const host = (): Host => globalThis as unknown as Host;
+/** the host: the window in a browser, node's global under vite.config.ts — an object whose properties are looked for, not assumed */
+const host: object = globalThis;
+
+/** a function under the host's `Image` is the DOM's constructor */
+const isImageCtor = (x: unknown): x is ImageCtor => typeof x === "function";
+
+/** the host's Image constructor, where it has one */
+function imageCtor(): ImageCtor | undefined {
+  if (!("Image" in host)) return undefined;
+  const Image: unknown = host.Image;
+  return isImageCtor(Image) ? Image : undefined;
+}
+
+/** a verdict on its way: any thenable, whichever realm's Promise made it */
+const isPending = (x: unknown): x is PromiseLike<boolean> =>
+  typeof x === "object" && x !== null && "then" in x && typeof x.then === "function";
+
+/** the verdict already on the host — settled, or on its way — or none */
+function knownVerdict(): boolean | PromiseLike<boolean> | undefined {
+  if (!(AVIF_VERDICT_KEY in host)) return undefined;
+  const known: unknown = host[AVIF_VERDICT_KEY];
+  return typeof known === "boolean" || isPending(known) ? known : undefined;
+}
 
 /**
  * The inline script: probes once and stores the verdict on the window,
@@ -52,7 +75,7 @@ export function avifProbeScript(): string {
 
 /** the same probe, from the bundle: an Image over the data URI, false where there is none */
 function probe(): Promise<boolean> {
-  const Image = host().Image;
+  const Image = imageCtor();
   if (!Image) return Promise.resolve(false);
   return new Promise((resolve) => {
     try {
@@ -72,10 +95,9 @@ function probe(): Promise<boolean> {
  * caller so the window is only ever asked once.
  */
 export function supportsAvif(): Promise<boolean> {
-  const h = host();
-  const known = h[AVIF_VERDICT_KEY];
+  const known = knownVerdict();
   if (known !== undefined) return Promise.resolve(known);
   const verdict = probe();
-  h[AVIF_VERDICT_KEY] = verdict;
+  Object.assign(host, { [AVIF_VERDICT_KEY]: verdict });
   return verdict;
 }

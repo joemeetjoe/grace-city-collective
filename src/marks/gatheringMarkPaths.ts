@@ -25,6 +25,8 @@ const MEET = 4;
 
 /** one lozenge, and how it moves when the mark is lit */
 export type Piece = {
+  /** names the lozenge in its emblem: its React key */
+  id: string;
   d: string;
   /** its transform about its own centre when lit */
   lit?: string;
@@ -49,12 +51,13 @@ function homes(): Piece[] {
     const dx = Math.cos(a);
     const dy = Math.sin(a);
     pieces.push({
+      id: `home-${i}`,
       d: lozengePath(c.x + r * dx, c.y + r * dy, w, w / LOZENGE),
       lit: `translate(${(STEP_OUT * dx).toFixed(2)}px, ${(STEP_OUT * dy).toFixed(2)}px)`,
       home: true,
     });
   }
-  pieces.push({ d: lozengePath(c.x, c.y, 6, 6 / LOZENGE), fills: true });
+  pieces.push({ id: "table", d: lozengePath(c.x, c.y, 6, 6 / LOZENGE), fills: true });
   return pieces;
 }
 
@@ -65,7 +68,13 @@ function homes(): Piece[] {
  */
 function feast(): Piece[] {
   const c = { x: GATHERING_BOX / 2, y: GATHERING_BOX / 2 };
-  return [40, 26, 12].map((w, i) => ({
+  const rings = [
+    ["outer", 40],
+    ["middle", 26],
+    ["centre", 12],
+  ] as const;
+  return rings.map(([id, w], i) => ({
+    id,
     d: lozengePath(c.x, c.y, w, w / LOZENGE),
     ...(i < DRAW_IN.length ? { lit: `scale(${DRAW_IN[i]})` } : { fills: true }),
   }));
@@ -73,7 +82,7 @@ function feast(): Piece[] {
 
 /** One alone: a single lozenge at the centre, which fills when lit — the one writing to us. */
 function one(): Piece[] {
-  return [{ d: lozengePath(GATHERING_BOX / 2, GATHERING_BOX / 2, 12, 12 / LOZENGE), fills: true }];
+  return [{ id: "one", d: lozengePath(GATHERING_BOX / 2, GATHERING_BOX / 2, 12, 12 / LOZENGE), fills: true }];
 }
 
 /**
@@ -84,8 +93,8 @@ function one(): Piece[] {
 function two(): Piece[] {
   const c = { x: GATHERING_BOX / 2, y: GATHERING_BOX / 2 };
   return [
-    { d: lozengePath(c.x, c.y, 12, 12 / LOZENGE), fills: true },
-    { d: lozengePath(c.x + 15, c.y, 12, 12 / LOZENGE), lit: `translate(-${MEET}px, 0px)` },
+    { id: "one", d: lozengePath(c.x, c.y, 12, 12 / LOZENGE), fills: true },
+    { id: "pastor", d: lozengePath(c.x + 15, c.y, 12, 12 / LOZENGE), lit: `translate(-${MEET}px, 0px)` },
   ];
 }
 
@@ -104,11 +113,12 @@ function table(): Piece[] {
     const dx = Math.cos(a);
     const dy = Math.sin(a);
     pieces.push({
+      id: `seat-${i}`,
       d: lozengePath(c.x + r * dx, c.y + r * dy, w, w / LOZENGE),
       lit: `translate(${(-DRAW_TO * dx).toFixed(2)}px, ${(-DRAW_TO * dy).toFixed(2)}px)`,
     });
   }
-  pieces.push({ d: lozengePath(c.x, c.y, 6, 6 / LOZENGE), fills: true });
+  pieces.push({ id: "table", d: lozengePath(c.x, c.y, 6, 6 / LOZENGE), fills: true });
   return pieces;
 }
 

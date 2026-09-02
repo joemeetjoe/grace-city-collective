@@ -51,7 +51,9 @@ export type StackStep = (typeof STACK)[keyof typeof STACK];
 
 /** the z-index a step of STACK sets: `z-30` → 30, `z-[15]` → 15 */
 export function stackLevel(step: StackStep): number {
-  return Number(/^z-\[?(\d+)\]?$/.exec(step)![1]);
+  const m = /^z-\[?(\d+)\]?$/.exec(step);
+  if (!m) throw new Error(`not a step of STACK: ${step}`);
+  return Number(m[1]);
 }
 
 /**

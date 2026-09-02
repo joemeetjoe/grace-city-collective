@@ -38,8 +38,8 @@ function number(block: HTMLElement): void {
   let i = 0;
   for (const child of block.childNodes) {
     const at = String(i++);
-    if (!(child instanceof Element)) continue;
-    const { style } = child as HTMLElement | SVGElement;
+    if (!(child instanceof HTMLElement || child instanceof SVGElement)) continue;
+    const { style } = child;
     if (style.getPropertyValue("--i") !== at) style.setProperty("--i", at);
   }
 }

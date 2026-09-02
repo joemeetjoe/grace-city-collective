@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { between, kicker } from "@/theme/classes";
 import { DRAW_MS, KICKER_RULE_AT_MS } from "@/theme/motion";
 import { usePanelShown } from "./Bracketed";
@@ -14,7 +16,7 @@ export default function Kicker({
   centred = false,
   drawn,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   centred?: boolean;
   /** when to draw the rule; by default, with the panel's brackets */

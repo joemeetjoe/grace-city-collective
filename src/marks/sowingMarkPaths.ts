@@ -16,6 +16,8 @@ const DOT_W = Math.round(W * 0.3);
 export const DOT = lozengePath(0, 0, DOT_W, DOT_W / 2);
 
 export type Tile = {
+  /** names the tile in the field: its React key */
+  id: string;
   row: number;
   col: number;
   /** its centre, in the logo's units */
@@ -31,7 +33,7 @@ export const TILE_LAYOUT: readonly Tile[] = (() => {
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col <= row; col++) {
       const { cx, cy } = centre(row, col);
-      const tile: Tile = { row, col, cx, cy };
+      const tile: Tile = { id: `r${row}c${col}`, row, col, cx, cy };
       if (row > 0) {
         const p = parent(row, col);
         const at = centre(p.row, p.col);

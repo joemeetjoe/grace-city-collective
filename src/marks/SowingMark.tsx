@@ -83,7 +83,7 @@ function SowingMark({ lit = false, shown = true, className, ref }: SowingMarkPro
       className={cn("block text-cream", className)}
       ref={ref}
     >
-      {TILE_LAYOUT.map(({ row, col, cx, cy }, i) => {
+      {TILE_LAYOUT.map(({ id, row, col, cx, cy }, i) => {
         const seed = row === 0;
         const on = seed || lit;
         // the pose moves the tile's own group, so the path keeps its centring
@@ -98,7 +98,7 @@ function SowingMark({ lit = false, shown = true, className, ref }: SowingMarkPro
         const rest = GRAIN_REST[i];
         const grain = rest && { ...rest, animation: lit ? HANDOFF[row] : "none" };
         return (
-          <g key={`${row}-${col}`} transform={`translate(${cx} ${cy})`}>
+          <g key={id} transform={`translate(${cx} ${cy})`}>
             <g
               data-tile=""
               data-seed={seed ? "" : undefined}

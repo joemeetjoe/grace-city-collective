@@ -91,7 +91,7 @@ export default function GatheringsStop({ section: s, ref }: StopProps) {
             const mark = marks[i];
             return (
               <div
-                key={g.title}
+                key={g.id}
                 data-gathering={mark}
                 onMouseEnter={() => setLit(mark)}
                 onMouseLeave={() =>

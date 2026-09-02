@@ -61,11 +61,9 @@ export function tierWidth(tier: Tier): TierWidth {
   return tier.textures === "1024" ? 1024 : 2048;
 }
 
-type NavigatorWithConnection = Navigator & { connection?: { saveData?: boolean } };
-
-/** the Save-Data hint, false wherever the Network Information API is missing */
+/** the Save-Data hint, false wherever the Network Information API is missing (types/globals.d.ts declares it) */
 export function readSaveData(nav: Navigator = navigator): boolean {
-  return (nav as NavigatorWithConnection).connection?.saveData === true;
+  return nav.connection?.saveData === true;
 }
 
 /** gather the tier inputs from the browser (both seams injectable for tests) */

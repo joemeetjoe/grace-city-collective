@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, type ReactNode, type Ref } from "react";
 
 import CornerOrnaments from "@/ui/CornerOrnaments";
 import { panel } from "@/theme/classes";
@@ -63,7 +63,7 @@ export default function Bracketed({
   children,
 }: {
   /** the panel, for the stop to watch (useStopPanel's useInView) */
-  ref: React.Ref<HTMLDivElement>;
+  ref: Ref<HTMLDivElement>;
   /**
    * whether the panel is shown: its brackets slide home and its words rise,
    * and reset when it is not, so every turn of the page brings them in again
@@ -73,7 +73,7 @@ export default function Bracketed({
   /** for a panel lit as a whole while the reader is over it */
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div

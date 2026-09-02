@@ -72,7 +72,7 @@ describe("StaticPoster's ladder", () => {
       const { container } = render(<StaticPoster />);
       expect(container.querySelectorAll("source")).toHaveLength(1);
     } finally {
-      delete (navigator as Navigator & { connection?: unknown }).connection;
+      Reflect.deleteProperty(navigator, "connection");
     }
     const { container } = render(<StaticPoster />);
     expect(container.querySelectorAll("source")).toHaveLength(2);

@@ -25,6 +25,8 @@ const ARM_CLASS = cn("absolute", ENTER);
 
 /** an arm, settled once: which corner it sits at, which way it runs, and its entrance */
 type Arm = {
+  /** the edge it runs along: names the arm */
+  id: "top" | "right" | "bottom" | "left";
   ends: RuleEnds;
   vertical: boolean;
   /** the corner's two edges, which take the inset */
@@ -42,8 +44,18 @@ type Arm = {
 /** home: in place, at full length */
 const HOME: CSSProperties = { opacity: 1, transform: "translate(0px, 0px) scale(1)" };
 
-function arm(ends: RuleEnds, vertical: boolean, edges: Arm["edges"], dx: number, dy: number, origin: string, order: number): Arm {
+function arm(
+  id: Arm["id"],
+  ends: RuleEnds,
+  vertical: boolean,
+  edges: Arm["edges"],
+  dx: number,
+  dy: number,
+  origin: string,
+  order: number,
+): Arm {
   return {
+    id,
     ends,
     vertical,
     edges,
@@ -65,10 +77,10 @@ const o = ENTER_OFFSET;
  * one running right along the bottom, one running up the side.
  */
 const ARMS: readonly Arm[] = [
-  arm("start", false, ["top", "right"], o, -o, "100% 50%", 0),
-  arm("end", true, ["top", "right"], o, -o, "50% 0%", 1),
-  arm("end", false, ["bottom", "left"], -o, o, "0% 50%", 2),
-  arm("start", true, ["bottom", "left"], -o, o, "50% 100%", 3),
+  arm("top", "start", false, ["top", "right"], o, -o, "100% 50%", 0),
+  arm("right", "end", true, ["top", "right"], o, -o, "50% 0%", 1),
+  arm("bottom", "end", false, ["bottom", "left"], -o, o, "0% 50%", 2),
+  arm("left", "start", true, ["bottom", "left"], -o, o, "50% 100%", 3),
 ];
 
 /**
@@ -103,7 +115,7 @@ function CornerOrnaments({ arm: length = COPY_ARM, inset = "0px", shown = true, 
     >
       {ARMS.map((a, i) => (
         <OrnateRule
-          key={a.order}
+          key={a.id}
           ends={a.ends}
           vertical={a.vertical}
           drawn={shown}

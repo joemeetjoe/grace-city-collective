@@ -70,7 +70,8 @@ function Seal({
   ref,
   ...rest
 }: SealProps): JSX.Element {
-  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  // React 19.2's ids (`_r_0_`) are already valid in an id attribute and a `url(#…)`; the `:r0:` form of old was not
+  const id = useId();
   const ids = {
     body: `${id}-body`,
     face: `${id}-face`,
