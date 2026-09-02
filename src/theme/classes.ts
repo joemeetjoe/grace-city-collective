@@ -1,5 +1,7 @@
 import { cva } from "class-variance-authority";
 
+import type { SceneId } from "../content/site";
+
 /**
  * The site's shared Tailwind bundles, in one place: every class string more
  * than one component wears is built here, so what an element ends up with is
@@ -183,6 +185,46 @@ export const stopBody = cva("text-base leading-relaxed text-pretty text-cream/80
   },
 });
 
+/* ---- a stop's words beside a column ornament ----------------------------- */
+
+/** a stop's column of words: the kicker, then the headline and paragraphs rising together */
+export const STOP_COLUMN = "flex flex-col gap-5 md:gap-[26px]";
+
+/**
+ * The words beside a column ornament (the house table, the shared life):
+ * the column, taking the panel's width less the ornament's and stood off
+ * it from md up.
+ */
+export const WORDS_BESIDE = `${STOP_COLUMN} min-w-0 flex-1 md:pr-[clamp(24px,2.4vw,40px)]`;
+
+/**
+ * Where a stop's column ornament sits (HouseChurchesStop, AboutStop): from
+ * md up in a column on the right of the words past a divider, the drawing
+ * absolutely placed inside (ORNAMENT_IN_COLUMN) so it fills the column's
+ * height (set by the words beside it) without ever adding to it; on a
+ * phone, where the words need the whole width, under them at the panel's
+ * left, its own height. The desktop column's width is each ornament's own:
+ * the house table's the calendar's mirror; the shared life's the column
+ * the who-we-are tuck clears for the two near apostles — never narrower
+ * than the table's, so on a wide screen where the tuck is slight the words
+ * give up the room instead.
+ */
+export const ornamentColumn = cva(
+  "relative mt-5 shrink-0 md:mt-0 md:w-[clamp(72px,20vw,120px)] md:border-l md:border-cream/25 md:pl-[clamp(20px,2vw,32px)]",
+  {
+    variants: {
+      ornament: {
+        table: "lg:w-[clamp(150px,12vw,200px)]",
+        life: "lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_var(--spacing-panel-pad)))]",
+      },
+    },
+  },
+);
+
+/** the drawing in its column from md up: absolutely placed, the column's height, its width less the divider's padding */
+export const ORNAMENT_IN_COLUMN =
+  "w-[clamp(72px,20vw,120px)] md:absolute md:inset-y-1 md:right-0 md:h-[calc(100%_-_8px)] md:w-[calc(100%_-_clamp(20px,2vw,32px))]";
+
 /* ---- a stop's frame and where its panel tucks ---------------------------- */
 
 /**
@@ -216,7 +258,7 @@ export const stopBody = cva("text-base leading-relaxed text-pretty text-cream/80
  * (layerSplit.ts), so nothing reaches a panel at rest there; the panels
  * only rise from behind the figures on the way in.
  */
-export const TUCK: Partial<Record<string, string>> = {
+export const TUCK: Partial<Record<SceneId, string>> = {
   about:
     "lg:self-start lg:mt-[clamp(96px,12vh,140px)] lg:pl-panel-pad lg:max-[1439px]:[--tuck:clamp(32px,calc(588px_-_22.7vw_+_4.8vh),320px)] min-[1440px]:ml-[clamp(24px,1.9vw,48px)] min-[1440px]:max-[1799px]:[--tuck:clamp(32px,calc(585px_-_20.8vw_+_4.8vh),340px)] min-[1800px]:[--tuck:clamp(32px,calc(505px_-_20.8vw_+_4.8vh),340px)]",
   gatherings:
@@ -240,7 +282,7 @@ export const TUCK: Partial<Record<string, string>> = {
  * lg the seal row sits over the top of every section and the lockup over
  * its foot; desktop keeps its unpadded frames.
  */
-export function stopFrame(id: string): { base: string; clear: string } {
+export function stopFrame(id: SceneId): { base: string; clear: string } {
   const holds = id === "hero" || id === "visit";
   const base = `relative flex ${holds ? "min-h-[100lvh]" : "lg:min-h-[100svh]"} ${gutter} max-lg:px-8`;
   const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";

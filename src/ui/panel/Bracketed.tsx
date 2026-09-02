@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
 
 import CornerOrnaments from "@/ui/CornerOrnaments";
 import { panel } from "@/theme/classes";
@@ -30,9 +30,19 @@ export const PANEL_SHOWN_BELOW_LG: InViewOptions = {
   initial: true,
 };
 
-/** whether the copy panel around a component is shown, for ornaments that come in with its brackets */
+/** whether the copy panel around a component is shown; true outside any panel, so a kicker on the bare scene draws */
+const PanelShownContext = createContext(true);
+
+/**
+ * Whether the copy panel around a component is shown (#121): what a kicker,
+ * a reveal or an ornament inside a panel asks, to come in with its brackets.
+ * A stop itself stands outside its panel and has the answer already
+ * (useStopPanel); this is for what renders within.
+ */
 // eslint-disable-next-line react-refresh/only-export-components
-export const PanelShownContext = createContext(true);
+export function usePanelShown(): boolean {
+  return useContext(PanelShownContext);
+}
 
 /**
  * A scene stop's copy block: a panel of frosted glass, so the words read

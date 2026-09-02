@@ -1,8 +1,6 @@
-import { useContext } from "react";
-
 import { between, kicker } from "@/theme/classes";
 import { DRAW_MS, KICKER_RULE_AT_MS } from "@/theme/motion";
-import { PanelShownContext } from "./Bracketed";
+import { usePanelShown } from "./Bracketed";
 
 /**
  * A section's kicker with the hairline rule under it, both between the
@@ -22,7 +20,7 @@ export default function Kicker({
   /** when to draw the rule; by default, with the panel's brackets */
   drawn?: boolean;
 }) {
-  const shown = useContext(PanelShownContext);
+  const shown = usePanelShown();
   const on = drawn ?? shown;
   return (
     <div

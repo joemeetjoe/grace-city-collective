@@ -7,6 +7,8 @@ import { useInTurn } from "@/ui/useInTurn";
 import { useInView } from "@/ui/useInView";
 import { useBelowLg } from "@/layout/breakpoint";
 import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
+import type { HoverHandlers, PanelWatch } from "./Stop";
+import { useHoverLit } from "./useHoverLit";
 
 // on a phone a stop's ornament plays the pointer's part a beat after its rows
 // have printed in (useInTurn, ORNAMENT_LIT_AT_MS), so its rest state — the
@@ -16,16 +18,31 @@ import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 
 /**
  * The panel logic every stop shares: the stop's panel, watched for when it
- * is shown (PANEL_SHOWN_*). Below lg the same signal plays the stop's
- * ornament — the pointer's part on desktop — while the panel is settled on
- * screen, and undoes it as the panel leaves; under reduced motion the panel
- * is shown and the ornament rests.
+ * is shown (PANEL_SHOWN_*), and what lights its ornament on this device.
+ * From lg up that is the pointer over the panel (`hover`, for the Stop to
+ * take); below lg the same signal that shows the panel plays the ornament
+ * while the panel is settled on screen, and undoes it as the panel leaves;
+ * under reduced motion the panel is shown and the ornament rests. `lit`
+ * is that choice made, so no stop asks which device it is on.
  *
  * `count` is how many pieces light in turn below lg (EMBLEM_LIT_STEP_MS
- * apart): the gatherings' emblems pass their number, every other stop's
- * single ornament leaves the default — the hooks run identically either way.
+ * apart): the gatherings' emblems pass their number and read `inTurn`;
+ * every other stop's single ornament leaves the default and reads `lit` —
+ * the hooks run identically either way.
  */
-export function useStopPanel(count = 1) {
+export function useStopPanel(count = 1): {
+  /** the panel, for the Stop to watch */
+  panel: PanelWatch;
+  /** the pointer over the panel, for a Stop whose ornament lights as a whole */
+  hover: HoverHandlers;
+  /** whether the panel is shown: what its ornaments take to come in with its brackets */
+  shown: boolean;
+  /** whether the stop's ornament is lit, on this device */
+  lit: boolean;
+  belowLg: boolean;
+  /** below lg, how many of `count` pieces have lit in turn */
+  inTurn: number;
+} {
   const belowLg = useBelowLg();
   const reduced = useAppStore((s) => s.reducedMotion);
   const [panelRef, settled] = useInView<HTMLDivElement>(
@@ -42,5 +59,13 @@ export function useStopPanel(count = 1) {
     EMBLEM_LIT_STEP_MS,
     ORNAMENT_LIT_AT_MS,
   );
-  return { panel: { ref: panelRef, shown }, belowLg, reduced, playing, inTurn };
+  const { over, hover } = useHoverLit();
+  return {
+    panel: { ref: panelRef, shown },
+    hover,
+    shown,
+    lit: belowLg ? playing : over,
+    belowLg,
+    inTurn,
+  };
 }

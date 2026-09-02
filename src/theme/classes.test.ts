@@ -10,15 +10,19 @@ import {
   GLASS_CORNERS,
   LINK_SWEEP,
   LONGFORM_SECTION,
+  ORNAMENT_IN_COLUMN,
   PHONE_BODY,
   STACK,
+  STOP_COLUMN,
   TUCK,
+  WORDS_BESIDE,
   between,
   button,
   gutter,
   kicker,
   longformContainer,
   longformHeading,
+  ornamentColumn,
   panel,
   pill,
   serif,
@@ -178,11 +182,11 @@ describe("the bundles answer with the class lists they replaced", () => {
     const frame = (holds: boolean) =>
       `relative flex ${holds ? "min-h-[100lvh]" : "lg:min-h-[100svh]"} px-[clamp(20px,4.4vw,60px)] max-lg:px-8`;
     const clear = "pt-[clamp(88px,11vh,110px)] pb-[clamp(72px,9vh,96px)] lg:py-0";
-    for (const id of ["hero", "visit"]) {
+    for (const id of ["hero", "visit"] as const) {
       expectSame(stopFrame(id).base, frame(true));
       expect(stopFrame(id).clear).toBe(clear);
     }
-    for (const id of ["about", "house-churches", "gatherings", "give"]) {
+    for (const id of ["about", "house-churches", "gatherings", "give"] as const) {
       expectSame(stopFrame(id).base, frame(false));
       expect(stopFrame(id).clear).toBe(clear);
     }
@@ -196,6 +200,21 @@ describe("the bundles answer with the class lists they replaced", () => {
     expect(TUCK.give).toBe("lg:translate-x-[clamp(120px,9.4vw,160px)] lg:px-[clamp(120px,9.4vw,160px)]");
     expect(TUCK["house-churches"]).toBeUndefined();
     expect(TUCK.visit).toBeUndefined();
+  });
+
+  it("the words beside a column ornament, and the column (#121)", () => {
+    expect(STOP_COLUMN).toBe("flex flex-col gap-5 md:gap-[26px]");
+    expect(WORDS_BESIDE).toBe("flex flex-col gap-5 md:gap-[26px] min-w-0 flex-1 md:pr-[clamp(24px,2.4vw,40px)]");
+    const column =
+      "relative mt-5 shrink-0 md:mt-0 md:w-[clamp(72px,20vw,120px)] md:border-l md:border-cream/25 md:pl-[clamp(20px,2vw,32px)]";
+    expectSame(ornamentColumn({ ornament: "table" }), `${column} lg:w-[clamp(150px,12vw,200px)]`);
+    expectSame(
+      ornamentColumn({ ornament: "life" }),
+      `${column} lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_var(--spacing-panel-pad)))]`,
+    );
+    expect(ORNAMENT_IN_COLUMN).toBe(
+      "w-[clamp(72px,20vw,120px)] md:absolute md:inset-y-1 md:right-0 md:h-[calc(100%_-_8px)] md:w-[calc(100%_-_clamp(20px,2vw,32px))]",
+    );
   });
 
   it("the long-form", () => {
