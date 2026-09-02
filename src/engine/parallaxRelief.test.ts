@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  FULL_RECT,
   flameKey,
   FLAME_LIFT,
   HUDDLE,
   bindFlames,
+  depthRect,
   displaceLocal,
   huddleShift,
   parseCuts,
@@ -14,29 +16,57 @@ import {
   segmentsFor,
 } from "./parallaxRelief";
 
+const crowd = { name: "crowd", z: -0.9, isFlame: 0, map: "map-crowd.webp", mapRect: [0, 0.4, 1, 0.4] as const };
+const fig3 = {
+  name: "fig3",
+  z: 1.78,
+  isFlame: 0,
+  relief: 1,
+  map: "map-fig3.webp",
+  mapRect: [0.77, 0.47, 0.23, 0.35] as const,
+  depthMap: "depth-fig3.webp",
+};
+
 describe("parseCuts", () => {
   it("defaults legacy entries without a relief flag to flat", () => {
-    const cuts = parseCuts([
-      { name: "crowd", z: -0.9, isFlame: 0 },
-      { name: "fig3", z: 1.78, isFlame: 0, relief: 1 },
-    ]);
+    const cuts = parseCuts([crowd, fig3]);
 
-    expect(cuts).toEqual([
-      { name: "crowd", z: -0.9, isFlame: 0, relief: 0 },
-      { name: "fig3", z: 1.78, isFlame: 0, relief: 1 },
-    ]);
+    expect(cuts).toEqual([{ ...crowd, relief: 0 }, fig3]);
   });
 
+  it("insists every cut carries its own map and the plate rect it covers", () => {
+    // the plate texture is retired (#99): there is nothing for a cut without
+    // a map to sample, so a manifest that omits one is refused outright
+    expect(() => parseCuts([{ name: "dove", z: -3, isFlame: 0 }])).toThrow(/dove/);
+    expect(() => parseCuts([{ name: "dove", z: -3, isFlame: 0, map: "map-dove.webp" }])).toThrow(/dove/);
+    expect(() => parseCuts([{ ...crowd, name: "arch", map: undefined }])).toThrow(/arch/);
+  });
+});
+
+describe("depthRect", () => {
+  it("is the map's rect for a cut with its own depth map, which covers the same window", () => {
+    expect(depthRect(fig3)).toEqual(rectToUv(fig3.mapRect));
+  });
+
+  it("is the whole plate for a cut that samples the shared depth, whatever its map rect", () => {
+    // fig1 and fig13 have relief but no depth crop of their own: depth.webp
+    // is still the whole plate, so its uv must not follow the colour crop
+    const fig1 = { ...fig3, name: "fig1", depthMap: undefined };
+    expect(depthRect(fig1)).toEqual(FULL_RECT);
+    expect(depthRect(crowd)).toEqual(FULL_RECT);
+  });
 });
 
 describe("bindFlames", () => {
+  // every cut carries a crop of its own; the rect is immaterial here
+  const own = (name: string) => ({ name, map: `map-${name}.webp`, mapRect: [0, 0, 1, 1] as const });
   const cuts = parseCuts([
-    { name: "fig5", z: 2.3, isFlame: 0, relief: 1 },
-    { name: "crowd", z: -0.9, isFlame: 0, map: "map-crowd.jpg" },
-    { name: "flame5", z: -1.4, isFlame: 1, parent: "fig5" },
-    { name: "flame6", z: -2.0, isFlame: 1, parent: "crowd" },
-    { name: "flame7", z: -1.7, isFlame: 1, parent: "fig99" },
-    { name: "flame8", z: -1.4, isFlame: 1 },
+    { ...own("fig5"), z: 2.3, isFlame: 0, relief: 1 },
+    { ...own("crowd"), z: -0.9, isFlame: 0 },
+    { ...own("flame5"), z: -1.4, isFlame: 1, parent: "fig5" },
+    { ...own("flame6"), z: -2.0, isFlame: 1, parent: "crowd" },
+    { ...own("flame7"), z: -1.7, isFlame: 1, parent: "fig99" },
+    { ...own("flame8"), z: -1.4, isFlame: 1 },
   ]);
 
   it("rests each flame just in front of its parent, on the same plane", () => {
@@ -142,8 +172,8 @@ describe("segmentsFor", () => {
 });
 
 describe("rectToUv", () => {
-  it("is the whole plate when a cut has no map rectangle", () => {
-    expect(rectToUv(undefined)).toEqual([0, 0, 1, 1]);
+  it("leaves the whole plate as the whole plate", () => {
+    expect(rectToUv([0, 0, 1, 1])).toEqual(FULL_RECT);
   });
 
   it("flips a top-down plate rectangle into bottom-up uv space", () => {

@@ -11,20 +11,20 @@ import {
 } from "./textureManifest";
 
 const table: TextureTable = {
-  "2048/plate.webp": "/assets/plate-a1b2c3.webp",
-  "1024/plate.webp": "/assets/plate-d4e5f6.webp",
+  "2048/plate-backdrop.webp": "/assets/plate-backdrop-a1b2c3.webp",
+  "1024/plate-backdrop.webp": "/assets/plate-backdrop-d4e5f6.webp",
   "2048/masks-cut-0.webp": "/assets/masks-cut-0-0a0a0a.webp",
   "2048/cut-arch.png": "/assets/cut-arch-777777.png",
 };
 
 describe("resolveTexture", () => {
   it("maps a tier's file name to its hashed url", () => {
-    expect(resolveTexture(table, 2048, "plate.webp")).toBe("/assets/plate-a1b2c3.webp");
-    expect(resolveTexture(table, 1024, "plate.webp")).toBe("/assets/plate-d4e5f6.webp");
+    expect(resolveTexture(table, 2048, "plate-backdrop.webp")).toBe("/assets/plate-backdrop-a1b2c3.webp");
+    expect(resolveTexture(table, 1024, "plate-backdrop.webp")).toBe("/assets/plate-backdrop-d4e5f6.webp");
   });
 
   it("never hands one tier the other's texture", () => {
-    expect(resolveTexture(table, 2048, "plate.webp")).not.toBe(resolveTexture(table, 1024, "plate.webp"));
+    expect(resolveTexture(table, 2048, "plate-backdrop.webp")).not.toBe(resolveTexture(table, 1024, "plate-backdrop.webp"));
     expect(() => resolveTexture(table, 1024, "masks-cut-0.webp")).toThrow(/1024\/masks-cut-0\.webp/);
   });
 
@@ -37,11 +37,12 @@ describe("the bundled texture table", () => {
   const files = (width: number) => Object.keys(TEXTURE_TABLE).filter((k) => k.startsWith(`${width}/`));
 
   it("holds every webp of both tiers, each under its own hashed url", () => {
-    expect(files(2048)).toHaveLength(35);
-    expect(files(1024)).toHaveLength(35);
+    // the backdrop, 32 cut maps, 11 figure depths, the shared depth, 9 mask packs
+    expect(files(2048)).toHaveLength(54);
+    expect(files(1024)).toHaveLength(54);
     expect(files(2048).map((k) => k.slice(5)).sort()).toEqual(files(1024).map((k) => k.slice(5)).sort());
-    expect(textureUrl(2048, "plate.webp")).not.toBe(textureUrl(1024, "plate.webp"));
-    expect(new Set(Object.values(TEXTURE_TABLE)).size).toBe(70);
+    expect(textureUrl(2048, "plate-backdrop.webp")).not.toBe(textureUrl(1024, "plate-backdrop.webp"));
+    expect(new Set(Object.values(TEXTURE_TABLE)).size).toBe(108);
   });
 
   it("bundles each tier's cuts.json", () => {

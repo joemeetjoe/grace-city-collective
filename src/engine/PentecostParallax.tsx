@@ -24,7 +24,18 @@ import { bakeUv, maskBounds, type MaskBounds } from "@/device/maskBounds";
 import { TIERS, tierWidth, type Tier } from "@/device/tier";
 import { getScrollTop } from "@/scroll/position";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
-import { bindFlames, huddleShift, parseCuts, rectToUv, reliefUniforms, segmentsFor, type Cut, type UvRect } from "./parallaxRelief";
+import {
+  FULL_RECT,
+  bindFlames,
+  depthRect,
+  huddleShift,
+  parseCuts,
+  rectToUv,
+  reliefUniforms,
+  segmentsFor,
+  type Cut,
+  type UvRect,
+} from "./parallaxRelief";
 import { RAY_NEAR_Z, createRayLayer, rayIntensity, rayRenderOrder, raySpecs, type RayLayer } from "./rayPlanes";
 import { SCROLL_DPR, createScrollDpr, movingDprFor } from "./scrollDpr";
 import { channelVector, maskRef, textureUrl, tierCuts } from "@/device/textureManifest";
@@ -37,16 +48,19 @@ import { VIGNETTE_GLSL } from "./vignette";
  *
  * Assets in src/assets/dore/<tier>/ (dore-recut pack_textures.py), served
  * content-hashed through textureManifest.ts:
- *   plate.webp           the engraving (2048x2519 in the desktop tier)
- *   plate-backdrop.webp  the plate with every cutout inpainted back in
- *   cuts.json            [{ name, z, isFlame, relief?, parent?, at?, mask }] — a
- *                        flame's parent is the head it hangs over; it rests
- *                        just in front of that cut, on its plane (see
- *                        bindFlames), and leaves it from `at` (see flamePose);
- *                        mask is { file, channel } into the packed textures
+ *   plate-backdrop.webp  the plate (the engraving, 2048x2519 in the desktop
+ *                        tier) with every cutout inpainted back in
+ *   map-<name>.webp      each cut's colour, a crop of the plate over its
+ *                        mapRect (#99: nothing samples the whole plate)
+ *   cuts.json            [{ name, z, isFlame, relief?, parent?, at?, map,
+ *                        mapRect, depthMap?, mask }] — a flame's parent is
+ *                        the head it hangs over; it rests just in front of
+ *                        that cut, on its plane (see bindFlames), and leaves
+ *                        it from `at` (see flamePose); mask is
+ *                        { file, channel } into the packed textures
  *   masks-*.webp         four greyscale masks per texture, one per channel
  *   depth.webp           baked depth of the plate (white = near), drives the
- *                        per-figure relief displacement
+ *                        relief of a figure without a depth crop of its own
  *
  * The masks are a partition of unity — they sum to 1 at every pixel — so the
  * layers reassemble the plate exactly, which is why the cuts leave no seams.
@@ -57,8 +71,8 @@ import { VIGNETTE_GLSL } from "./vignette";
  * wordmark and the hero headline; everything else stays on this one, under
  * the page. The camera's layer mask is switched between the two passes.
  * Textures load once (they are shared THREE.Texture objects) but a context
- * can only sample what it uploaded, so the two the front figures share with
- * the back — the plate and its depth — are uploaded to both.
+ * can only sample what it uploaded, so what the front figures share with
+ * the back — the packed masks and the shared depth — is uploaded to both.
  */
 
 type Layer = {
@@ -152,14 +166,14 @@ const FLAME_GLOW_HEX = "#f2a86a";
 const VERT = `
 uniform float uFit;
 uniform sampler2D depthMap;
-uniform vec4 uMapRect;
+uniform vec4 uDepthRect;
 uniform float uRelief, uCamZ, uLayerZ, uScale;
 varying vec2 vUv;
 void main(){
   vUv = (uv - 0.5) / uFit + 0.5;
   vec3 p = position;
-  // a cut's own depth map covers only its mapRect of the plate
-  vec2 duv = (vUv - uMapRect.xy) / uMapRect.zw;
+  // a cut's own depth map covers only its rect of the plate (depthRect)
+  vec2 duv = (vUv - uDepthRect.xy) / uDepthRect.zw;
   // world-space push toward the camera; 0.5 is the plate's rest plane
   float dz = (texture2D(depthMap, duv).r - 0.5) * uRelief;
   // shrink toward the axis so the displaced vertex projects exactly where the
@@ -193,8 +207,8 @@ void main(){
   // quantises to nothing, so the soft edges are untouched; uFlat holds m at
   // 1, so the backdrop never discards
   if (m < 0.002) discard;
-  // a cut's own color map may cover only its mapRect of the plate (the mask
-  // is zero outside it, so nothing samples past the texture)
+  // a cut's color map covers only its mapRect of the plate (the mask is
+  // zero outside it, so nothing samples past the texture)
   vec3 col = texture2D(map, (uv - uMapRect.xy) / uMapRect.zw).rgb;
 
   float lum = dot(col, vec3(0.333));
@@ -360,7 +374,7 @@ export default function PentecostParallax({
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
     const sharpen = (t: THREE.Texture, srgb = false) => {
       if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-      // the plate is thousands of fine engraved lines — without mipmaps and
+      // the engraving is thousands of fine lines — without mipmaps and
       // anisotropy they alias into a shimmering woven-cloth moiré
       t.generateMipmaps = true;
       t.minFilter = THREE.LinearMipmapLinearFilter;
@@ -368,7 +382,6 @@ export default function PentecostParallax({
       t.anisotropy = maxAniso;
       return t;
     };
-    const plate = sharpen(loader.load(url("plate.webp")), true);
     const backdrop = sharpen(loader.load(url("plate-backdrop.webp")), true);
     // no sharpen(): the vertex fetch samples lod 0, so mipmaps would never be read
     const depthMap = loader.load(url("depth.webp"));
@@ -464,7 +477,8 @@ export default function PentecostParallax({
       isFlame: number,
       flat: number,
       depth: THREE.Texture = depthMap,
-      rect: UvRect = rectToUv(undefined),
+      rect: UvRect = FULL_RECT,
+      depthUv: UvRect = FULL_RECT,
       channel = 0,
       side: CanvasSide = "back",
     ) =>
@@ -477,6 +491,7 @@ export default function PentecostParallax({
           uMaskChannel: { value: new THREE.Vector4(...channelVector(channel)) },
           depthMap: { value: depth },
           uMapRect: { value: new THREE.Vector4(...rect) },
+          uDepthRect: { value: new THREE.Vector4(...depthUv) },
           uRelief: { value: 0 },
           uCamZ: { value: baseZ },
           uLayerZ: { value: 0 },
@@ -537,11 +552,11 @@ export default function PentecostParallax({
         .map((cut, i) => {
           const ref = maskRef(cut, url);
           const mask = maskTexture(ref.url);
-          // a cut with its own color map (the crowd: its plate region contains
-          // the figures; a completed figure: its hidden pixels were generated)
-          // samples that instead of the shared plate, over its mapRect
-          const map = cut.map ? sharpen(loader.load(url(cut.map)), true) : plate;
-          if (cut.map) cutMaps.push(map);
+          // every cut's colour is its own crop of the plate over its mapRect
+          // (a completed figure's holds the generated hidden pixels; the
+          // crowd's the figures in front of it, inpainted over)
+          const map = sharpen(loader.load(url(cut.map)), true);
+          cutMaps.push(map);
           let depth = depthMap;
           if (cut.depthMap) {
             depth = loader.load(url(cut.depthMap));
@@ -551,7 +566,7 @@ export default function PentecostParallax({
             cutMaps.push(depth);
           }
           const side = sideOf(canvasFor(cut, 0, tierRef.current.name));
-          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), ref.channel, side);
+          const mat = material(map, mask, cut.isFlame, 0, depth, rectToUv(cut.mapRect), depthRect(cut), ref.channel, side);
           mat.name = cut.name;
           // each plane is scaled so every cut registers at the opening framing
           const bounds = maskBounds(cut.name);
@@ -894,8 +909,8 @@ export default function PentecostParallax({
     // iOS only delivers those events after a permission prompt raised from a touch
     const disarmGyro = armGyroOnFirstTouch(window);
 
-    // cuts.json is bundled, so the cut textures start loading with the plate
-    // and the manager's queue holds all of them before the first one lands
+    // cuts.json is bundled, so the cut textures start loading with the
+    // backdrop and the manager's queue holds all of them before the first lands
     start(parseCuts(tierCuts(width)));
     // once per effect run; a run torn down by StrictMode is disposed and never reports
     const reportReady = readyOnce(() => onReadyRef.current?.());
@@ -934,7 +949,6 @@ export default function PentecostParallax({
       emberLayer?.dispose();
       for (const t of cutMaps) t.dispose();
       for (const t of maskTextures.values()) t.dispose();
-      plate.dispose();
       backdrop.dispose();
       depthMap.dispose();
       renderer.dispose();

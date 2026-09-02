@@ -10,13 +10,18 @@ import { tierWidth, type Tier } from "./tier";
 
 export type PreloadLink = { href: string; as: "image" | "fetch"; type?: string };
 
-/** plate, backdrop, the packed masks of the nearest apostles, and their maps */
+/**
+ * the backdrop, then the four nearest cuts — the floor and the foreground
+ * apostles, packed together in masks-cut-0 — with their maps (there is no
+ * whole-plate texture any more, #99: every cut samples a crop of its own)
+ */
 const HERO_TEXTURES: ReadonlyArray<{ file: string; as: PreloadLink["as"] }> = [
-  { file: "plate.webp", as: "image" },
   { file: "plate-backdrop.webp", as: "image" },
   // the mask packs go through createImageBitmap → fetch(), which an
   // as="image" preload would never match
   { file: "masks-cut-0.webp", as: "fetch" },
+  { file: "map-floor.webp", as: "image" },
+  { file: "map-fig13.webp", as: "image" },
   { file: "map-fig5.webp", as: "image" },
   { file: "map-fig10.webp", as: "image" },
 ];
