@@ -101,7 +101,10 @@ The Doré layers in `public/dore/` are produced by the standalone
 `tools/recut` here; SAM segmentation, depth baking, SDXL inpainting of
 occluded figures). Regenerate there and copy its `out/dore/{2048,1024}`
 into `public/dore/`. `tools/shots/cdp-shot.mjs` takes
-headless-Chrome screenshots of the scene at scroll waypoints, and
+headless-Chrome screenshots of the scene at scroll waypoints,
+`tools/perf/transfer.mjs` (`pnpm transfer`) measures the bytes each tier
+sends over the wire on a cold and a warm load (baseline and how to read it
+in [`docs/perf/`](docs/perf/README.md)), and
 `tools/shots/mobile-check.mjs` is the standing mobile guard: it loads the
 built site at the four phone/tablet sizes (375×667, 390×844, 430×932 at
 dpr 3; 768×1024 at dpr 2) and fails if the page is ever wider than the

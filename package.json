@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "transfer": "node tools/perf/transfer.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
