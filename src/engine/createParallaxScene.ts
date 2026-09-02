@@ -64,7 +64,11 @@ import { CAMERA, DOVE_V, FIT, GL_FLAGS, PLATE, SCENE_DEFAULTS, SCROLL_PROBE } fr
 
 export type SceneCanvases = {
   back: HTMLCanvasElement;
-  /** a second canvas, stacked above the page's type, for the nearest layers; without it everything draws to the one canvas */
+  /**
+   * a second canvas, stacked above the page's type, for the nearest layers;
+   * left out (undefined) everything draws to the one canvas. `null` is a
+   * front canvas the page meant to hand over and had not mounted: an error
+   */
   front?: HTMLCanvasElement | null;
 };
 
@@ -85,6 +89,12 @@ export type SceneConfig = {
   onProgress?: (loaded: number, total: number) => void;
   /** every texture landed and uploaded, once */
   onReady?: () => void;
+  /**
+   * the scene gave up (#131), once: a refused context or a missing front
+   * canvas at mount, the manifest or a texture while loading. Without a
+   * listener the failure throws (or rejects) as it would have
+   */
+  onError?: (err: Error) => void;
   /** a debug build hands the built scene here (the page hangs it on its seam for cdp-rects.mjs) */
   debug?: (scene: SceneDebug) => void;
 };
@@ -105,6 +115,32 @@ export function createParallaxScene(
   options: Partial<SceneOptions> = {},
   env: SceneEnv = browserEnv(),
 ): SceneHandle {
+  // the error path (#131): the first failure reaches config.onError, or
+  // throws where there is no listener; a mount that fails hands back an
+  // inert handle, its canvases left to the page
+  let failed = false;
+  const fail = (err: unknown) => {
+    if (failed) return;
+    failed = true;
+    if (!config.onError) throw err;
+    config.onError(err instanceof Error ? err : new Error(String(err)));
+  };
+  try {
+    return mountScene(canvases, config, options, env, fail);
+  } catch (err) {
+    fail(err);
+    return { setOptions() {}, dispose() {} };
+  }
+}
+
+function mountScene(
+  canvases: SceneCanvases,
+  config: SceneConfig,
+  options: Partial<SceneOptions>,
+  env: SceneEnv,
+  fail: (err: unknown) => void,
+): SceneHandle {
+  if (canvases.front === null) throw new Error("front canvas missing");
   const opts: SceneOptions = { ...SCENE_DEFAULTS, ...options };
   const { tier } = config;
   const reducedMotion = config.reducedMotion ?? false;
@@ -168,6 +204,7 @@ export function createParallaxScene(
     if (!warmRaf && warmer.pending()) warmRaf = env.raf(warmTick);
   };
   const textures = createTextureSet({ maxAniso: renderer.capabilities.getMaxAnisotropy(), onLand: warm });
+  textures.manager.onError = (url) => fail(new Error(`texture failed: ${url}`));
 
   let baseZ = 20;
   let layers: Layer[] = [];
@@ -428,7 +465,8 @@ export function createParallaxScene(
       config.onProgress?.(done, total);
     };
   };
-  void env.supportsAvif().then(load);
+  // the manifest throwing, or the build itself, lands here too
+  void env.supportsAvif().then(load).catch(fail);
 
   return {
     setOptions(next) {

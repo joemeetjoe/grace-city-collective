@@ -13,6 +13,7 @@ import { useViewportHeight } from "@/layout/viewportHeight";
 import type { SectionRegistry } from "@/scroll/sections";
 import type { PageScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
+import SceneBoundary from "./SceneBoundary";
 
 /**
  * the scene, from the engine chunk: requested the moment the page mounts (not
@@ -57,6 +58,10 @@ export default function HomePage({
   const site = useSite();
   const intro = useAppStore((s) => s.intro);
   const fallback = useAppStore((s) => s.fallback);
+  const sceneError = useAppStore((s) => s.sceneError);
+  // the poster stands in where the mount decided against the scene, and
+  // where the scene has since given up (#131: engine/sceneError.ts)
+  const poster = fallback || sceneError !== null;
   const tier = useAppStore((s) => s.tier);
   // the tier the scene mounts with, held for the mount: its textures are cut
   // for this one and never reload, so the store's live tier (state/syncTier.ts)
@@ -102,18 +107,20 @@ export default function HomePage({
           data-parallax=""
           className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
         >
-          {fallback ? (
+          {poster ? (
             <StaticPoster onReady={markReady} />
           ) : (
-            <Suspense fallback={null}>
-              <PentecostParallax
-                layerSpread={1.25}
-                tier={engineTier}
-                frontCanvas={frontCanvasRef}
-                sections={sceneSections}
-                scrollTop={scroll.scrollTop}
-              />
-            </Suspense>
+            <SceneBoundary>
+              <Suspense fallback={null}>
+                <PentecostParallax
+                  layerSpread={1.25}
+                  tier={engineTier}
+                  frontCanvas={frontCanvasRef}
+                  sections={sceneSections}
+                  scrollTop={scroll.scrollTop}
+                />
+              </Suspense>
+            </SceneBoundary>
           )}
           {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}
           <div
@@ -126,7 +133,7 @@ export default function HomePage({
         {/* the front canvas: the floor, the two nearest apostles on the left
         and the embers, drawn from the same scene over the hero headline
         (layerSplit.ts). Transparent, and no pointer events */}
-        {!fallback && (
+        {!poster && (
           <div
             ref={frontRef}
             data-parallax-front=""

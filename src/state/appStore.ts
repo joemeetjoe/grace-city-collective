@@ -27,6 +27,12 @@ export type AppState = {
   progress: number;
   /** every texture (or the poster) has arrived */
   ready: boolean;
+  /**
+   * why the scene gave up (#131): a texture or its manifest failed, WebGL was
+   * refused at mount, the front canvas was missing. The poster stands in
+   * from here; `fallback` stays the mount's own decision
+   */
+  sceneError: string | null;
   /** the section under the viewport's midpoint, read by the nav links and the dot rail alike */
   activeId: SectionId | null;
   /** the scene is on screen; once it has scrolled away the nav takes an ink backdrop */
@@ -47,6 +53,8 @@ export type AppActions = {
   /** a texture arrived: how many so far, of how many requested */
   setProgress: (loaded: number, total: number) => void;
   markReady: () => void;
+  /** the scene failed: record the first reason and count as ready, so the splash opens onto the poster */
+  failScene: (message: string) => void;
   setActiveId: (id: SectionId | null) => void;
   setSceneInView: (inView: boolean) => void;
   /** the device reads as another tier now (a resize across the line, another display) */
@@ -63,6 +71,7 @@ export const REST_STATE: AppState = {
   fallback: false,
   progress: 0,
   ready: false,
+  sceneError: null,
   activeId: null,
   sceneInView: true,
 };
@@ -73,6 +82,7 @@ export const useAppStore = create<AppStore>()((set) => ({
   finishIntro: () => set({ intro: false }),
   setProgress: (loaded, total) => set({ progress: total ? loaded / total : 0 }),
   markReady: () => set({ ready: true }),
+  failScene: (message) => set((s) => ({ sceneError: s.sceneError ?? message, ready: true })),
   setActiveId: (activeId) => set({ activeId }),
   setSceneInView: (sceneInView) => set({ sceneInView }),
   setTier: (tier) => set({ tier }),

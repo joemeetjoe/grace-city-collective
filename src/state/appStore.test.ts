@@ -73,6 +73,19 @@ describe("appStore", () => {
     expect(state().sceneInView).toBe(true);
   });
 
+  it("a failed scene records why and counts as ready, so the gate opens onto the poster (#131)", () => {
+    state().init({ intro: true, reducedMotion: false, tier: TIERS.desktop, fallback: false });
+    expect(state().sceneError).toBeNull();
+    state().failScene("texture failed: /assets/map-fig5.avif");
+    expect(state()).toMatchObject({ sceneError: "texture failed: /assets/map-fig5.avif", ready: true, intro: true, fallback: false });
+    // the first failure is the one on record
+    state().failScene("front canvas missing");
+    expect(state().sceneError).toBe("texture failed: /assets/map-fig5.avif");
+    // a new mount starts clean
+    state().init({ intro: false, reducedMotion: false, tier: TIERS.desktop, fallback: false });
+    expect(state()).toMatchObject({ sceneError: null, ready: false });
+  });
+
   it("takes the device's live tier as a fact, leaving every other fact alone", () => {
     state().init({ intro: true, reducedMotion: false, tier: TIERS.desktop, fallback: false });
     state().setTier(TIERS.mobile);

@@ -14,6 +14,7 @@ import * as THREE from "three";
 
 import { TIERS } from "@/device/tier";
 import { REST_STATE, useAppStore } from "@/state/appStore";
+import { SCENE_ERROR_PREFIX } from "./sceneError";
 
 type FakeRenderer = {
   canvas: HTMLCanvasElement;
@@ -34,6 +35,10 @@ const fakes = vi.hoisted(() => ({
   deliveries: 0,
   /** ms between two textures landing */
   stepMs: 5,
+  /** the error path (#131): a context the platform refuses, a texture that fails, the tier's cuts.json missing */
+  refuseWebgl: false,
+  failUrl: null as RegExp | null,
+  manifest: true,
 }));
 
 vi.mock("three", async (orig) => {
@@ -47,6 +52,7 @@ vi.mock("three", async (orig) => {
     scene: THREE.Scene | null = null;
     capabilities = { getMaxAnisotropy: () => 16 };
     constructor({ canvas }: { canvas: HTMLCanvasElement }) {
+      if (fakes.refuseWebgl) throw new Error("Error creating WebGL context.");
       this.canvas = canvas;
       if (fakes.renderers.some((r) => r.canvas === canvas && !r.disposed)) fakes.contextClashes += 1;
       fakes.renderers.push(this);
@@ -93,7 +99,9 @@ vi.mock("three", async (orig) => {
     manager.itemStart(url);
     fakes.deliveries += 1;
     setTimeout(() => {
-      land();
+      // a failed request, as three's loaders report one: the manager hears the error, then the item ends
+      if (fakes.failUrl?.test(url)) manager.itemError(url);
+      else land();
       manager.itemEnd(url);
     }, fakes.deliveries * fakes.stepMs);
   };
@@ -121,6 +129,17 @@ vi.mock("three", async (orig) => {
 
 vi.mock("@/device/avif", () => ({ supportsAvif: () => Promise.resolve(false) }));
 
+vi.mock("@/device/textureManifest", async (orig) => {
+  const mod = await orig<typeof import("@/device/textureManifest")>();
+  return {
+    ...mod,
+    tierCuts: (width: Parameters<typeof mod.tierCuts>[0]) => {
+      if (!fakes.manifest) throw new Error(`no ${width}/cuts.json in the manifest`);
+      return mod.tierCuts(width);
+    },
+  };
+});
+
 import PentecostParallax from "./PentecostParallax";
 
 /** the canvas's IntersectionObserver, driven by the test: off screen until `show()` */
@@ -130,6 +149,9 @@ beforeEach(() => {
   fakes.renderers.length = 0;
   fakes.contextClashes = 0;
   fakes.deliveries = 0;
+  fakes.refuseWebgl = false;
+  fakes.failUrl = null;
+  fakes.manifest = true;
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "requestAnimationFrame", "cancelAnimationFrame"] });
   vi.stubGlobal(
     "ResizeObserver",
@@ -152,6 +174,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   useAppStore.setState(REST_STATE);
 });
@@ -187,11 +210,15 @@ async function mountAndLoad(front: boolean) {
 
 describe("PentecostParallax texture warm-up (#104)", () => {
   it("reports ready to the store only once every texture has landed and been initialised", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
     const { progress } = await mountAndLoad(false);
     const [renderer] = fakes.renderers;
     // one report per texture, the last at the whole
     expect(progress.length).toBe(fakes.deliveries);
     expect(progress.at(-1)).toBe(1);
+    // and nothing went wrong on the way
+    expect(useAppStore.getState().sceneError).toBeNull();
+    expect(errors).not.toHaveBeenCalled();
     // nothing rendered yet (the canvas was off screen); the warmer did every upload
     expect(renderer.renders).toHaveLength(0);
     expect(renderer.initialised.size).toBeGreaterThan(20);
@@ -255,6 +282,68 @@ describe("PentecostParallax as a wrapper (#120)", () => {
     const source = await import("./PentecostParallax.tsx?raw");
     expect(source.default).not.toMatch(/from "three"/);
     expect(source.default).not.toMatch(/querySelector|document\.hidden|window\./);
-    expect(source.default.trimEnd().split("\n").length).toBeLessThan(80);
+    expect(source.default.trimEnd().split("\n").length).toBeLessThan(90);
+  });
+});
+
+describe("PentecostParallax error path (#131)", () => {
+  /** the store after a failure: the reason, and ready so the splash opens onto the poster */
+  const failure = () => {
+    const { sceneError, ready } = useAppStore.getState();
+    return { sceneError, ready };
+  };
+  /** console.error calls under the scene's prefix */
+  const logged = (errors: ReturnType<typeof vi.spyOn>) => errors.mock.calls.filter(([first]: unknown[]) => first === SCENE_ERROR_PREFIX);
+
+  it("a manifest that throws fails the scene once, ready and logged, before any texture is asked for", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakes.manifest = false;
+    render(<PentecostParallax tier={TIERS.mobile} sections={sections()} />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(failure()).toEqual({ sceneError: "no 1024/cuts.json in the manifest", ready: true });
+    expect(logged(errors)).toHaveLength(1);
+    expect(errors).toHaveBeenCalledTimes(1);
+    // the backdrop and the depth map went out; no cut did
+    expect(fakes.deliveries).toBe(2);
+  });
+
+  it("a texture that fails to load fails the scene with its url, once however many fail after it", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakes.failUrl = /map-/;
+    render(<PentecostParallax tier={TIERS.mobile} sections={sections()} />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(failure()).toEqual({ sceneError: null, ready: false });
+    for (let i = 0; i < 400 && !useAppStore.getState().ready; i++) await frame();
+    const { sceneError, ready } = failure();
+    expect(ready).toBe(true);
+    expect(sceneError).toMatch(/^texture failed: .*map-.*\.webp$/);
+    // every map fails; the manager drains all the same
+    await act(() => vi.advanceTimersByTimeAsync(fakes.deliveries * fakes.stepMs));
+    expect(useAppStore.getState().sceneError).toBe(sceneError);
+    expect(logged(errors)).toHaveLength(1);
+    expect(errors).toHaveBeenCalledTimes(1);
+  });
+
+  it("a front canvas the page meant to hand over but had not mounted fails the scene before any context is taken", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<PentecostParallax tier={TIERS.mobile} frontCanvas={{ current: null }} sections={sections()} />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(failure()).toEqual({ sceneError: "front canvas missing", ready: true });
+    expect(fakes.renderers).toHaveLength(0);
+    expect(fakes.deliveries).toBe(0);
+    expect(errors).toHaveBeenCalledTimes(1);
+    expect(logged(errors)).toHaveLength(1);
+  });
+
+  it("a refused WebGL context at mount fails the scene, logged once, and the wrapper still unmounts clean", async () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakes.refuseWebgl = true;
+    const { unmount } = render(<PentecostParallax tier={TIERS.mobile} sections={sections()} />);
+    expect(failure()).toEqual({ sceneError: "Error creating WebGL context.", ready: true });
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(fakes.deliveries).toBe(0);
+    expect(logged(errors)).toHaveLength(1);
+    expect(errors).toHaveBeenCalledTimes(1);
+    expect(() => unmount()).not.toThrow();
   });
 });

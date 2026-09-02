@@ -4,6 +4,7 @@ import { TIERS, type Tier } from "@/device/tier";
 import { useAppStore } from "@/state/appStore";
 import { seam } from "@/state/seam";
 import { createParallaxScene, type SceneHandle } from "./createParallaxScene";
+import { reportSceneError } from "./sceneError";
 import type { SceneOptions } from "./tick";
 import { SCENE_DEFAULTS } from "./tuning";
 
@@ -27,8 +28,9 @@ export type PentecostParallaxProps = Partial<Omit<SceneOptions, "reliefMax">> & 
 /**
  * The scene as a component: mounts createParallaxScene() against its own canvas
  * (and the front one), forwards the live options, and disposes. The loading
- * progress and the ready signal go to the app store; a debug build hangs the
- * built scene on the page's seam for tools/shots/cdp-rects.mjs. Under StrictMode
+ * progress, the ready signal and a failure go to the app store (a failure
+ * logged once on the way, sceneError.ts); a debug build hangs the built
+ * scene on the page's seam for tools/shots/cdp-rects.mjs. Under StrictMode
  * the first mount is disposed whole before the second builds: one live renderer per canvas.
  */
 export default function PentecostParallax({
@@ -66,7 +68,7 @@ export default function PentecostParallax({
     const debug = import.meta.env.VITE_SCENE_DEBUG ? (scene: unknown) => void (seam().scene = scene) : undefined;
     handle.current = createParallaxScene(
       { back: canvas, front: frontCanvas?.current },
-      { tier, rays, embers, reducedMotion, sections, scrollTop, onProgress: setProgress, onReady: markReady, debug },
+      { tier, rays, embers, reducedMotion, sections, scrollTop, onProgress: setProgress, onReady: markReady, onError: reportSceneError, debug },
       options.current,
     );
     return () => {

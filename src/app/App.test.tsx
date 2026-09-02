@@ -11,13 +11,18 @@ import * as life from "@/features/stops/SharedLife";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
+import { SCENE_ERROR_PREFIX } from "@/engine/sceneError";
 import { MENU_LABEL } from "@/features/nav/MobileNav";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import type { ScrollDriver } from "@/scroll/position";
 import { revealTargets } from "@/state/revealTargets";
+import { useAppStore } from "@/state/appStore";
+import { TRACE_MIN_SECONDS } from "@/theme/motion";
 
-// jsdom cannot probe for WebGL; each test says whether it is there
-const seams = vi.hoisted(() => ({ webgl: true }));
+// jsdom cannot probe for WebGL; each test says whether it is there — and
+// what the scene's stand-in does once mounted (#131): report ready, fail
+// while loading, or throw out of its render
+const seams = vi.hoisted(() => ({ webgl: true, scene: "ready" as "ready" | "fail" | "throw" }));
 vi.mock("@/device/fallback", async (orig) => ({
   ...(await orig<typeof import("@/device/fallback")>()),
   detectWebgl: () => seams.webgl,
@@ -67,13 +72,22 @@ vi.mock("@/features/intro/handoff", async (orig) => {
   };
 });
 
-// WebGL does not exist in jsdom: stand in for the scene and report ready at once
+// WebGL does not exist in jsdom: stand in for the scene and report ready at
+// once — or fail the way the wrapper does when a texture fails, or throw
+// out of the render as a broken chunk would
 vi.mock("@/engine/PentecostParallax", async () => {
   const { useEffect } = await import("react");
   const { useAppStore } = await import("@/state/appStore");
+  const { reportSceneError } = await import("@/engine/sceneError");
+  function BrokenScene(): never {
+    throw new Error("engine chunk broke");
+  }
   function ParallaxStub() {
-    useEffect(() => useAppStore.getState().markReady(), []);
-    return <div data-parallax-stub="" />;
+    useEffect(() => {
+      if (seams.scene === "fail") reportSceneError(new Error("texture failed: /assets/map-fig5.avif"));
+      else useAppStore.getState().markReady();
+    }, []);
+    return seams.scene === "throw" ? <BrokenScene /> : <div data-parallax-stub="" />;
   }
   return { default: ParallaxStub };
 });
@@ -138,6 +152,7 @@ beforeEach(() => {
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
+  seams.scene = "ready";
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -331,6 +346,66 @@ describe("App static fallback", () => {
     expect(
       container.querySelector("[data-parallax] [data-poster]"),
     ).not.toBeNull();
+  });
+});
+
+describe("App scene boundary (#131)", () => {
+  const store = () => useAppStore.getState();
+  const fakeClock = () =>
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "requestAnimationFrame", "cancelAnimationFrame"] });
+  /** console.error calls under the scene's prefix */
+  const logged = (errors: ReturnType<typeof vi.spyOn>) => errors.mock.calls.filter(([first]: unknown[]) => first === SCENE_ERROR_PREFIX);
+  /**
+   * the splash's floor, a frame at a time: the fake clock fires the frames
+   * the trace starts on, but gsap keeps its own clock (a Date.now it took at
+   * load, out of the fake's reach), so its root timeline is stepped by hand
+   * alongside — the manual ticking gsap.updateRoot is there for
+   */
+  const runFloor = () =>
+    act(() => {
+      const from = gsap.ticker.time;
+      for (let i = 1; i <= Math.ceil((TRACE_MIN_SECONDS * 1000) / 16) + 8; i++) {
+        vi.advanceTimersByTime(16);
+        gsap.updateRoot(from + i * 0.016);
+      }
+    });
+  afterEach(() => vi.useRealTimers());
+
+  it("a scene that fails while loading gives way to the poster, and the splash opens once the floor has run", async () => {
+    seams.scene = "fail";
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakeClock();
+    const { container } = render(<App />);
+    // the engine chunk lands, the stand-in mounts and fails
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    expect(container.querySelector("[data-parallax] [data-poster] img")).not.toBeNull();
+    expect(container.querySelector("[data-parallax-front]")).toBeNull();
+    expect(store()).toMatchObject({ sceneError: "texture failed: /assets/map-fig5.avif", ready: true, fallback: false, intro: true });
+    // ready, but the floor has not run: the splash holds
+    expect(handoffs.list).toHaveLength(0);
+    runFloor();
+    expect(handoffs.list).toHaveLength(1);
+    act(() => {
+      handoffs.list[0].progress(1);
+    });
+    expect(store().intro).toBe(false);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(logged(errors)).toHaveLength(1);
+  });
+
+  it("a throw out of the engine chunk is caught at the scene's boundary: the poster stands in, the page stays up, one line is logged", async () => {
+    seams.scene = "throw";
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakeClock();
+    const { container } = render(<App />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    expect(container.querySelector("[data-parallax] [data-poster] img")).not.toBeNull();
+    expect(container.querySelector("[data-parallax-front]")).toBeNull();
+    expect(store()).toMatchObject({ sceneError: "engine chunk broke", ready: true, intro: true });
+    expect(container.querySelectorAll("section[data-screen-label]")).toHaveLength(site.scene.length);
+    expect(logged(errors)).toHaveLength(1);
   });
 });
 
