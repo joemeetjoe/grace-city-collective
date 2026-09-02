@@ -1,12 +1,9 @@
 import { type CSSProperties, useState } from "react";
 
-import GatheringMark, {
-  type Emblem,
-  TRACE_MS,
-  TRACE_STAGGER_MS,
-} from "@/marks/GatheringMark";
-import { FOCUS_RING } from "@/theme/interact";
+import GatheringMark, { type Emblem } from "@/marks/GatheringMark";
+import { FOCUS_RING } from "@/theme/classes";
 import { lozengePath } from "@/theme/lozenge";
+import { DRAW_MS, MARK_TRACE_STAGGER_MS, RULE_STAGGER_MS } from "@/theme/motion";
 import type { Waymark } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +38,6 @@ export type WayInProps = {
 const WAY_EMBLEMS: readonly Emblem[] = ["one", "two", "table", "feast", "homes"];
 const NUMERALS = ["I", "II", "III", "IV", "V"] as const;
 
-/** the wait from one span of the rule drawing to the next, in ms (each takes MOVE's 700) */
-export const RULE_STAGGER_MS = 160;
-
 /** the way the traveller is walking, from the last step to this one */
 type Direction = "next" | "back";
 
@@ -52,9 +46,9 @@ const TRAVELLER_W = 10;
 const ARROW_W = 44;
 const ARROW_H = 24;
 
-/** the rule's halves and the traveller move on the site's ease, only where motion is welcome */
+/** the rule's halves and the traveller move (700ms, one span RULE_STAGGER_MS after the last) on the site's ease, only where motion is welcome */
 const MOVE =
-  "motion-safe:transition-[transform,opacity] motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
+  "motion-safe:transition-[transform,opacity] motion-safe:duration-700 motion-safe:ease-site";
 
 /**
  * A diamond arrow: a lozenge filled in the seal's red with a cream chevron
@@ -122,8 +116,8 @@ export default function WayIn({ steps, step, onStep, shown = true, single = fals
   if (travel.step !== step) setTravel({ step, dir: step > travel.step ? "next" : "back" });
   const dir = travel.step === step ? travel.dir : undefined;
   // the emblems trace in after the rule has reached them; alone, at once
-  const traceAt = (i: number) => (single ? 0 : i * (RULE_STAGGER_MS + TRACE_STAGGER_MS));
-  const railDone = traceAt(last) + TRACE_MS;
+  const traceAt = (i: number) => (single ? 0 : i * (RULE_STAGGER_MS + MARK_TRACE_STAGGER_MS));
+  const railDone = traceAt(last) + DRAW_MS;
   const spanStyle = (i: number, drawn: boolean): CSSProperties => ({
     transitionDelay: shown ? `${i * RULE_STAGGER_MS}ms` : "0ms",
     transform: shown ? "scaleX(1)" : "scaleX(0)",
@@ -150,7 +144,7 @@ export default function WayIn({ steps, step, onStep, shown = true, single = fals
           // on a phone 56px wide, where "before that" wraps to two lines, so the way in — two
           // arrows and five steps — fits a 375px viewport inside its panel (#51); from md wide
           // enough that it stays on one line; it lifts a hair under the pointer, no glow
-          "mt-[6px] flex w-[56px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-0.5 pt-1 text-seal md:w-[108px] md:gap-[5px] md:px-1 transition-[opacity,color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
+          "mt-[6px] flex w-[56px] shrink-0 cursor-pointer flex-col items-center gap-[7px] self-start rounded-sm px-0.5 pt-1 text-seal md:w-[108px] md:gap-[5px] md:px-1 transition-[opacity,color,transform] duration-500 ease-site hover:-translate-y-px hover:text-seal-deep active:translate-y-0 disabled:pointer-events-none disabled:text-cream/35",
           FOCUS_RING,
         )}
         style={{
@@ -227,7 +221,7 @@ export default function WayIn({ steps, step, onStep, shown = true, single = fals
                   className="text-[10px] tracking-[0.12em] md:text-[11px] font-serif"
                   style={{
                     opacity: shown ? 1 : 0,
-                    transition: `opacity ${TRACE_MS}ms ease ${traceAt(i)}ms`,
+                    transition: `opacity ${DRAW_MS}ms ease ${traceAt(i)}ms`,
                   }}
                 >
                   {NUMERALS[i] ?? i + 1}

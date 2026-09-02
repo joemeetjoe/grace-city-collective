@@ -8,16 +8,13 @@ import {
 import { useInTurn } from "@/ui/useInTurn";
 import { useInView } from "@/ui/useInView";
 import { useBelowLg } from "@/layout/breakpoint";
+import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 
-/**
- * On a phone a stop's ornament plays the pointer's part a beat after its
- * rows have printed in (useInTurn), so its rest state — the program, the
- * empty table, the seed, the traced emblems — is seen first, as it is on a
- * desktop before the pointer arrives; the gathering emblems then light one
- * after the next, a beat apart.
- */
-export const ORNAMENT_LIT_AT_MS = 1200;
-export const EMBLEM_LIT_STEP_MS = 400;
+// on a phone a stop's ornament plays the pointer's part a beat after its rows
+// have printed in (useInTurn, ORNAMENT_LIT_AT_MS), so its rest state — the
+// program, the empty table, the seed, the traced emblems — is seen first, as
+// it is on a desktop before the pointer arrives; the gathering emblems then
+// light one after the next, a beat apart (EMBLEM_LIT_STEP_MS)
 
 /**
  * The panel logic every stop shares: the stop's panel, watched for when it

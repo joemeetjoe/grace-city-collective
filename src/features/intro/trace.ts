@@ -1,4 +1,12 @@
 import { gsap } from "@/lib/gsap";
+import {
+  STALL_COUNTED_MS,
+  STALL_THRESHOLD_MS,
+  TRACE_EASE,
+  TRACE_GLIDE_EASE,
+  TRACE_GLIDE_PACE,
+  TRACE_MIN_SECONDS,
+} from "@/theme/motion";
 
 /**
  * The loading trace: the seal-red rule around the splash's G mark draws
@@ -7,24 +15,12 @@ import { gsap } from "@/lib/gsap";
 
 /** the rule never closes before the gate opens; it waits here, a corner short */
 export const TRACE_HOLD = 0.92;
-/** the floor's run: even a cached load sees the line travel this long */
-export const TRACE_MIN_SECONDS = 1.2;
-/** the floor's pace: near-even around the box, so the first corner is not rushed */
-export const TRACE_EASE = "power1.inOut";
-/**
- * The glide's pace when the textures are ahead of the floor, as a multiple
- * of the floor's own: quicker, since there is news, but never a leap — a
- * cached load sees the line drawn, not dropped in
- */
-export const TRACE_GLIDE_PACE = 1.25;
+/** the floor's run (TRACE_MIN_SECONDS), its pace (TRACE_EASE) and the glide's pace as a multiple of it (TRACE_GLIDE_PACE) are motion tokens (theme/motion.ts) */
 
 /** how long the rule takes to glide out to the textures' share from where it is */
 export function glideSeconds(from: number, to: number): number {
   return (Math.max(0, to - from) * TRACE_MIN_SECONDS) / TRACE_GLIDE_PACE;
 }
-/** the rule's last stretch, once the textures are in */
-export const TRACE_FINISH_SECONDS = 0.35;
-
 /**
  * How much of the rule to show: whichever is further along, the time floor
  * or the textures, and never past the hold.
@@ -46,14 +42,7 @@ export function ruleReach(rule: SVGPathElement): number {
   return Number.isFinite(offset) ? 1 - offset : 0;
 }
 
-/**
- * A frame that took longer than this (texture decode, the scene coming up
- * underneath) is counted as one short frame while the splash is up, so the
- * rule never leaps across a stall: gsap's own lag smoothing, tightened from
- * its 500 ms / 33 ms default.
- */
-export const STALL_THRESHOLD_MS = 100;
-export const STALL_COUNTED_MS = 16;
+/** gsap's own lag-smoothing default, put back once the splash is down (the tightened pair: STALL_* in theme/motion.ts) */
 const GSAP_LAG_DEFAULTS = [500, 33] as const;
 
 /** tighten gsap's lag smoothing for the splash; the return puts the default back */
@@ -100,7 +89,7 @@ export function createTrace(rule: SVGPathElement | null, vars: gsap.TimelineVars
     glide = gsap.to(state, {
       loaded: target,
       duration: glideSeconds(state.loaded, target),
-      ease: "power1.out",
+      ease: TRACE_GLIDE_EASE,
       onUpdate: draw,
       onComplete: () => {
         glide = null;

@@ -1,9 +1,11 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { gutter, kickerCls } from "@/app/styles";
 import { site } from "@/content/site";
-import { BELOW_LG_QUERY as BREAKPOINT_BELOW_LG, LG_PX } from "@/layout/breakpoint";
+import { BELOW_LG_QUERY as BREAKPOINT_BELOW_LG } from "@/layout/breakpoint";
+import { LG_PX } from "@/theme/breakpoints";
+import { gutter, kicker as kickerCls } from "@/theme/classes";
+import { GUTTER, vwClamp } from "@/theme/measures";
 import HeroStop from "./HeroStop";
 import {
   BELOW_LG_QUERY,
@@ -24,7 +26,9 @@ describe("heroMetrics", () => {
     const section = container.querySelector("section")!;
     expect(section.className).toContain(`pt-[${HERO_STOP_TOP}]`);
     expect(section.className).toContain(gutter);
-    expect(gutter).toBe(`px-[${HERO_GUTTER}]`);
+    // px-gutter reads --spacing-gutter (index.css); the splash writes the same clamp out (theme/measures.ts)
+    expect(gutter).toBe("px-gutter");
+    expect(HERO_GUTTER).toBe(vwClamp(GUTTER));
     expect(section.className).toContain("max-lg:px-8");
     expect(HERO_GUTTER_BELOW_LG).toBe("32px");
     const h1 = container.querySelector("h1")!;

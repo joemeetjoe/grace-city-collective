@@ -1,4 +1,4 @@
-import { kickerCls, serif } from "@/app/styles";
+import { kicker, longformContainer, longformHeading, serif } from "@/theme/classes";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import ScriptureRefs from "./ScriptureRefs";
@@ -11,14 +11,14 @@ export default function Devotions() {
   return (
     <>
       <SectionRule />
-      <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
+      <div className={`${longformContainer} gap-10`}>
         <Reveal
           as="header"
           className="flex max-w-[640px] flex-col gap-5"
         >
-          <p className={kickerCls}>{devotions.kicker}</p>
+          <p className={kicker}>{devotions.kicker}</p>
           <h2
-            className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
+            className={longformHeading}
           >
             {devotions.heading}
           </h2>

@@ -3,20 +3,23 @@
  * classes say, written out once so the splash can set the same headline in
  * the same box before the stylesheet arrives (features/intro/staticSplash.ts,
  * #107). Tailwind finds its classes by scanning source for literal strings,
- * so HeroStop and styles.ts keep the literals; heroMetrics.test.tsx holds
- * the two to the same numbers.
+ * so HeroStop and theme/classes.ts keep the literals; heroMetrics.test.tsx
+ * holds the two to the same numbers. The shared measures and the breakpoint
+ * are the theme's (measures.ts, breakpoints.ts), written out here as CSS.
  *
  * DOM-free, with relative imports: the static splash is built under the node
  * tsconfig (vite.config.ts).
  */
+import { LG_PX } from "../../theme/breakpoints";
+import { GUTTER, vwClamp } from "../../theme/measures";
 
 /** the stop's top padding, above the kicker: pt-[…] on the hero section */
 export const HERO_STOP_TOP = "clamp(112px,17vh,180px)";
-/** the stops' side padding from lg up (styles.ts gutter) and below it (max-lg:px-8) */
-export const HERO_GUTTER = "clamp(20px,4.4vw,60px)";
+/** the stops' side padding from lg up (theme/classes.ts gutter, the --spacing-gutter measure) and below it (max-lg:px-8) */
+export const HERO_GUTTER = vwClamp(GUTTER);
 export const HERO_GUTTER_BELOW_LG = "32px";
 
-/** the kicker over the headline: its type (styles.ts kickerCls; the line height is the page's 1.5) */
+/** the kicker over the headline: its type (theme/classes.ts kicker; the line height is the page's 1.5) */
 export const HERO_KICKER = {
   size: "11px",
   lineHeight: "1.5",
@@ -35,6 +38,6 @@ export const HERO_HEADLINE_STYLE = {
   measure: "7.155em",
 } as const;
 
-/** Tailwind's lg, as the media queries the static splash's style writes (layout/breakpoint.ts LG_PX) */
-export const LG_QUERY = "(min-width: 1024px)";
-export const BELOW_LG_QUERY = "(max-width: 1023.98px)";
+/** Tailwind's lg, as the media queries the static splash's style writes (theme/breakpoints.ts LG_PX; layout/breakpoint.ts) */
+export const LG_QUERY = `(min-width: ${LG_PX}px)`;
+export const BELOW_LG_QUERY = `(max-width: ${LG_PX - 0.02}px)`;

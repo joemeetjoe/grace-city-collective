@@ -10,8 +10,7 @@
 
 import { useSyncExternalStore } from "react";
 
-/** Tailwind's `lg` in CSS px: at this width and above the desktop layout applies */
-export const LG_PX = 1024;
+import { LG_PX } from "@/theme/breakpoints";
 
 /** the media query for "below lg", the complement of Tailwind's `lg:` variant */
 export const BELOW_LG_QUERY = `(max-width: ${LG_PX - 0.02}px)`;

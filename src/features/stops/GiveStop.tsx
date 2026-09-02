@@ -5,8 +5,7 @@ import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import type { SceneSection } from "@/content/site";
-import { SEAL_BUTTON, serif } from "@/app/styles";
-import { PHONE_BODY, TUCK, stopFrame } from "./tuck";
+import { TUCK, button, stopBody, stopFrame, stopHeading } from "@/theme/classes";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -28,7 +27,7 @@ function GiveSowing({ lit }: { lit: boolean }) {
       // tuck alone: the words set narrower than the room the tuck leaves
       // them, so the field can borrow the slack and keep tiles the
       // calendar's size
-      className="relative w-[clamp(120px,32vw,150px)] lg:absolute lg:top-1/2 lg:left-[clamp(18px,2.6vw,32px)] lg:w-[clamp(140px,11.5vw,200px)] lg:-translate-y-1/2"
+      className="relative w-[clamp(120px,32vw,150px)] lg:absolute lg:top-1/2 lg:left-panel-pad lg:w-[clamp(140px,11.5vw,200px)] lg:-translate-y-1/2"
     >
       <SowingMark lit={lit} shown={shown} className="w-full" />
     </div>
@@ -58,14 +57,14 @@ export default function GiveStop({ section: s }: { section: SceneSection }) {
         <Kicker centred>{s.kicker}</Kicker>
         <PanelReveal className="flex flex-col items-center gap-5 md:gap-[26px]">
           <h2
-            className={`max-w-[20ch] text-[clamp(40px,5.2vw,76px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[56px] ${serif}`}
+            className={stopHeading({ stop: "give" })}
           >
             {s.heading}
           </h2>
           {s.body.map((p) => (
             <p
               key={p}
-              className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg lg:max-w-[38ch] min-[1440px]:max-w-[40ch] 2xl:max-w-[44ch] [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}
+              className={stopBody({ stop: "give" })}
             >
               {p}
             </p>
@@ -73,7 +72,7 @@ export default function GiveStop({ section: s }: { section: SceneSection }) {
           {s.cta && (
             <a
               href={s.cta.href}
-              className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
+              className={button({ intent: "seal", size: "cta" })}
             >
               {s.cta.label}
             </a>

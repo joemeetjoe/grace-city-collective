@@ -1,9 +1,6 @@
 import { useJump } from "@/app/jump";
-import { GHOST_BUTTON, SEAL_BUTTON } from "@/app/styles";
-import { GLASS, GLASS_CORNERS } from "@/theme/glass";
 import GMark from "@/marks/GMark";
-import { FOCUS_RING } from "@/theme/interact";
-import { STACK } from "@/theme/layerSplit";
+import { FOCUS_RING, GLASS, GLASS_CORNERS, STACK, button } from "@/theme/classes";
 import MobileNav from "./MobileNav";
 import NavLinks from "./NavLinks";
 import { useSite } from "@/content/useSite";
@@ -33,7 +30,7 @@ export default function SiteNav({
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
     >
       <nav
-        className={`pointer-events-auto absolute inset-x-[clamp(9px,2.4vw,26px)] top-[clamp(9px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
+        className={`pointer-events-auto absolute inset-x-frame-inset top-frame-inset flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
           sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
         }`}
       >
@@ -55,7 +52,7 @@ export default function SiteNav({
             href="#give"
             data-nav-reveal=""
             onClick={(e) => jump(e, "give")}
-            className={`${GHOST_BUTTON} px-[22px] py-[11px] text-[11px] uppercase tracking-[0.18em]`}
+            className={button({ intent: "ghost", size: "navHollow" })}
           >
             Give
           </a>
@@ -63,7 +60,7 @@ export default function SiteNav({
             href="#visit"
             data-nav-reveal=""
             onClick={(e) => jump(e, "visit")}
-            className={`${SEAL_BUTTON} px-6 py-3 text-[11px] font-bold uppercase tracking-[0.18em]`}
+            className={button({ intent: "seal", size: "nav" })}
           >
             Join Sunday
           </a>

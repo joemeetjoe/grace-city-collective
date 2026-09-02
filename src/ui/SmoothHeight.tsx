@@ -1,11 +1,9 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes } from "react";
 
+import { SETTLE_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type SmoothHeightProps = HTMLAttributes<HTMLDivElement>;
-
-/** how long the height takes to settle, in ms */
-export const SMOOTH_HEIGHT_MS = 700;
 
 /**
  * A block whose height eases from one content to the next instead of
@@ -30,13 +28,13 @@ export default function SmoothHeight({ className, style, children, ...rest }: Sm
   const sized: CSSProperties = {
     ...style,
     height: height ?? "auto",
-    transitionDuration: `${SMOOTH_HEIGHT_MS}ms`,
+    transitionDuration: `${SETTLE_MS}ms`,
   };
   return (
     <div
       data-smooth-height=""
       className={cn(
-        "overflow-hidden motion-safe:transition-[height] motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "overflow-hidden motion-safe:transition-[height] motion-safe:ease-site",
         className,
       )}
       style={sized}

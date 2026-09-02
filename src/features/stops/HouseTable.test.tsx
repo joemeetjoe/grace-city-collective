@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import HouseTable, { ENTER_STAGGER_MS, SEATS, SIDE_SEATS, VIEW_H, VIEW_W } from "./HouseTable";
+import { TILE_STAGGER_MS } from "@/theme/motion";
+import HouseTable, { SEATS, SIDE_SEATS, VIEW_H, VIEW_W } from "./HouseTable";
 
 function seats(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-seat]"));
@@ -105,9 +106,9 @@ describe("HouseTable", () => {
       /translate\(-\d.*scale\(0\.55\)/,
     );
     const delay = (i: number) => parseFloat(all[i].style.transitionDelay);
-    expect(delay(0)).toBe(ENTER_STAGGER_MS);
-    expect(delay(1)).toBe(2 * ENTER_STAGGER_MS);
-    expect(delay(SEATS - 1)).toBe(SEATS * ENTER_STAGGER_MS);
+    expect(delay(0)).toBe(TILE_STAGGER_MS);
+    expect(delay(1)).toBe(2 * TILE_STAGGER_MS);
+    expect(delay(SEATS - 1)).toBe(SEATS * TILE_STAGGER_MS);
     const table = container.querySelector<HTMLElement>("[data-table]")!;
     expect(table.style.opacity).toBe("0");
     expect(table.style.transform).toBe("scale(0.55)");

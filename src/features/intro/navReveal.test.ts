@@ -1,14 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { gsap } from "@/lib/gsap";
-import {
-  NAV_REVEAL_DROP,
-  NAV_REVEAL_SECONDS,
-  NAV_REVEAL_SLIDE,
-  NAV_REVEAL_STAGGER,
-  buildNavReveal,
-  collectNavReveal,
-} from "./navReveal";
+import { NAV_REVEAL_SECONDS, NAV_REVEAL_STAGGER } from "@/theme/motion";
+import { NAV_REVEAL_DROP, NAV_REVEAL_SLIDE, buildNavReveal, collectNavReveal } from "./navReveal";
 
 /** the desktop nav and the dot rail, as App.tsx lays them out */
 function stage(): HTMLElement {

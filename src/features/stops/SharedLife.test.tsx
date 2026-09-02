@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import SharedLife, { ENTER_STAGGER_MS, HUDDLE_SCALE, ROWS, VIEW_H, VIEW_H_2, VIEW_W, VIEW_W_2 } from "./SharedLife";
+import { TILE_STAGGER_MS } from "@/theme/motion";
+import SharedLife, { HUDDLE_SCALE, ROWS, VIEW_H, VIEW_H_2, VIEW_W, VIEW_W_2 } from "./SharedLife";
 
 function slots(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-slot]"));
@@ -106,9 +107,9 @@ describe("SharedLife", () => {
     );
     const delay = (row: number) =>
       parseFloat(slot(container, row).style.transitionDelay);
-    expect(delay(0)).toBe(ENTER_STAGGER_MS);
-    expect(delay(1)).toBe(2 * ENTER_STAGGER_MS);
-    expect(delay(ROWS - 1)).toBe(ROWS * ENTER_STAGGER_MS);
+    expect(delay(0)).toBe(TILE_STAGGER_MS);
+    expect(delay(1)).toBe(2 * TILE_STAGGER_MS);
+    expect(delay(ROWS - 1)).toBe(ROWS * TILE_STAGGER_MS);
     const lines = container.querySelectorAll<HTMLElement>("[data-line]");
     expect(Array.from(lines).every((l) => l.style.opacity === "0")).toBe(true);
     expect(lines[0].style.transform).toMatch(/translateY\(-\d/);

@@ -1,6 +1,6 @@
-import { gutter, serif } from "@/app/styles";
-import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
-import Reveal, { REVEAL_STAGGER_MS } from "@/ui/Reveal";
+import { FOCUS_RING, LINK_SWEEP, gutter, serif } from "@/theme/classes";
+import { REVEAL_STAGGER_MS } from "@/theme/motion";
+import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
 
 export default function SiteFooter() {

@@ -6,6 +6,7 @@ import {
   G_MARK_W as W,
   markBox,
 } from "@/marks/gMarkGeometry";
+import { TILE_STAGGER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type HouseTableProps = {
@@ -43,8 +44,7 @@ const TABLE_H = SIDE_SEATS * SEAT_H + (SIDE_SEATS + 1) * GAP;
 /** how far back from the table a waiting seat sits, in its own heights */
 const ENTER_OUT = 0.6;
 export const ENTER_SCALE = 0.55;
-/** the seats come in one after the next, round the table from the head, in ms */
-export const ENTER_STAGGER_MS = 50;
+/** the seats come in one after the next, round the table from the head (TILE_STAGGER_MS) */
 /** how far a seat draws in toward the table when lit, in its own heights */
 const DRAW_IN = 0.16;
 
@@ -53,7 +53,7 @@ export const VIEW_W = TABLE_W + 2 * (GAP + SEAT_W);
 export const VIEW_H = TABLE_H + 2 * (GAP + SEAT_H);
 
 const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
+  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_var(--ease-site),transform_.9s_var(--ease-site)]";
 
 const TABLE = markBox(-TABLE_W / 2, -TABLE_H / 2, TABLE_W, TABLE_H, CORNER);
 const CHAIR = markBox(-SEAT_W / 2, -SEAT_H / 2, SEAT_W, SEAT_H, SEAT_CORNER);
@@ -150,7 +150,7 @@ export default function HouseTable({
       </g>
       {seats().map((seat, order) => {
         const head = seat.name === "head";
-        const delay = `${(order + 1) * ENTER_STAGGER_MS}ms`;
+        const delay = `${(order + 1) * TILE_STAGGER_MS}ms`;
         // the pose moves the seat's own group, so the path keeps its centring
         const style: CSSProperties = {
           transform: pose(seat, shown, lit),

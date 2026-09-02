@@ -9,6 +9,7 @@ import {
 import { FONT_SERIF } from "@/theme/fonts";
 import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark } from "@/content/site";
+import { TILE_STAGGER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type GatheringCalendarProps = {
@@ -55,8 +56,7 @@ const S_SIZE = Math.round(H * 0.62);
 /** how far out along the diagonal a waiting day sits, in its own heights */
 const ENTER_OUT = 0.6;
 export const ENTER_SCALE = 0.55;
-/** the cascade: one diagonal of days after the next, in ms */
-export const ENTER_STAGGER_MS = 50;
+/** the cascade: one diagonal of days after the next (TILE_STAGGER_MS) */
 
 /** the month's extent, in the logo's units */
 export const VIEW_W = GUTTER + WEEKS * W + (WEEKS - 1) * GAP;
@@ -71,7 +71,7 @@ export const VIEW_W_ACROSS = GUTTER + DAYS * W + (DAYS - 1) * GAP + BAND;
 export const VIEW_H_ACROSS = HEAD_ACROSS + WEEKS * H + (WEEKS - 1) * GAP;
 
 const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
+  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_var(--ease-site),transform_.9s_var(--ease-site)]";
 
 /** whether a day is lit for the gathering: the first Sunday, or the other Sundays */
 function isLit(lit: GatheringMark | null, week: number, day: number): boolean {
@@ -201,7 +201,7 @@ export default function GatheringCalendar({
   const { viewW, viewH, numeral, mark, rule } = furniture(across);
   const fade = (order: number): CSSProperties => ({
     opacity: shown ? 1 : 0,
-    transitionDelay: `${order * ENTER_STAGGER_MS}ms`,
+    transitionDelay: `${order * TILE_STAGGER_MS}ms`,
   });
   return (
     <svg
@@ -280,7 +280,7 @@ export default function GatheringCalendar({
         const on = isLit(lit, week, day);
         const sunday = day === 0;
         const { cx, cy } = centre(week, day, across);
-        const delay = `${(week + day) * ENTER_STAGGER_MS}ms`;
+        const delay = `${(week + day) * TILE_STAGGER_MS}ms`;
         // the pose moves the day's own group, so the path keeps its centring
         const style: CSSProperties = {
           transform: pose(shown),

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import DotRail from "@/features/nav/DotRail";
-import { STACK } from "@/theme/layerSplit";
+import { STACK } from "@/theme/classes";
 import SiteNav from "@/features/nav/SiteNav";
 import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";

@@ -1,9 +1,9 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { TILE_STAGGER_MS } from "@/theme/motion";
 import GatheringCalendar, {
   DAYS,
-  ENTER_STAGGER_MS,
   VIEW_H,
   VIEW_H_ACROSS,
   VIEW_W,
@@ -140,11 +140,11 @@ describe("GatheringCalendar", () => {
     const delay = (week: number, day: number) =>
       parseFloat(at(container, week, day).style.transitionDelay);
     expect(delay(0, 0)).toBe(0);
-    expect(delay(1, 0)).toBe(ENTER_STAGGER_MS);
-    expect(delay(0, 1)).toBe(ENTER_STAGGER_MS);
-    expect(delay(1, 1)).toBe(2 * ENTER_STAGGER_MS);
+    expect(delay(1, 0)).toBe(TILE_STAGGER_MS);
+    expect(delay(0, 1)).toBe(TILE_STAGGER_MS);
+    expect(delay(1, 1)).toBe(2 * TILE_STAGGER_MS);
     expect(delay(WEEKS - 1, DAYS - 1)).toBe(
-      (WEEKS - 1 + DAYS - 1) * ENTER_STAGGER_MS,
+      (WEEKS - 1 + DAYS - 1) * TILE_STAGGER_MS,
     );
     const shown = render(<GatheringCalendar />).container;
     expect(days(shown)[0].style.transform).toBe("translate(0px, 0px) scale(1)");
@@ -246,7 +246,7 @@ describe("GatheringCalendar", () => {
       const delay = (week: number, day: number) =>
         parseFloat(at(container, week, day).style.transitionDelay);
       expect(delay(0, 0)).toBe(0);
-      expect(delay(1, 1)).toBe(2 * ENTER_STAGGER_MS);
+      expect(delay(1, 1)).toBe(2 * TILE_STAGGER_MS);
     });
   });
 });

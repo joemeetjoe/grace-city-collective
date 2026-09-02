@@ -6,6 +6,7 @@ import {
   G_MARK_W as W,
   markBox,
 } from "@/marks/gMarkGeometry";
+import { TILE_STAGGER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type SharedLifeProps = {
@@ -47,8 +48,7 @@ const LINE_RUNS = [
 /** how far up from its line a waiting row sits, in a slot's heights */
 const ENTER_OUT = 0.6;
 export const ENTER_SCALE = 0.55;
-/** the rows print in one after the next from the top, in ms */
-export const ENTER_STAGGER_MS = 50;
+/** the rows print in one after the next from the top (TILE_STAGGER_MS) */
 
 /** a slot grows this much leaving its row: a line item is smaller than a person */
 export const HUDDLE_SCALE = 1.6;
@@ -80,7 +80,7 @@ function extent(columns: 1 | 2): { viewW: number; viewH: number; perColumn: numb
 }
 
 const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
+  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_var(--ease-site),transform_.9s_var(--ease-site)]";
 
 const BOX = markBox(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, SLOT_CORNER);
 
@@ -160,7 +160,7 @@ export default function SharedLife({
     >
       {rows.map((row) => {
         const { cx, cy } = restCentre(row, columns);
-        const delay = `${(row + 1) * ENTER_STAGGER_MS}ms`;
+        const delay = `${(row + 1) * TILE_STAGGER_MS}ms`;
         const x1 = cx + SLOT_W / 2 + GAP;
         return (
           <line
@@ -189,7 +189,7 @@ export default function SharedLife({
       {[...rows.slice(1), 0].map((row) => {
         const { cx, cy } = restCentre(row, columns);
         const heart = row === 0;
-        const delay = `${(row + 1) * ENTER_STAGGER_MS}ms`;
+        const delay = `${(row + 1) * TILE_STAGGER_MS}ms`;
         // the pose moves the slot's own group, so the path keeps its centring
         const style: CSSProperties = {
           transform: pose(row, shown, lit, columns),

@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* the unit tests pin class lists as they were (theme/classes.test.ts) and
+   render nothing the stylesheet dresses: not a source of utilities */
+@source not "./**/*.test.{ts,tsx}";
 /* The two faces the site sets, latin subset only: the variable Geist for
    body and headings, Cormorant Garamond 400 for the serif accents (#105).
    Cormorant ships a per-subset file; Geist does not, so its latin face is
@@ -24,13 +27,56 @@
     --color-seal-highlight: #d67f48;
 }
 
+/* motion tokens — mirrored in src/theme/motion.ts (motion.test.ts keeps the
+   two in sync), so a CSS transition, a Tailwind utility (ease-site) and a
+   gsap tween read one curve and one set of numbers */
+@theme {
+    --ease-site: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-enter: 1100ms;
+    --duration-draw: 900ms;
+    --duration-line: 1000ms;
+    --duration-lozenge: 500ms;
+    --duration-settle: 700ms;
+    --duration-lift: 500ms;
+    --duration-quick: 300ms;
+    --duration-press: 120ms;
+    --duration-sheet-out: 150ms;
+    --duration-reveal-stagger: 110ms;
+    --duration-reveal-lead: 200ms;
+    --duration-way-rise: 800ms;
+    --duration-way-slide: 600ms;
+    --duration-house-call: 2500ms;
+    --duration-sow-travel: 400ms;
+    --duration-sow-fill: 300ms;
+    --duration-sow-hold: 100ms;
+    --duration-sow-leave: 200ms;
+}
+
+/* the measures the layers share, as spacing tokens (px-gutter, inset-frame-inset,
+   p-panel-pad, pb-lockup-foot; src/theme/classes.ts). Static: an inline style
+   reads var(--spacing-frame-inset) without a utility naming it */
+@theme static {
+    /* every section's horizontal padding */
+    --spacing-gutter: clamp(20px, 4.4vw, 60px);
+    /* the scene frame's inset from the viewport edge: the border, the nav bar and the brackets */
+    --spacing-frame-inset: clamp(9px, 2.4vw, 26px);
+    /* a copy panel's padding, and the column its tuck clears less it */
+    --spacing-panel-pad: clamp(18px, 2.6vw, 32px);
+    /* the lockup's clearance at the hero's foot */
+    --spacing-lockup-foot: clamp(22px, 4.2vw, 52px);
+}
+
+/* a short desktop viewport, where a stop's panel would run past one screen:
+   its type steps down a size (src/theme/classes.ts) */
+@custom-variant short (@media (max-height: 820px));
+
 /* The mobile nav sheet's fade (src/features/nav/MobileNav.tsx): in over
    300ms as it opens, out over 150ms as it closes — what tw-animate-css's
    animate-in/fade-in-0 and animate-out/fade-out-0 did before the package
    went (#105). Radix waits for the exit animation to end before unmounting. */
 @theme {
-    --animate-sheet-in: sheet-in 300ms ease;
-    --animate-sheet-out: sheet-out 150ms ease;
+    --animate-sheet-in: sheet-in var(--duration-quick) ease;
+    --animate-sheet-out: sheet-out var(--duration-sheet-out) ease;
     @keyframes sheet-in {
         from { opacity: 0; }
     }
@@ -199,13 +245,16 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
   display: none;
 }
 /* Below lg the smoother never runs and scroll is native, but the scene is a
-   full-bleed composition there too — no scrollbar riding over the frame. */
-@media (max-width: 1023.98px) {
-  html {
+   full-bleed composition there too — no scrollbar riding over the frame.
+   Tailwind's own max-lg, so the breakpoint is written once (theme/breakpoints.ts). */
+html {
+  @variant max-lg {
     scrollbar-width: none;
   }
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  @variant max-lg {
     display: none;
   }
 }
@@ -219,17 +268,17 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
 @layer components {
   @media (prefers-reduced-motion: no-preference) {
     [data-reveal] > * {
-      --reveal-at: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--reveal-stagger, 110ms));
+      --reveal-at: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--reveal-stagger, var(--duration-reveal-stagger)));
       transition:
-        opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--reveal-at) + 200ms),
-        transform 1100ms cubic-bezier(0.16, 1, 0.3, 1) calc(var(--reveal-at) + 200ms);
+        opacity var(--duration-enter) var(--ease-site) calc(var(--reveal-at) + var(--duration-reveal-lead)),
+        transform var(--duration-enter) var(--ease-site) calc(var(--reveal-at) + var(--duration-reveal-lead));
     }
     [data-reveal="false"] > * {
       opacity: 0;
       transform: translateY(18px);
     }
     .rule-draw::before {
-      transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-at, 0ms);
+      transition: transform var(--duration-draw) var(--ease-site) var(--reveal-at, 0ms);
     }
     /* a Reveal that is itself the rule-draw item (a list revealed per item)
        draws its own hairline, at its delay, ahead of its first child */
@@ -282,8 +331,8 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
   background-position: 0 100%;
   background-repeat: no-repeat;
   transition:
-    background-size 500ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 300ms ease;
+    background-size var(--duration-lift) var(--ease-site),
+    color var(--duration-quick) ease;
   &:hover,
   &:focus-visible {
     background-size: 100% 1px;
@@ -295,11 +344,11 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
 @utility btn-lift {
   --lift-glow: var(--color-seal);
   transition:
-    background-color 500ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 500ms cubic-bezier(0.16, 1, 0.3, 1),
-    color 500ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 500ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    background-color var(--duration-lift) var(--ease-site),
+    border-color var(--duration-lift) var(--ease-site),
+    color var(--duration-lift) var(--ease-site),
+    box-shadow var(--duration-lift) var(--ease-site),
+    transform var(--duration-lift) var(--ease-site);
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 12px 28px -12px color-mix(in oklab, var(--lift-glow) 70%, transparent);
@@ -307,7 +356,7 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
   &:active {
     transform: translateY(0);
     box-shadow: 0 4px 12px -8px color-mix(in oklab, var(--lift-glow) 70%, transparent);
-    transition-duration: 120ms;
+    transition-duration: var(--duration-press);
   }
 }
 
@@ -345,7 +394,7 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
       }
     }
     .way-in-rise {
-      animation: way-in-rise 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: way-in-rise var(--duration-way-rise) var(--ease-site) both;
     }
     @keyframes way-in-slide-next {
       from {
@@ -360,10 +409,10 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
       }
     }
     .way-in-slide-next {
-      animation: way-in-slide-next 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: way-in-slide-next var(--duration-way-slide) var(--ease-site) both;
     }
     .way-in-slide-back {
-      animation: way-in-slide-back 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: way-in-slide-back var(--duration-way-slide) var(--ease-site) both;
     }
     @keyframes house-call {
       0%,
@@ -376,7 +425,7 @@ html[data-smooth-scroll] body::-webkit-scrollbar {
       }
     }
     .house-call {
-      animation: house-call 2500ms ease-in-out infinite;
+      animation: house-call var(--duration-house-call) ease-in-out infinite;
     }
   }
 }

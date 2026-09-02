@@ -5,15 +5,14 @@ import GatheringMark from "@/marks/GatheringMark";
 import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
-import { REVEAL_STAGGER_MS } from "@/ui/Reveal";
 import {
   GATHERING_MARKS,
   type GatheringMark as Mark,
   type SceneSection,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
-import { serif } from "@/app/styles";
-import { PHONE_BODY, TUCK, stopFrame } from "./tuck";
+import { PHONE_BODY, TUCK, serif, stopFrame, stopHeading } from "@/theme/classes";
+import { REVEAL_STAGGER_MS } from "@/theme/motion";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -37,7 +36,7 @@ function GatheringEmblem({ mark, lit }: { mark: Mark; lit: boolean }) {
       mark={mark}
       shown={shown}
       lit={lit}
-      className="mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 [@media(max-height:820px)]:lg:h-9 [@media(max-height:820px)]:lg:w-9"
+      className="mx-auto mt-2 h-7 w-7 text-seal md:mt-auto md:h-11 md:w-11 md:pt-2 short:lg:h-9 short:lg:w-9"
     />
   );
 }
@@ -69,7 +68,7 @@ function GatheringsCalendar({
       // words start where the tuck put them; Tailwind reads classes literally.
       // The month is absolutely placed inside, so it fills the column's height
       // (set by the words beside it) without ever adding to it
-      className="relative hidden shrink-0 border-r border-cream/25 pr-[clamp(20px,2vw,32px)] lg:block lg:w-[calc(var(--tuck)_-_clamp(18px,2.6vw,32px))]"
+      className="relative hidden shrink-0 border-r border-cream/25 pr-[clamp(20px,2vw,32px)] lg:block lg:w-[calc(var(--tuck)_-_var(--spacing-panel-pad))]"
     >
       <GatheringCalendar
         lit={lit}
@@ -106,11 +105,11 @@ export default function GatheringsStop({ section: s }: { section: SceneSection }
         className={`flex w-full max-w-[1080px] flex-col lg:flex-row ${TUCK[s.id]}`}
       >
         <GatheringsCalendar lit={lit} />
-        <div className="flex min-w-0 flex-1 flex-col gap-6 md:gap-11 lg:pl-[clamp(24px,2.4vw,40px)] [@media(max-height:820px)]:lg:gap-7">
+        <div className="flex min-w-0 flex-1 flex-col gap-6 md:gap-11 lg:pl-[clamp(24px,2.4vw,40px)] short:lg:gap-7">
           <PanelReveal className="flex flex-col gap-3 md:gap-4">
             <Kicker>{s.kicker}</Kicker>
             <h2
-              className={`text-[clamp(30px,3.4vw,48px)] leading-[1.06] text-balance [@media(max-height:820px)]:lg:text-[36px] ${serif}`}
+              className={stopHeading({ stop: "gatherings" })}
             >
               {s.heading}
             </h2>
@@ -136,17 +135,17 @@ export default function GatheringsStop({ section: s }: { section: SceneSection }
                   onMouseLeave={() =>
                     setLit((was) => (was === mark ? null : was))
                   }
-                  className="rule-draw flex flex-col gap-2 pt-4 md:gap-4 md:pt-7 [@media(max-height:820px)]:lg:gap-3 [@media(max-height:820px)]:lg:pt-5"
+                  className="rule-draw flex flex-col gap-2 pt-4 md:gap-4 md:pt-7 short:lg:gap-3 short:lg:pt-5"
                 >
                   <h3
-                    className={`text-[24px] leading-[1.12] md:text-[34px] [@media(max-height:820px)]:lg:text-[27px] ${serif}`}
+                    className={`text-[24px] leading-[1.12] md:text-[34px] short:lg:text-[27px] ${serif}`}
                   >
                     {g.title}
                   </h3>
                   <p className="text-[11px] uppercase tracking-[0.16em] text-seal md:text-xs">
                     {g.when}
                   </p>
-                  <p className={`text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}>
+                  <p className={`text-[15px] leading-[1.5] text-pretty text-cream/75 md:text-lg md:leading-relaxed short:lg:text-base ${PHONE_BODY}`}>
                     {g.body}
                   </p>
                   <GatheringEmblem

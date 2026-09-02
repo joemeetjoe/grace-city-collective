@@ -10,7 +10,6 @@ import { SPLASH_HEADLINE_ATTR } from "./staticSplash";
 import { adoptStaticSplash } from "./staticSplashDom";
 import { createTrace, holdClockThroughStalls, type Trace } from "./trace";
 
-
 export type IntroSplashProps = {
   /** the visitor gestured past the intro; the gate no longer waits for the full run */
   skipped?: boolean;

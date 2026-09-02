@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { idleWheel, stepWheel, WHEEL_REST_MS, wheelPixels, type WheelGesture } from "./wheelGesture";
+import { WHEEL_REST_MS } from "@/theme/motion";
+import { idleWheel, stepWheel, wheelPixels, type WheelGesture } from "./wheelGesture";
 
 /** feed a run of deltas 16 ms apart from `g`: which ones began a gesture, and the end state */
 function feed(g: WheelGesture, deltas: number[], from = 0): { began: number[]; g: WheelGesture } {

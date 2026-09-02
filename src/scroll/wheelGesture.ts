@@ -11,8 +11,8 @@
  * jank is) nothing but a reversal begins a gesture.
  */
 
-/** ms of quiet after which the next event is a new gesture */
-export const WHEEL_REST_MS = 250;
+import { WHEEL_REST_MS } from "@/theme/motion";
+
 /** a delta this many times the previous one is a rise */
 export const WHEEL_RISE = 1.2;
 /** rises in a row, in a tail, that make a new swipe */

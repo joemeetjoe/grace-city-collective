@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { gsap } from "@/lib/gsap";
-import { STACK } from "@/theme/layerSplit";
+import { STACK } from "@/theme/classes";
 import { sectionIds, site } from "@/content/site";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";

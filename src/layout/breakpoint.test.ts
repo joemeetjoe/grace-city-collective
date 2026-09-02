@@ -1,7 +1,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { BELOW_LG_QUERY, LG_PX, belowLg, readBelowLg, useBelowLg } from "./breakpoint";
+import { LG_PX } from "@/theme/breakpoints";
+import { BELOW_LG_QUERY, belowLg, readBelowLg, useBelowLg } from "./breakpoint";
 
 afterEach(() => vi.restoreAllMocks());
 

@@ -6,8 +6,7 @@ import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import { type SceneSection } from "@/content/site";
-import { serif } from "@/app/styles";
-import { PHONE_BODY, TUCK, stopFrame } from "./tuck";
+import { TUCK, stopBody, stopFrame, stopHeading } from "@/theme/classes";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -69,7 +68,7 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
   return (
     <div
       data-about-shared-life=""
-      className={`${ORNAMENT_COLUMN} lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_clamp(18px,2.6vw,32px)))]`}
+      className={`${ORNAMENT_COLUMN} lg:w-[max(clamp(120px,9vw,160px),calc(var(--tuck)_-_var(--spacing-panel-pad)))]`}
     >
       {/* a phone runs the dozen rows six and six, side by side (a single
           column runs too long under the words); from md the tall column */}
@@ -121,14 +120,14 @@ export default function AboutHousesStop({ section: s }: { section: SceneSection 
       <Kicker>{s.kicker}</Kicker>
       <PanelReveal className="flex flex-col gap-5 md:gap-[26px]">
         <h2
-          className={`${about ? "text-[clamp(30px,2.8vw,48px)] [@media(max-height:820px)]:lg:text-[36px]" : "text-[clamp(34px,4.1vw,58px)]"} leading-[1.06] text-balance ${serif}`}
+          className={stopHeading({ stop: about ? "about" : "houses" })}
         >
           {s.heading}
         </h2>
         {s.body.map((p) => (
           <p
             key={p}
-            className={`text-base leading-relaxed text-pretty text-cream/80 ${about ? "[@media(max-height:820px)]:lg:text-[14px]" : "md:text-lg"} ${PHONE_BODY}`}
+            className={stopBody({ stop: about ? "about" : "houses" })}
           >
             {p}
           </p>

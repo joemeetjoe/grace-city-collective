@@ -1,9 +1,8 @@
-import { serif } from "@/app/styles";
 import { useAppStore } from "@/state/appStore";
 import Kicker from "@/ui/panel/Kicker";
 import type { SceneSection } from "@/content/site";
+import { stopFrame, stopHeading } from "@/theme/classes";
 import HeroLockup from "./HeroLockup";
-import { between, stopFrame } from "./tuck";
 
 /** the hero stop: the one headline over the scene, and the lockup at its foot below lg */
 export default function HeroStop({ section: s }: { section: SceneSection }) {
@@ -17,19 +16,18 @@ export default function HeroStop({ section: s }: { section: SceneSection }) {
       // below lg the lockup is the hero's last child, set into the same
       // corner the chrome pins it to on desktop; lg and up the padding
       // clears the pinned one
-      className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-[clamp(22px,4.2vw,52px)] lg:pb-[clamp(150px,24vh,220px)]`}
+      className={`${base} flex-col pt-[clamp(112px,17vh,180px)] pb-lockup-foot lg:pb-[clamp(150px,24vh,220px)]`}
     >
       <Kicker className="mb-[22px]" drawn={!pending}>
         {s.kicker}
       </Kicker>
       {/* the one headline the nearest figures may clip at its edges; it
           rises line by line once the splash has handed off (heroRise.ts).
-          Its measure is 15ch of Cormorant, written in em (its zero is
-          0.477em) so the metric-matched fallback face, whose own ch is
-          Georgia's, wraps it at the same width before the woff2 lands (#106) */}
+          Its measure is written in em, so the metric-matched fallback face
+          wraps it at the same width before the woff2 lands (stopHeading) */}
       <h1
         data-hero-headline=""
-        className={`${between} max-w-[7.155em] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
+        className={stopHeading({ stop: "hero" })}
       >
         {s.heading}
       </h1>

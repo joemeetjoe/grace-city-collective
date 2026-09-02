@@ -41,6 +41,12 @@ export function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** A `#rrggbb` colour with an alpha, as `rgba(r, g, b, a)`: a tween's colour endpoint (gsap reads it), e.g. the ink with no alpha for a fade from it. */
+export function rgba(hex: string, alpha: number): string {
+  const c = [0, 1, 2].map((i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16));
+  return `rgba(${c.join(", ")}, ${alpha})`;
+}
+
 /** Linear sRGB-space blend of two `#rrggbb` colours; `t` = 0 gives `a`, 1 gives `b`. */
 export function mix(a: string, b: string, t: number): string {
   const hex = (i: number) => {

@@ -1,6 +1,7 @@
 import type { CSSProperties, Ref } from "react";
 
 import { lozengeLength, lozengePath } from "@/theme/lozenge";
+import { LINE_MS, LOZENGE_AT_MS, LOZENGE_MS, LOZENGE_STAGGER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type RuleEnds = "both" | "start" | "end";
@@ -28,14 +29,8 @@ const SMALL = { w: 10, h: 5 };
 const LARGE = { w: 14, h: 7 };
 const GAP = 3;
 
-/** how long the line takes to draw, in ms */
-export const DRAW_MS = 1000;
-/** how long a lozenge takes to trace, when the large ones start, and how long after them the small */
-export const LOZENGE_MS = 500;
-export const LOZENGE_AT_MS = 750;
-export const LOZENGE_STAGGER_MS = 300;
-
-const DRAW_EASE = "motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
+/** the line (LINE_MS) and the lozenges (LOZENGE_MS) draw on the site's ease, only where motion is welcome */
+const DRAW_EASE = "motion-safe:ease-site";
 
 function Lozenge({
   w,
@@ -137,7 +132,7 @@ export default function OrnateRule({
         )}
         style={{
           transformOrigin: lineOrigin(ends, vertical),
-          transitionDuration: `${DRAW_MS}ms`,
+          transitionDuration: `${LINE_MS}ms`,
           transitionDelay: `${delay}ms`,
         }}
       />

@@ -1,14 +1,8 @@
 import { createContext } from "react";
 
 import CornerOrnaments from "@/ui/CornerOrnaments";
-import { GLASS, GLASS_CORNERS } from "@/theme/glass";
-import { STACK } from "@/theme/layerSplit";
+import { panel } from "@/theme/classes";
 import { PLAY_MARGIN, type InViewOptions } from "@/ui/useInView";
-
-// everything a scene section says sits between the canvases (layerSplit.ts),
-// so the nearest figures cross it: a panel rises from behind them and rests
-// with an edge tucked behind one, its words placed clear
-export const between = `relative ${STACK.between}`;
 
 /** how far outside a copy panel's edge its brackets sit */
 const PANEL_BRACKET_OUT = "-10px";
@@ -77,7 +71,7 @@ export default function Bracketed({
       data-copy-panel=""
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`${between} ${GLASS} p-[clamp(18px,2.6vw,32px)] ${GLASS_CORNERS} ${className}`}
+      className={`${panel} ${className}`}
     >
       <CornerOrnaments inset={PANEL_BRACKET_OUT} shown={shown} />
       <PanelShownContext.Provider value={shown}>

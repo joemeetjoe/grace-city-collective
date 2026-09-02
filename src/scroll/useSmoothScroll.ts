@@ -3,20 +3,14 @@ import { useEffect, type RefObject } from "react";
 import { useBelowLg } from "@/layout/breakpoint";
 import { gsap, Observer, ScrollTrigger } from "@/lib/gsap";
 import { useAppStore } from "@/state/appStore";
+import { PAGE_EASE, PAGE_SECONDS, SETTLE_DELAY_SECONDS, SETTLE_SECONDS } from "@/theme/motion";
 import { inScene, pageTarget, type PageDirection } from "./paging";
 import { createSmoothScroll, isTouchOnly, settleSmoother, type SmoothScroll } from "./smoother";
 import { documentTop, snapTo, type SnapLayout } from "./snap";
 import { idleWheel, stepWheel, wheelPixels, type WheelGesture } from "./wheelGesture";
 
-/** one page turn: a section to the next */
-export const PAGE_SECONDS = 0.8;
-/** a settle: what got past the observer coming to rest on the nearest section */
-export const SETTLE_SECONDS = 0.6;
-export const PAGE_EASE = "power2.inOut";
 /** pixels of wheel or finger before a gesture counts (a mouse notch is ~100) */
 export const PAGE_TOLERANCE = 10;
-/** how long after the last scroll update before a settle sets off */
-export const SETTLE_DELAY_SECONDS = 0.1;
 /** px/s under which the scroll counts as at rest (the smoother's lerp tail runs down to this) */
 export const REST_VELOCITY = 10;
 

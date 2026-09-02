@@ -1,5 +1,4 @@
-import { kickerCls, serif } from "@/app/styles";
-import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
+import { FOCUS_RING, LINK_SWEEP, kicker, longformContainer, longformHeading, serif } from "@/theme/classes";
 import SectionRule from "@/ui/panel/SectionRule";
 import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
@@ -11,11 +10,11 @@ export default function Messages() {
   return (
     <>
       <SectionRule />
-      <div className="mx-auto flex max-w-[1080px] flex-col gap-10">
+      <div className={`${longformContainer} gap-10`}>
         <Reveal as="header" className="flex flex-col gap-5">
-          <p className={kickerCls}>{messages.kicker}</p>
+          <p className={kicker}>{messages.kicker}</p>
           <h2
-            className={`text-[clamp(34px,4.1vw,58px)] leading-[1.06] ${serif}`}
+            className={longformHeading}
           >
             <span className="block text-[11px] uppercase tracking-[0.28em] text-cream/50 font-sans mb-3">
               Current series

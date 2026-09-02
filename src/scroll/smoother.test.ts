@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { gsap } from "@/lib/gsap";
 
-import { jumpDuration, settleSmoother, SMOOTH_SECONDS, smoothDriver, smootherOptions, type SmootherLike } from "./smoother";
+import { SMOOTH_SECONDS } from "@/theme/motion";
+import { jumpDuration, settleSmoother, smoothDriver, smootherOptions, type SmootherLike } from "./smoother";
 
 describe("smootherOptions", () => {
   it("is null under reduced motion: native scroll, no smoother", () => {

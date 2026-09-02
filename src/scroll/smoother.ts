@@ -1,9 +1,7 @@
 import { gsap, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
 import { seam } from "@/state/seam";
+import { JUMP_EASE, SMOOTH_SECONDS } from "@/theme/motion";
 import { installScrollDriver, type ScrollDriver } from "./position";
-
-/** seconds the smoothed position takes to catch up with the wheel */
-export const SMOOTH_SECONDS = 1.1;
 
 /** marks <html> while the smoother drives, so the CSS can hide the native scrollbar */
 export const SMOOTH_SCROLL_ATTR = "data-smooth-scroll";
@@ -34,8 +32,6 @@ export function smootherOptions({ reducedMotion, touch }: SmootherPolicyInputs):
 export function isTouchOnly(): boolean {
   return ScrollTrigger.isTouch === 1;
 }
-
-export const JUMP_EASE = "power2.inOut";
 
 /** an eased jump's length: half a second for a hop, up to 1.4 s across the page */
 export function jumpDuration(distance: number): number {

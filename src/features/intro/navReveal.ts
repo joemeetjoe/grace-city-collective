@@ -1,19 +1,20 @@
 import { gsap } from "@/lib/gsap";
+import {
+  NAV_REVEAL_ACTIONS_AT,
+  NAV_REVEAL_DOTS_AT,
+  NAV_REVEAL_EASE,
+  NAV_REVEAL_SECONDS,
+  NAV_REVEAL_STAGGER,
+} from "@/theme/motion";
+import { rgba, tokens } from "@/theme/tokens";
 
-/** how long each piece of the nav takes to arrive, and the beat between one and the next */
-export const NAV_REVEAL_SECONDS = 1.1;
-export const NAV_REVEAL_STAGGER = 0.09;
-/** how far a link drops into place, and how far a dot slides in from the edge, in px */
+/** how far a link drops into place, and how far a dot slides in from the edge, in px (the timings: theme/motion.ts) */
 export const NAV_REVEAL_DROP = 8;
 export const NAV_REVEAL_SLIDE = 8;
-export const NAV_REVEAL_EASE = "power3.out";
-/** when, after the links begin, the calls to action and the dot rail start */
-export const NAV_REVEAL_ACTIONS_AT = 0.4;
-export const NAV_REVEAL_DOTS_AT = 0.25;
 
 /** the ink and cream with no alpha: what the nav's glass fades up from */
-const INK_CLEAR = "rgba(20, 16, 14, 0)";
-const CREAM_CLEAR = "rgba(249, 244, 237, 0)";
+const INK_CLEAR = rgba(tokens.ink, 0);
+const CREAM_CLEAR = rgba(tokens.cream, 0);
 
 export type NavRevealTargets = {
   /** the section links, nearest the mark first */

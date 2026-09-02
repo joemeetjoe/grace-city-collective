@@ -1,7 +1,5 @@
 import { gsap } from "@/lib/gsap";
-
-/** the short fade that stands in for the intro under reduced motion */
-export const RESTING_FADE_SECONDS = 0.4;
+import { FADE_EASE, RESTING_FADE_SECONDS } from "@/theme/motion";
 
 /**
  * The scene's canvases — the back one under the type and the front one over
@@ -23,6 +21,6 @@ export function fadeParallaxFromInk(parallax: HTMLElement | HTMLElement[] | null
   return gsap.fromTo(
     targets,
     { opacity: 0 },
-    { opacity: 1, duration: RESTING_FADE_SECONDS, ease: "power2.out", clearProps: "opacity" },
+    { opacity: 1, duration: RESTING_FADE_SECONDS, ease: FADE_EASE, clearProps: "opacity" },
   );
 }

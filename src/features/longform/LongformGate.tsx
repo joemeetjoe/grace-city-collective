@@ -21,7 +21,7 @@ import {
   requestLongform,
   subscribeLongform,
 } from "./longformRequest";
-import { LONGFORM_SECTION } from "./section";
+import { LONGFORM_SECTION, STACK } from "@/theme/classes";
 
 /** the chunk's component (Longform.tsx), loaded once, on the first render that asks */
 const Longform = lazy(loadLongform);
@@ -81,7 +81,7 @@ export default function LongformGate() {
   }, [requested]);
 
   return (
-    <div ref={ref} data-longform="" className="relative z-10 bg-ink">
+    <div ref={ref} data-longform="" className={`relative ${STACK.between} bg-ink`}>
       {site.longform.map((s) => (
         <section
           key={s.id}

@@ -1,4 +1,4 @@
-import { GLASS } from "@/theme/glass";
+import { GLASS } from "@/theme/classes";
 import { cn } from "@/lib/utils";
 import type { SectionMarker } from "@/scroll/markers";
 
@@ -67,7 +67,7 @@ export default function DotRail({
               aria-hidden
               data-dot-label=""
               className={cn(
-                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-site",
                 active ? "text-seal" : "text-cream/80",
               )}
             >
@@ -77,7 +77,7 @@ export default function DotRail({
               aria-hidden
               data-dot=""
               className={cn(
-                "block size-1.5 rounded-full border transition-[background-color,border-color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "block size-1.5 rounded-full border transition-[background-color,border-color,transform] duration-500 ease-site",
                 active
                   ? "scale-[1.4] border-seal bg-seal group-hover:border-seal"
                   : "border-cream/55 group-hover:border-cream",

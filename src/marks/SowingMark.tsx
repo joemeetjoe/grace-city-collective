@@ -7,13 +7,8 @@ import {
   gMarkBox,
 } from "./gMarkGeometry";
 import { lozengePath } from "@/theme/lozenge";
-import {
-  arrives,
-  departs,
-  LEAVE_MS,
-  parent,
-  TRAVEL_MS,
-} from "./sowing";
+import { EASE_SITE, SOW_LEAVE_MS, SOW_TRAVEL_MS, TILE_STAGGER_MS } from "@/theme/motion";
+import { arrives, departs, parent } from "./sowing";
 import { cn } from "@/lib/utils";
 
 export type SowingMarkProps = {
@@ -41,15 +36,14 @@ const DOT = lozengePath(0, 0, DOT_W, DOT_W / 2);
 /** how far out along the diagonal a waiting tile sits, in its own heights */
 const ENTER_OUT = 0.6;
 export const ENTER_SCALE = 0.55;
-/** the cascade: one diagonal of tiles after the next, in ms */
-export const ENTER_STAGGER_MS = 50;
+/** the cascade: one diagonal of tiles after the next (TILE_STAGGER_MS) */
 
 /** the field's extent, in the logo's units */
 export const VIEW_W = ROWS * W + (ROWS - 1) * GAP;
 export const VIEW_H = ROWS * H + (ROWS - 1) * GAP;
 
 const TRANSITION =
-  "motion-safe:[transition:fill-opacity_.3s_ease,stroke-opacity_.3s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
+  "motion-safe:[transition:fill-opacity_.3s_ease,stroke-opacity_.3s_ease,opacity_.9s_var(--ease-site),transform_.9s_var(--ease-site)]";
 
 /** a tile's centre, in the logo's units: each row is centred under the seed */
 function centre(row: number, col: number): { cx: number; cy: number } {
@@ -113,7 +107,7 @@ export default function SowingMark({
           transform: pose(shown),
           transformOrigin: "center",
           transformBox: "fill-box",
-          transitionDelay: `${shown ? (row + col) * ENTER_STAGGER_MS : 0}ms`,
+          transitionDelay: `${shown ? (row + col) * TILE_STAGGER_MS : 0}ms`,
           opacity: shown ? 1 : 0,
         };
         // the grain sets out from its parent's centre: the first row's grains
@@ -125,8 +119,8 @@ export default function SowingMark({
           const p = centre(from.row, from.col);
           const dx = p.cx - cx;
           const dy = p.cy - cy;
-          const travel = `sow-travel ${TRAVEL_MS}ms cubic-bezier(0.16,1,0.3,1) ${departs(row)}ms forwards`;
-          const leave = `sow-leave ${LEAVE_MS}ms ease ${departs(row + 1)}ms forwards`;
+          const travel = `sow-travel ${SOW_TRAVEL_MS}ms ${EASE_SITE} ${departs(row)}ms forwards`;
+          const leave = `sow-leave ${SOW_LEAVE_MS}ms ease ${departs(row + 1)}ms forwards`;
           grain = {
             ["--from-x" as string]: `${dx}px`,
             ["--from-y" as string]: `${dy}px`,

@@ -8,12 +8,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { REVEAL_STAGGER_MS } from "@/theme/motion";
 import { useInViewOnce } from "./useInViewOnce";
 
-/** the wait between one child and the next, in ms; the rise itself (1100ms,
-    18px), the hairline's draw (900ms) and its lead over the words (200ms) live
-    in the [data-reveal] rules of src/index.css */
-export const REVEAL_STAGGER_MS = 110;
 /** how much of the block must be on screen before it comes in */
 export const REVEAL_THRESHOLD = 0.2;
 

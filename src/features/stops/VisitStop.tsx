@@ -7,8 +7,7 @@ import SmoothHeight from "@/ui/SmoothHeight";
 import WayIn from "./WayIn";
 import { type SceneSection, wayIn } from "@/content/site";
 import { useSite } from "@/content/useSite";
-import { SEAL_BUTTON, serif } from "@/app/styles";
-import { PHONE_BODY, stopFrame } from "./tuck";
+import { button, stopBody, stopFrame, stopHeading } from "@/theme/classes";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -62,11 +61,11 @@ export default function VisitStop({ section: s }: { section: SceneSection }) {
           a size down from the give stop's and tighter still on a short viewport */}
       <Bracketed
         {...panel}
-        className="flex w-full max-w-[820px] flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
+        className="flex w-full max-w-[820px] flex-col items-center gap-5 short:lg:gap-3"
       >
         {/* the kicker stands at the panel's left, its rule drawn from there; the rest is centred */}
         <Kicker className="self-start text-left">{s.kicker}</Kicker>
-        <PanelReveal className="flex w-full flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3">
+        <PanelReveal className="flex w-full flex-col items-center gap-5 short:lg:gap-3">
           {/* the words' height eases from one step to the next, so the glass
               grows and shrinks with them instead of jumping */}
           {/* wrapped, so the reveal's own transition stays on the wrapper
@@ -77,21 +76,21 @@ export default function VisitStop({ section: s }: { section: SceneSection }) {
                 key={way}
                 data-way-words=""
                 aria-live="polite"
-                className="way-in-rise flex flex-col items-center gap-5 [@media(max-height:820px)]:lg:gap-3"
+                className="way-in-rise flex flex-col items-center gap-5 short:lg:gap-3"
               >
                 <h2
-                  className={`max-w-[20ch] text-[clamp(36px,4.2vw,56px)] leading-[1.04] text-balance [@media(max-height:820px)]:lg:text-[42px] ${serif}`}
+                  className={stopHeading({ stop: "visit" })}
                 >
                   {at?.title}
                 </h2>
-                <p className={`max-w-[52ch] text-base leading-relaxed text-pretty text-cream/80 md:text-lg [@media(max-height:820px)]:lg:text-base ${PHONE_BODY}`}>
+                <p className={stopBody({ stop: "visit" })}>
                   {at?.body}
                 </p>
                 {/* the call to write sits under the first step's words, and goes with them */}
                 {way === 0 && s.cta && (
                   <a
                     href={s.cta.href}
-                    className={`${SEAL_BUTTON} px-[34px] py-4 text-xs font-bold uppercase tracking-[0.2em]`}
+                    className={button({ intent: "seal", size: "cta" })}
                   >
                     {s.cta.label}
                   </a>

@@ -1,20 +1,16 @@
+import { HERO_RISE_EASE, HERO_RISE_SECONDS, HERO_RISE_STAGGER, HERO_SETTLE_SECONDS, HERO_SETTLE_STAGGER } from "@/theme/motion";
 import { gsap, SplitText } from "@/lib/gsap";
 
-/** how long each line takes to rise, the beat between lines, and how far a line comes up, in px */
-export const HERO_RISE_SECONDS = 1.2;
-export const HERO_RISE_STAGGER = 0.12;
+/** how far a line comes up, in px (its rise and the beat between lines: theme/motion.ts) */
 export const HERO_RISE_PX = 28;
-export const HERO_RISE_EASE = "power3.out";
 /**
  * The settle (#107): the headline stood on the splash from the first paint,
  * so its lines have nowhere to rise from. The handoff lifts the splash's
  * headline this far while the ink dissolves (handoff.ts), and the hero's
  * lines, taking its place at the same height, settle back down one after
- * another — the same lines, never faded.
+ * another — the same lines, never faded (their seconds and beat: theme/motion.ts).
  */
 export const HERO_SETTLE_PX = 8;
-export const HERO_SETTLE_SECONDS = 1.0;
-export const HERO_SETTLE_STAGGER = 0.08;
 /** the hero headline, marked in HeroStop.tsx */
 export const HERO_HEADLINE = "[data-hero-headline]";
 

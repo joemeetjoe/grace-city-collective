@@ -115,21 +115,3 @@ export function assignLayer<T extends THREE.Object3D>(object: T, side: CanvasSid
   object.layers.set(layerMask(side));
   return object;
 }
-
-/**
- * The page's stacking order around the two canvases, as Tailwind classes
- * (the handoff's is a bare number: gsap sets it inline). The hero headline,
- * the kickers and every copy panel — glass, brackets and words — sit between
- * the canvases, so the nearest figures cross them; the lockup, the frame
- * border and the nav stay above. The splash's handoff sits over the headline
- * (which fades up with the scene) and under the nav, whose mark the
- * travelling one lands on.
- */
-export const STACK = {
-  back: "z-0",
-  between: "z-10",
-  handoff: 15,
-  front: "z-[25]",
-  copy: "z-30",
-  nav: "z-40",
-} as const;

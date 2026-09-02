@@ -2,8 +2,8 @@ import { fireEvent, render } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 
-import WayIn, { RULE_STAGGER_MS, type WayInProps } from "./WayIn";
-import { TRACE_STAGGER_MS } from "@/marks/GatheringMark";
+import { MARK_TRACE_STAGGER_MS, RULE_STAGGER_MS } from "@/theme/motion";
+import WayIn, { type WayInProps } from "./WayIn";
 
 const STEPS = [
   { title: "Say hello.", body: "Write to us." },
@@ -101,7 +101,7 @@ describe("WayIn", () => {
         shown.querySelectorAll<SVGPathElement>("svg[data-gathering-mark]")[i].querySelector("path")!.style
           .transitionDelay,
       );
-    expect(firstLozenge(1) - firstLozenge(0)).toBe(RULE_STAGGER_MS + TRACE_STAGGER_MS);
+    expect(firstLozenge(1) - firstLozenge(0)).toBe(RULE_STAGGER_MS + MARK_TRACE_STAGGER_MS);
   });
 
   describe("single: the current step alone between the arrows (below lg)", () => {

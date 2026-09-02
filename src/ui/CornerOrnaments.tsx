@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import OrnateRule from "./OrnateRule";
+import { BRACKET_STAGGER_MS, ENTER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type CornerOrnamentsProps = {
@@ -16,9 +17,9 @@ export type CornerOrnamentsProps = {
   className?: string;
 };
 
-/** the scene frame's brackets: inside the cream line, long arms */
+/** the scene frame's brackets: inside the cream line (--spacing-frame-inset, index.css), long arms */
 export const FRAME_ARM = "clamp(72px,9vw,150px)";
-export const FRAME_INSET = "calc(clamp(9px,2.4vw,26px) + 12px)";
+export const FRAME_INSET = "calc(var(--spacing-frame-inset) + 12px)";
 
 /** a copy block's brackets: at the block's padding edge, shorter arms */
 export const COPY_ARM = "clamp(44px,5.5vw,90px)";
@@ -27,12 +28,9 @@ export const COPY_ARM = "clamp(44px,5.5vw,90px)";
 export const ENTER_OFFSET = 56;
 /** how much of its length a waiting arm has grown */
 export const ENTER_SCALE = 0.55;
-/** the entrance, in ms, and the wait between one arm and the next */
-export const ENTER_MS = 1100;
-export const ENTER_STAGGER_MS = 140;
 
-const ENTER =
-  "motion-safe:transition-[opacity,transform] motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
+/** the entrance (ENTER_MS, one arm a beat after the last: BRACKET_STAGGER_MS) on the site's ease, only where motion is welcome */
+const ENTER = "motion-safe:transition-[opacity,transform] motion-safe:ease-site";
 
 /**
  * An arm's resting or waiting style. Waiting, it sits out past its corner
@@ -51,7 +49,7 @@ function entrance(
   const motion = {
     transformOrigin: origin,
     transitionDuration: `${ENTER_MS}ms`,
-    transitionDelay: `${order * ENTER_STAGGER_MS}ms`,
+    transitionDelay: `${order * BRACKET_STAGGER_MS}ms`,
   };
   return shown
     ? { ...motion, opacity: 1, transform: "translate(0px, 0px) scale(1)" }
@@ -89,7 +87,7 @@ export default function CornerOrnaments({
       <OrnateRule
         ends="start"
         drawn={shown}
-        delay={0 * ENTER_STAGGER_MS}
+        delay={0 * BRACKET_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           top: inset,
@@ -102,7 +100,7 @@ export default function CornerOrnaments({
         ends="end"
         vertical
         drawn={shown}
-        delay={1 * ENTER_STAGGER_MS}
+        delay={1 * BRACKET_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           top: inset,
@@ -115,7 +113,7 @@ export default function CornerOrnaments({
       <OrnateRule
         ends="end"
         drawn={shown}
-        delay={2 * ENTER_STAGGER_MS}
+        delay={2 * BRACKET_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           bottom: inset,
@@ -128,7 +126,7 @@ export default function CornerOrnaments({
         ends="start"
         vertical
         drawn={shown}
-        delay={3 * ENTER_STAGGER_MS}
+        delay={3 * BRACKET_STAGGER_MS}
         className={cn("absolute", ENTER)}
         style={{
           bottom: inset,

@@ -1,8 +1,8 @@
-import { BUTTON_CORNERS, GLASS } from "@/theme/glass";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 
 import GMark from "@/marks/GMark";
+import { BUTTON_CORNERS, STACK, pill, serif } from "@/theme/classes";
 import { useSite } from "@/content/useSite";
 import { cn } from "@/lib/utils";
 
@@ -11,14 +11,8 @@ export const CLOSE_LABEL = "Close menu";
 /** the mark's height: the same G as the xl corner's, so the intro's traveller lands on one size everywhere */
 export const MARK_SIZE = 40;
 
-const serif = "font-serif";
-const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
-/** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens */
+/** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens; the mark stays bare — its own box is enough of a seat */
 const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;
-// over the scene the bar carries no backdrop of its own (App.tsx), so Menu
-// wears the desktop links' frosted glass (#60); the mark stays bare — its
-// own box is enough of a seat. The sheet is solid ink; Close stays bare there.
-const glassPill = `${pill} ${GLASS}`;
 
 export type MobileNavProps = {
   /** the section under the viewport's midpoint; its link in the sheet is marked current */
@@ -56,7 +50,7 @@ export default function MobileNav({
         <Dialog.Trigger asChild>
           <button
             type="button"
-            className={`${glassPill} cursor-pointer text-cream/85 hover:text-cream`}
+            className={pill({ intent: "menu" })}
           >
             {MENU_LABEL}
           </button>
@@ -65,17 +59,17 @@ export default function MobileNav({
           <Dialog.Content
             data-nav-sheet=""
             aria-describedby={undefined}
-            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in"
+            className={`fixed inset-0 ${STACK.cover} flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in`}
           >
             <Dialog.Title className="sr-only">{MENU_LABEL}</Dialog.Title>
 
             {/* the same row as the resting nav — Menu/Close on the left, the G at the right corner as the xl nav has it — so the mark does not jump when the sheet opens */}
-            <div className="flex items-center justify-between px-[calc(clamp(9px,2.4vw,26px)+clamp(16px,3.4vw,34px))] pt-[calc(clamp(9px,2.4vw,26px)+clamp(16px,2.6vw,26px))]">
+            <div className="flex items-center justify-between px-[calc(var(--spacing-frame-inset)+clamp(16px,3.4vw,34px))] pt-[calc(var(--spacing-frame-inset)+clamp(16px,2.6vw,26px))]">
               <Dialog.Close asChild>
                 <button
                   type="button"
                   aria-label={CLOSE_LABEL}
-                  className={`${pill} cursor-pointer text-cream/85 hover:text-cream`}
+                  className={pill({ intent: "close" })}
                 >
                   Close
                 </button>
@@ -114,14 +108,14 @@ export default function MobileNav({
               <a
                 href="#give"
                 onClick={(e) => go(e, "give")}
-                className={`${pill} border border-cream/45 hover:border-cream hover:bg-cream/10`}
+                className={pill({ intent: "ghost" })}
               >
                 Give
               </a>
               <a
                 href="#visit"
                 onClick={(e) => go(e, "visit")}
-                className={`${pill} bg-seal font-bold text-cream hover:bg-seal-deep`}
+                className={pill({ intent: "seal" })}
               >
                 Join Sunday
               </a>

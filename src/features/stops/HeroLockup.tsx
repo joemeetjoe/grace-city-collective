@@ -1,4 +1,4 @@
-import { STACK } from "@/theme/layerSplit";
+import { STACK } from "@/theme/classes";
 import Lockup from "@/marks/Lockup";
 import { useBelowLg } from "@/layout/breakpoint";
 
@@ -17,7 +17,7 @@ export default function HeroLockup({ at }: { at: "chrome" | "foot" }) {
       data-hero-lockup=""
       className={
         at === "chrome"
-          ? "absolute bottom-[clamp(22px,4.2vw,52px)] left-[clamp(20px,4.4vw,60px)] right-[clamp(20px,4.4vw,60px)] flex justify-start"
+          ? "absolute bottom-lockup-foot left-gutter right-gutter flex justify-start"
           : `relative ${STACK.copy} mt-auto flex justify-start`
       }
     >

@@ -32,6 +32,7 @@ import {
   gMarkBox,
 } from "../../marks/gMarkGeometry";
 import { site } from "../../content/site";
+import { STACK, stackLevel } from "../../theme/classes";
 import { FONT_FALLBACK_CSS } from "../../theme/fontFallback";
 import { FONT_SANS, FONT_SERIF } from "../../theme/fonts";
 import { tokens } from "../../theme/tokens";
@@ -121,8 +122,8 @@ export function staticSplashSvg(): string {
   );
 }
 
-/** the splash's root: a fixed sheet of ink, laid out by the composition (SPLASH_LAYOUT_CSS), as IntroSplash's is */
-export const STATIC_SPLASH_LAYOUT = `position:fixed;inset:0;z-index:50;display:flex;background:${tokens.ink}`;
+/** the splash's root: a fixed sheet of ink (its step of STACK, as a number), laid out by the composition (SPLASH_LAYOUT_CSS), as IntroSplash's is */
+export const STATIC_SPLASH_LAYOUT = `position:fixed;inset:0;z-index:${stackLevel(STACK.cover)};display:flex;background:${tokens.ink}`;
 
 const escapeHtml = (text: string): string =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

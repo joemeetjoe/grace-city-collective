@@ -4,7 +4,7 @@ import CornerOrnaments, {
   FRAME_ARM,
   FRAME_INSET,
 } from "@/ui/CornerOrnaments";
-import { STACK } from "@/theme/layerSplit";
+import { STACK } from "@/theme/classes";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
 import LongformGate from "@/features/longform/LongformGate";
@@ -70,7 +70,7 @@ export default function HomePage({
       smoother transforms the content the sticky is inert and
       useSmoothScroll holds the sticky layers with a scrubbed translate.
       A held layer is transformed, so it is a stacking context of its
-      own: each carries one step of STACK (layerSplit.ts). */}
+      own: each carries one step of STACK (theme/classes.ts). */}
       <div ref={sceneRef} data-scene="" className="relative grid grid-cols-[minmax(0,1fr)]">
         {/* sticky, not fixed: it stays put while the sections scroll over it.
         lvh, not svh: on a phone the URL bar retracts as the reader scrolls
@@ -143,7 +143,7 @@ export default function HomePage({
           <div
             aria-hidden
             data-scene-frame=""
-            className={`absolute inset-[clamp(9px,2.4vw,26px)] border border-cream/35 ${FRAME_CORNERS}`}
+            className={`absolute inset-frame-inset border border-cream/35 ${FRAME_CORNERS}`}
           />
           {/* not on a phone, where the lockup sits right in the bottom-left corner */}
           <CornerOrnaments

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { lozengePath } from "@/theme/lozenge";
+import { HOUSE_CALL_STAGGER_MS, MARK_TRACE_STAGGER_MS } from "@/theme/motion";
 import type { GatheringMark as Mark } from "@/content/site";
 import { cn } from "@/lib/utils";
 
@@ -36,11 +37,7 @@ const BOX = 44;
 /** the ratio of a lozenge's width to its height, the finials' own */
 const LOZENGE = 2;
 
-/** the trace, in ms, and the wait between one lozenge and the next */
-export const TRACE_MS = 900;
-export const TRACE_STAGGER_MS = 120;
-/** on the tour, the wait between one home's call and the next: five calls make one round */
-export const HOUSE_CALL_STAGGER_MS = 500;
+/** the trace takes DRAW_MS (the .9s of TRANSITION), one lozenge MARK_TRACE_STAGGER_MS after the last; on the tour the homes are called HOUSE_CALL_STAGGER_MS apart (theme/motion.ts) */
 
 /** how far a house steps out from the table when lit, px of the drawing */
 const STEP_OUT = 2.5;
@@ -142,7 +139,7 @@ function table(): Piece[] {
 const DRAW: Record<Emblem, () => Piece[]> = { one, two, table, homes, feast };
 
 const TRANSITION =
-  "motion-safe:[transition:stroke-dashoffset_.9s_cubic-bezier(0.16,1,0.3,1),transform_.6s_cubic-bezier(0.16,1,0.3,1),fill-opacity_.5s_ease]";
+  "motion-safe:[transition:stroke-dashoffset_.9s_var(--ease-site),transform_.6s_var(--ease-site),fill-opacity_.5s_ease]";
 
 /**
  * A small emblem for a gathering, in the finials' hollow-lozenge hairline
@@ -176,7 +173,7 @@ export default function GatheringMark({
           transform: lit && p.lit ? p.lit : "none",
           transformBox: "fill-box",
           transformOrigin: "center",
-          transitionDelay: `${(shown ? delay : 0) + i * TRACE_STAGGER_MS}ms`,
+          transitionDelay: `${(shown ? delay : 0) + i * MARK_TRACE_STAGGER_MS}ms`,
         };
         // on the tour each home is called on in turn (house-call, index.css)
         const called = lit && tour && p.home;
