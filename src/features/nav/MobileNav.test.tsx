@@ -47,6 +47,15 @@ describe("MobileNav", () => {
     expect(sheet.querySelectorAll("[aria-current]").length).toBe(1);
   });
 
+  it("the sheet is a dialog named Menu that takes focus and hides the bar behind it (the radix Dialog's labelling and trap)", () => {
+    const { container } = render(<MobileNav />);
+    const sheet = openSheet();
+    expect(screen.getByRole("dialog", { name: MENU_LABEL })).toBe(sheet);
+    expect(sheet.getAttribute("aria-labelledby")).toBe(sheet.querySelector("h2")!.id);
+    expect(sheet.contains(document.activeElement)).toBe(true);
+    expect(container.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("Escape closes the sheet", () => {
     render(<MobileNav />);
     openSheet();

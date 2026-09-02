@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource/cormorant-garamond/300.css";
 @import "@fontsource/cormorant-garamond/400.css";
@@ -141,7 +140,7 @@
     }
 }
 
-/* the page's ground is ink, on the body as well as the root: shadcn's base
+/* the page's ground is ink, on the body as well as the root: the base layer above
    paints the body white, and it shows for a frame wherever the scene's held
    layers trail a jump of the smoother */
 html,
