@@ -24,10 +24,13 @@ export default function HeroStop({ section: s }: { section: SceneSection }) {
         {s.kicker}
       </Kicker>
       {/* the one headline the nearest figures may clip at its edges; it
-          rises line by line once the splash has handed off (heroRise.ts) */}
+          rises line by line once the splash has handed off (heroRise.ts).
+          Its measure is 15ch of Cormorant, written in em (its zero is
+          0.477em) so the metric-matched fallback face, whose own ch is
+          Georgia's, wraps it at the same width before the woff2 lands (#106) */}
       <h1
         data-hero-headline=""
-        className={`${between} max-w-[15ch] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
+        className={`${between} max-w-[7.155em] text-[clamp(42px,9vw,72px)] leading-[1.02] tracking-[-0.005em] text-pretty lg:text-[clamp(42px,5.6vw,84px)] ${serif}`}
       >
         {s.heading}
       </h1>

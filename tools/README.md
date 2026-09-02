@@ -15,6 +15,60 @@ project; none is part of the bundle.
   the four phone/tablet sizes and fails if the page is ever wider than the
   viewport (`node tools/shots/mobile-check.mjs --url http://localhost:4173/`).
 - `pngdiff.mjs` — pixel diff of two shots, for before/after comparisons.
+- `rectdiff.mjs` — the line boxes two `cdp-shot.mjs --rects <selector>`
+  runs recorded, compared label by label: line count, and the largest
+  vertical and horizontal shift of any line edge, in CSS px.
+
+### Fonts blocked (`--block-fonts`)
+
+`cdp-shot.mjs --block-fonts` blocks every `*.woff2` and `*.woff` request
+over CDP, so the page paints in the metric-matched fallback faces
+(`src/theme/fontFallback.ts`: `Geist Fallback` over Arial, `Cormorant
+Garamond Fallback` over Georgia) — what a reader sees in the moment before
+a web font lands. The check for #106 is the hero headline's line boxes,
+fonts on against fonts blocked, on both widths:
+
+```bash
+pnpm build && pnpm preview --port 4405 --strictPort &
+node tools/shots/cdp-shot.mjs --url http://localhost:4405/ --out shots/desktop \
+     --size 1600x900 --dpr 2 --labels Hero --rects h1
+node tools/shots/cdp-shot.mjs --url http://localhost:4405/ --out shots/desktop-nofonts \
+     --size 1600x900 --dpr 2 --labels Hero --rects h1 --block-fonts
+node tools/shots/rectdiff.mjs shots/desktop/state.json shots/desktop-nofonts/state.json --x 16
+# mobile: --size 390x844 --mobile --dpr 3, and --x 8
+```
+
+Tolerance: the same number of lines, every top and bottom edge within
+0.5 px (`--y`, the default), and every left and right edge within 0.2 em
+of the headline's size — `--x 16` at the 84 px desktop hero, `--x 8` at
+the 42 px mobile one. The vertical match is exact by construction: the
+ascent, descent and line-gap overrides replace the local face's metrics
+with the web font's. The horizontal one is not: size-adjust matches the
+average advance of English text, not each glyph, so a given word runs a
+little wider or narrower in Georgia than in Cormorant. Measured at #106:
+y 0.00 px on both widths; x 9.55 px desktop, 4.75 px mobile. The
+headline's measure is written in em rather than `ch` for the same reason
+(`src/features/stops/HeroStop.tsx`): `ch` is the zero's advance, which
+size-adjust does not equalise, and a wider measure wraps the lines
+elsewhere.
+
+## Fonts (`tools/fonts/`)
+
+- `metrics.py` — the metrics behind the fallback faces: for each web font
+  the site sets, the hhea ascent, descent and line gap and the
+  frequency-weighted average advance of a–z and the space from the latin
+  woff2 in `node_modules`, and the same average from the local face
+  (`/System/Library/Fonts/Supplemental/Arial.ttf`, `Georgia.ttf`). Writes
+  `src/theme/fontMetrics.json` with the size-adjust and overrides computed
+  from them; `--check` recomputes and compares without writing. Its
+  docstring says which metrics and why. Runs under the dore-recut venv
+  (fontTools, brotli):
+  `~/Projects/dore-recut/.venv-recut/bin/python tools/fonts/metrics.py --check`.
+  `src/theme/fontFallback.test.ts` proves the checked-in overrides against
+  the checked-in metrics with the same arithmetic in TypeScript, and
+  `fonts.test.ts` that the stacks in `src/index.css` and
+  `src/theme/fonts.ts` agree and name each fallback after its web font.
+  Re-run the script when a font package is bumped, then `pnpm test`.
 
 ### The shot gate
 
@@ -101,7 +155,9 @@ script that could paint has run. `tests/build/surfaces.test.ts` checks the
 SEO and AI surfaces the `gcc:surfaces` plugin generates from
 `src/content/site.ts` (`src/content/surfaces.ts`): the head tags and JSON-LD,
 the noscript block, `robots.txt`, `sitemap.xml`, `llms.txt`,
-`llms-full.txt` and the share card. Later Vitals slices add their config and
+`llms-full.txt` and the share card. `tests/build/fonts.test.ts` checks the
+two font preloads the `gcc:font-preload` plugin writes into the head
+(`src/lib/fontPreload.ts`) and the fallback faces in the inline head style. Later Vitals slices add their config and
 headless-Chrome timeline checks here; in CI the order is `test`, `build`,
 `test:build`, `budget`.
 

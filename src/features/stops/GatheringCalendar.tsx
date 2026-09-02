@@ -6,6 +6,7 @@ import {
   G_MARK_W as W,
   gMarkBox,
 } from "@/marks/gMarkGeometry";
+import { FONT_SERIF } from "@/theme/fonts";
 import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark } from "@/content/site";
 import { cn } from "@/lib/utils";
@@ -220,7 +221,7 @@ export default function GatheringCalendar({
           textAnchor="middle"
           dominantBaseline={across ? "central" : undefined}
           fontSize={NUMERAL}
-          fontFamily="'Cormorant Garamond', Georgia, serif"
+          fontFamily={FONT_SERIF}
           letterSpacing={NUMERAL * 0.12}
           fill="currentColor"
           fillOpacity={0.45}
@@ -266,7 +267,7 @@ export default function GatheringCalendar({
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={S_SIZE}
-          fontFamily="'Cormorant Garamond', Georgia, serif"
+          fontFamily={FONT_SERIF}
           fill="currentColor"
           fillOpacity={opacity}
           className={TRANSITION}

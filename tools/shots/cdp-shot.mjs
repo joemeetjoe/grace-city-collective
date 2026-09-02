@@ -12,12 +12,17 @@
  *        [--css "section{visibility:hidden}"]   (injected after load)
  *        [--mobile] [--dpr 3] [--reduced-motion] [--ids devotions,faq] [--menu]
  *        [--no-avif]   (force the AVIF probe's verdict to false: the WebP path)
+ *        [--block-fonts] [--rects h1]
  *
  * --dpr sets the pixel ratio (desktop needs 2 for the desktop tier; headless is 1).
  * --mobile emulates a phone/tablet: the viewport is --size at --dpr with the
  * mobile flag set (Chrome then reports the layout viewport, not a desktop
  * window) and touch emulation on. --reduced-motion sets the media feature so
- * the static poster renders in place of the scene.
+ * the static poster renders in place of the scene. --block-fonts blocks every
+ * *.woff2 and *.woff request, so text paints in the fallback faces (#106);
+ * --rects records the line boxes of the first element matching the selector
+ * at each capture into state.json (`lines`, CSS px), with the web fonts that
+ * loaded — tools/shots/rectdiff.mjs compares two such files.
  *
  * Writes <out>/<index>-<label>.png per `section[data-screen-label]`, plus
  * <out>/state.json with the page's performance.now() at each capture.
@@ -51,6 +56,10 @@ const menu = process.argv.includes("--menu");
 // textures load as WebP in a Chrome that decodes AVIF
 const noAvif = process.argv.includes("--no-avif");
 const AVIF_VERDICT_KEY = "__gccAvif";
+// block the web fonts, so the page paints in the fallback faces
+const blockFonts = process.argv.includes("--block-fonts");
+// the element whose line boxes go into state.json at each capture
+const rects = arg("rects", "");
 const chrome = arg(
   "chrome",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -125,6 +134,10 @@ try {
   if (reducedMotion) {
     await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
   }
+  if (blockFonts) {
+    await send("Network.enable");
+    await send("Network.setBlockedURLs", { urls: ["*.woff2", "*.woff"] });
+  }
   await send("Page.addScriptToEvaluateOnNewDocument", {
     source: `try { sessionStorage.setItem("gcc:intro-played", "1"); } catch {}`,
   });
@@ -147,6 +160,33 @@ try {
     })()`);
   }
   await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: px * W, y: py * H });
+
+  // the line boxes of the first element matching --rects: one rect per line,
+  // the union of the range's fragments on that line, plus the loaded web fonts
+  const lineBoxes = async () => {
+    if (!rects) return {};
+    return await evaluate(`(() => {
+      const el = document.querySelector(${JSON.stringify(rects)});
+      if (!el) return { lines: null };
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const frags = [...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0);
+      frags.sort((a, b) => a.top - b.top || a.left - b.left);
+      const lines = [];
+      for (const r of frags) {
+        const last = lines[lines.length - 1];
+        if (last && Math.abs(last.y0 - r.top) < 0.5) {
+          last.x0 = Math.min(last.x0, r.left); last.x1 = Math.max(last.x1, r.right); last.y1 = Math.max(last.y1, r.bottom);
+        } else lines.push({ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom });
+      }
+      const round = (v) => Math.round(v * 100) / 100;
+      return {
+        lines: lines.map((l) => ({ x0: round(l.x0), y0: round(l.y0), x1: round(l.x1), y1: round(l.y1) })),
+        fontFamily: getComputedStyle(el).fontFamily,
+        fontsLoaded: [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family),
+      };
+    })()`);
+  };
 
   const labels = await evaluate(
     `Array.from(document.querySelectorAll("section[data-screen-label]")).map(s => s.dataset.screenLabel)`,
@@ -176,7 +216,7 @@ try {
     const shot = await send("Page.captureScreenshot", { format: "png" });
     const file = join(out, `${String(i).padStart(2, "0")}-${label.toLowerCase().replace(/\W+/g, "-")}.png`);
     writeFileSync(file, Buffer.from(shot.data, "base64"));
-    state.push({ label, file, t: await evaluate("performance.now()"), scrollY: await evaluate("window.scrollY") });
+    state.push({ label, file, t: await evaluate("performance.now()"), scrollY: await evaluate("window.scrollY"), ...(await lineBoxes()) });
     console.log("wrote", file);
   }
   for (const id of ids) {
@@ -189,7 +229,7 @@ try {
     const shot = await send("Page.captureScreenshot", { format: "png" });
     const file = join(out, `${String(labels.length + ids.indexOf(id)).padStart(2, "0")}-${id}.png`);
     writeFileSync(file, Buffer.from(shot.data, "base64"));
-    state.push({ label: id, file, t: await evaluate("performance.now()"), scrollY: await evaluate("window.scrollY") });
+    state.push({ label: id, file, t: await evaluate("performance.now()"), scrollY: await evaluate("window.scrollY"), ...(await lineBoxes()) });
     console.log("wrote", file);
   }
   if (menu) {

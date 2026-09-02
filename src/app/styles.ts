@@ -1,7 +1,8 @@
 import { BUTTON_CORNERS } from "@/theme/glass";
 import { BUTTON_LIFT, FOCUS_RING } from "@/theme/interact";
 
-export const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
+/** the serif stack with its metric-matched fallback: --font-serif in index.css (src/theme/fonts.ts) */
+export const serif = "font-serif";
 export const gutter = "px-[clamp(20px,4.4vw,60px)]";
 export const kickerCls = "text-[11px] uppercase tracking-[0.28em] text-seal";
 

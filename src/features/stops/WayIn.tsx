@@ -224,7 +224,7 @@ export default function WayIn({ steps, step, onStep, shown = true, single = fals
                   className={single ? "relative h-11 w-11" : "relative h-9 w-9 md:h-11 md:w-11"}
                 />
                 <span
-                  className="text-[10px] tracking-[0.12em] md:text-[11px] [font-family:'Cormorant_Garamond',Georgia,serif]"
+                  className="text-[10px] tracking-[0.12em] md:text-[11px] font-serif"
                   style={{
                     opacity: shown ? 1 : 0,
                     transition: `opacity ${TRACE_MS}ms ease ${traceAt(i)}ms`,

@@ -11,7 +11,7 @@ export const CLOSE_LABEL = "Close menu";
 /** the mark's height: the same G as the xl corner's, so the intro's traveller lands on one size everywhere */
 export const MARK_SIZE = 40;
 
-const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
+const serif = "font-serif";
 const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
 /** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens */
 const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;

@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { STATIC_SPLASH_ATTR, staticSplashTags } from './src/features/intro/staticSplash'
 import { engineChunkHref, enginePreloadScript } from './src/device/enginePreload'
 import { asyncCssLinks } from './src/lib/asyncCss'
+import { fontPreloadTags } from './src/lib/fontPreload'
 import { site } from './src/content/site'
 import {
   LLMS_FILE,
@@ -112,9 +113,24 @@ const asyncCss = (): Plugin => ({
   },
 })
 
+// The two latin font files the first screen paints with, preloaded from the
+// head with their hashed URLs (src/lib/fontPreload.ts), so they start with
+// the page rather than once the stylesheet has arrived and been parsed. The
+// fallback faces they swap into are in the inline head style. Build only.
+const fontPreload = (): Plugin => ({
+  name: 'gcc:font-preload',
+  transformIndexHtml: {
+    order: 'post',
+    handler(_html, ctx) {
+      if (!ctx.filename.endsWith('index.html') || !ctx.bundle) return
+      return fontPreloadTags(Object.keys(ctx.bundle), base)
+    },
+  },
+})
+
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload(), asyncCss()],
+  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload(), fontPreload(), asyncCss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

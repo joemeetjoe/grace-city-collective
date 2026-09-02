@@ -21,6 +21,7 @@ import {
   gMarkAspect,
   gMarkBox,
 } from "../../marks/gMarkGeometry";
+import { FONT_FALLBACK_CSS } from "../../theme/fontFallback";
 import { tokens } from "../../theme/tokens";
 import { REDUCED_MOTION_QUERY } from "../../device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
@@ -37,6 +38,14 @@ export const STATIC_SPLASH_ATTR = "data-intro-static";
  * rather than a white page.
  */
 export const STATIC_SPLASH_STYLE = `html{background:${tokens.ink}}body{margin:0;background:${tokens.ink}}`;
+
+/**
+ * Everything the inline head style carries: the ink, then the metric-matched
+ * fallback faces (theme/fontFallback.ts), declared here so they exist before
+ * any text can paint — the headline set in one of them before its woff2
+ * lands takes the same line boxes and moves nothing when the swap happens.
+ */
+export const INLINE_HEAD_STYLE = `${STATIC_SPLASH_STYLE}${FONT_FALLBACK_CSS}`;
 
 /** the ruled G mark, as GMark renders it for the splash: same viewBox, paths and size */
 export function staticSplashSvg(): string {
@@ -87,10 +96,10 @@ export type StaticSplashTag = {
   injectTo: "head" | "body-prepend";
 };
 
-/** the ink in the head; the splash and its script at the top of the body, in that order */
+/** the ink and the fallback faces in the head; the splash and its script at the top of the body, in that order */
 export function staticSplashTags(): StaticSplashTag[] {
   return [
-    { tag: "style", children: STATIC_SPLASH_STYLE, injectTo: "head" },
+    { tag: "style", children: INLINE_HEAD_STYLE, injectTo: "head" },
     {
       tag: "div",
       attrs: { [STATIC_SPLASH_ATTR]: "", style: STATIC_SPLASH_LAYOUT },

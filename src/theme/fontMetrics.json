@@ -1,0 +1,51 @@
+{
+  "_generated": "by tools/fonts/metrics.py from the fonts named in it; re-run it, do not edit",
+  "sans": {
+    "family": "Geist Variable",
+    "fallbackFamily": "Geist Fallback",
+    "localFamily": "Arial",
+    "web": {
+      "file": "node_modules/@fontsource-variable/geist/files/geist-latin-wght-normal.woff2",
+      "unitsPerEm": 1000,
+      "ascent": 1005,
+      "descent": -295,
+      "lineGap": 0,
+      "xWidthAvg": 473.1127
+    },
+    "local": {
+      "file": "/System/Library/Fonts/Supplemental/Arial.ttf",
+      "unitsPerEm": 2048,
+      "xWidthAvg": 915.3931
+    },
+    "overrides": {
+      "sizeAdjust": 1.0585,
+      "ascent": 0.9495,
+      "descent": 0.2787,
+      "lineGap": 0.0
+    }
+  },
+  "serif": {
+    "family": "Cormorant Garamond",
+    "fallbackFamily": "Cormorant Garamond Fallback",
+    "localFamily": "Georgia",
+    "web": {
+      "file": "node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-400-normal.woff2",
+      "unitsPerEm": 1000,
+      "ascent": 924,
+      "descent": -287,
+      "lineGap": 0,
+      "xWidthAvg": 394.3066
+    },
+    "local": {
+      "file": "/System/Library/Fonts/Supplemental/Georgia.ttf",
+      "unitsPerEm": 2048,
+      "xWidthAvg": 912.9419
+    },
+    "overrides": {
+      "sizeAdjust": 0.8845,
+      "ascent": 1.0447,
+      "descent": 0.3245,
+      "lineGap": 0.0
+    }
+  }
+}

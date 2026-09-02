@@ -2,11 +2,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 
 import GMark from "@/marks/GMark";
+import { FONT_FALLBACK_CSS } from "@/theme/fontFallback";
 import { tokens } from "@/theme/tokens";
 import { REDUCED_MOTION_QUERY } from "../../device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 import {
+  INLINE_HEAD_STYLE,
   STATIC_SPLASH_ATTR,
   STATIC_SPLASH_LAYOUT,
   STATIC_SPLASH_STYLE,
@@ -101,14 +103,17 @@ describe("staticSplashScript", () => {
 });
 
 describe("staticSplashTags", () => {
-  it("puts the ink in the head, then the splash and its script at the top of the body, in that order", () => {
+  it("puts the ink and the fallback faces in the head, then the splash and its script at the top of the body, in that order", () => {
     const tags = staticSplashTags();
     expect(tags.map((t) => [t.tag, t.injectTo])).toEqual([
       ["style", "head"],
       ["div", "body-prepend"],
       ["script", "body-prepend"],
     ]);
-    expect(tags[0].children).toBe(STATIC_SPLASH_STYLE);
+    expect(tags[0].children).toBe(INLINE_HEAD_STYLE);
+    // the ink first, then the faces: both before any text can paint
+    expect(INLINE_HEAD_STYLE).toBe(`${STATIC_SPLASH_STYLE}${FONT_FALLBACK_CSS}`);
+    expect(INLINE_HEAD_STYLE).toContain('@font-face{font-family:"Cormorant Garamond Fallback"');
     // the tag is the markup, attribute for attribute: the layout rides on it too
     const fromMarkup = parse(staticSplashMarkup()).firstElementChild as HTMLElement;
     expect(tags[1].attrs).toEqual(Object.fromEntries([...fromMarkup.attributes].map((a) => [a.name, a.value])));
