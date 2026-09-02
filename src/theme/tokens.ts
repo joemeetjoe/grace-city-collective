@@ -69,3 +69,11 @@ export function glslVec3(hex: string, { normalise = false } = {}): string {
   const k = normalise ? 1 / Math.max(...c) : 1;
   return `vec3(${c.map((v) => (v * k).toFixed(3)).join(", ")})`;
 }
+
+/**
+ * The flame tips' glow in the scene's shaders (engine/shaders.ts): the seal
+ * copper warmed toward the cream, so the brightest pixels of a tongue read
+ * as fire rather than paint. Not a Tailwind colour — nothing in the DOM
+ * wears it.
+ */
+export const flameGlow = "#f2a86a";

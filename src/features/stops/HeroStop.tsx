@@ -1,16 +1,17 @@
 import { useAppStore } from "@/state/appStore";
 import Kicker from "@/ui/panel/Kicker";
-import type { SceneSection } from "@/content/site";
 import { stopFrame, stopHeading } from "@/theme/classes";
 import HeroLockup from "./HeroLockup";
+import type { StopProps } from "./Scene";
 
 /** the hero stop: the one headline over the scene, and the lockup at its foot below lg */
-export default function HeroStop({ section: s }: { section: SceneSection }) {
+export default function HeroStop({ section: s, ref }: StopProps) {
   // the splash is still up: the kicker's rule waits for the handoff
   const pending = useAppStore((s) => s.intro);
   const { base } = stopFrame(s.id);
   return (
     <section
+      ref={ref}
       id={s.id}
       data-screen-label={s.label}
       // below lg the lockup is the hero's last child, set into the same

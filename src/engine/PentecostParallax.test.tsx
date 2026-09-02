@@ -3,9 +3,12 @@
  * three's WebGLRenderer and its two loaders are replaced through a partial
  * mock of "three". The fake renderer records which textures were initialised
  * through `initTexture` and, on `render`, counts every texture the drawn
- * materials sample that it would have had to upload on the spot.
+ * materials sample that it would have had to upload on the spot. It also
+ * keeps the live renderers per canvas (#120): a canvas has one WebGL
+ * context, so two live renderers on it would share and corrupt it.
  */
 import { act, render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 
@@ -13,6 +16,8 @@ import { TIERS } from "@/device/tier";
 import { REST_STATE, useAppStore } from "@/state/appStore";
 
 type FakeRenderer = {
+  canvas: HTMLCanvasElement;
+  disposed: boolean;
   initialised: Set<THREE.Texture>;
   /** initTexture calls per faked frame (Date.now() under fake timers) */
   initsByFrame: Map<number, number>;
@@ -23,6 +28,8 @@ type FakeRenderer = {
 
 const fakes = vi.hoisted(() => ({
   renderers: [] as FakeRenderer[],
+  /** a renderer constructed on a canvas that already had a live one: never */
+  contextClashes: 0,
   /** the loaders' delivery order: each texture lands one step later */
   deliveries: 0,
   /** ms between two textures landing */
@@ -32,12 +39,16 @@ const fakes = vi.hoisted(() => ({
 vi.mock("three", async (orig) => {
   const three = await orig<typeof import("three")>();
   class WebGLRenderer implements FakeRenderer {
+    canvas: HTMLCanvasElement;
+    disposed = false;
     initialised = new Set<THREE.Texture>();
     initsByFrame = new Map<number, number>();
     renders: { uploads: number; textures: number }[] = [];
     scene: THREE.Scene | null = null;
     capabilities = { getMaxAnisotropy: () => 16 };
-    constructor() {
+    constructor({ canvas }: { canvas: HTMLCanvasElement }) {
+      this.canvas = canvas;
+      if (fakes.renderers.some((r) => r.canvas === canvas && !r.disposed)) fakes.contextClashes += 1;
       fakes.renderers.push(this);
     }
     setPixelRatio() {}
@@ -46,7 +57,9 @@ vi.mock("three", async (orig) => {
     getDrawingBufferSize(v: THREE.Vector2) {
       return v.set(1024, 768);
     }
-    dispose() {}
+    dispose() {
+      this.disposed = true;
+    }
     initTexture(t: THREE.Texture) {
       const frame = Date.now();
       this.initsByFrame.set(frame, (this.initsByFrame.get(frame) ?? 0) + 1);
@@ -115,6 +128,7 @@ const visibility = { show: () => {} };
 
 beforeEach(() => {
   fakes.renderers.length = 0;
+  fakes.contextClashes = 0;
   fakes.deliveries = 0;
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "requestAnimationFrame", "cancelAnimationFrame"] });
   vi.stubGlobal(
@@ -137,7 +151,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  document.body.replaceChildren();
   vi.unstubAllGlobals();
   vi.useRealTimers();
   useAppStore.setState(REST_STATE);
@@ -154,16 +167,15 @@ function loading() {
   return { progress, ready: () => useAppStore.getState().ready };
 }
 
+/** the scene paces itself against the page's scene sections, handed in by ref (scroll/sectionRefs.ts) */
+function sections() {
+  return { current: ["Hero", "About", "Gatherings", "Give", "Visit"].map(() => document.createElement("section")) };
+}
+
 async function mountAndLoad(front: boolean) {
   const load = loading();
   const frontCanvas = front ? { current: document.createElement("canvas") } : undefined;
-  // the scene paces itself against the page's labelled sections (sectionRects.ts)
-  for (const label of ["Hero", "About", "Gatherings", "Give", "Visit"]) {
-    const section = document.createElement("section");
-    section.dataset.screenLabel = label;
-    document.body.append(section);
-  }
-  render(<PentecostParallax tier={TIERS.mobile} frontCanvas={frontCanvas} />);
+  render(<PentecostParallax tier={TIERS.mobile} frontCanvas={frontCanvas} sections={sections()} />);
   // the AVIF verdict resolves, the loads go out
   await act(() => vi.advanceTimersByTimeAsync(0));
   expect(fakes.deliveries).toBeGreaterThan(20);
@@ -213,5 +225,35 @@ describe("PentecostParallax texture warm-up (#104)", () => {
     const perFrame = [...renderer.initsByFrame.values()];
     expect(Math.max(...perFrame)).toBeLessThanOrEqual(TIERS.mobile.warmPerFrame);
     expect(perFrame.length).toBeGreaterThan(1);
+  });
+});
+
+describe("PentecostParallax as a wrapper (#120)", () => {
+  it("under StrictMode's mount → unmount → mount, each canvas has one live renderer (one context), never two", async () => {
+    const frontCanvas = { current: document.createElement("canvas") };
+    const { unmount } = render(
+      <StrictMode>
+        <PentecostParallax tier={TIERS.mobile} frontCanvas={frontCanvas} sections={sections()} />
+      </StrictMode>,
+    );
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    // two mounts, the first disposed whole before the second built
+    expect(fakes.renderers).toHaveLength(4);
+    expect(fakes.contextClashes).toBe(0);
+    const live = fakes.renderers.filter((r) => !r.disposed);
+    expect(new Set(live.map((r) => r.canvas)).size).toBe(2);
+    expect(live).toHaveLength(2);
+    // the torn-down mount never reports: the store's ready comes from the live one
+    for (let i = 0; i < 400 && !useAppStore.getState().ready; i++) await frame();
+    expect(useAppStore.getState().ready).toBe(true);
+    unmount();
+    expect(fakes.renderers.every((r) => r.disposed)).toBe(true);
+  });
+
+  it("stays a wrapper: the only three.js call in its source is mounting the handle", async () => {
+    const source = await import("./PentecostParallax.tsx?raw");
+    expect(source.default).not.toMatch(/from "three"/);
+    expect(source.default).not.toMatch(/querySelector|document\.hidden|window\./);
+    expect(source.default.trimEnd().split("\n").length).toBeLessThan(80);
   });
 });

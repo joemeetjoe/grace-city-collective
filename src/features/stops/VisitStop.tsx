@@ -5,9 +5,10 @@ import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import SmoothHeight from "@/ui/SmoothHeight";
 import WayIn from "./WayIn";
-import { type SceneSection, wayIn } from "@/content/site";
+import { wayIn } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { button, stopBody, stopFrame, stopHeading } from "@/theme/classes";
+import type { StopProps } from "./Scene";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -39,7 +40,7 @@ function TheWayIn({
   );
 }
 
-export default function VisitStop({ section: s }: { section: SceneSection }) {
+export default function VisitStop({ section: s, ref }: StopProps) {
   const site = useSite();
   // the step of the way in the reader stands on (visit)
   const [way, setWay] = useState(0);
@@ -53,6 +54,7 @@ export default function VisitStop({ section: s }: { section: SceneSection }) {
   // traveller lands; the way in itself stands at the panel's foot
   return (
     <section
+      ref={ref}
       id={s.id}
       data-screen-label={s.label}
       className={`${base} ${clear} flex-col items-center justify-end text-center lg:pt-[clamp(104px,13vh,140px)] lg:pb-[clamp(120px,17vh,170px)]`}

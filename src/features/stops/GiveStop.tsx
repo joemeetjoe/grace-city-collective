@@ -4,8 +4,8 @@ import SowingMark from "@/marks/SowingMark";
 import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
-import type { SceneSection } from "@/content/site";
 import { TUCK, button, stopBody, stopFrame, stopHeading } from "@/theme/classes";
+import type { StopProps } from "./Scene";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -34,13 +34,14 @@ function GiveSowing({ lit }: { lit: boolean }) {
   );
 }
 
-export default function GiveStop({ section: s }: { section: SceneSection }) {
+export default function GiveStop({ section: s, ref }: StopProps) {
   // whether the pointer is over the giving, filling the field beside its words
   const [giving, setGiving] = useState(false);
   const { panel, belowLg, playing } = useStopPanel();
   const { base, clear } = stopFrame(s.id);
   return (
     <section
+      ref={ref}
       id={s.id}
       data-screen-label={s.label}
       className={`${base} flex-col items-center text-center justify-center ${clear} lg:pt-[clamp(100px,13vh,130px)] lg:pb-[clamp(150px,20vh,190px)]`}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
+import { useSectionRefs, type SectionRefs } from "@/scroll/sectionRefs";
 import { useAppStore } from "@/state/appStore";
 import { observeInView } from "@/ui/useInView";
 
@@ -13,6 +14,8 @@ export type SceneLayers = {
   /** the smoother's content, the page's <main> */
   contentRef: RefObject<HTMLElement | null>;
   held: RefObject<HTMLDivElement | null>[];
+  /** the scene sections, in order, as the stops mount them: the engine paces the camera against them, a scroll pager reads the same list */
+  sections: SectionRefs;
 };
 
 /**
@@ -33,6 +36,7 @@ export function useSceneLayers(): SceneLayers {
   // front canvas and the frame ride with the back canvas; a stable list so
   // the hook runs once
   const [held] = useState(() => [parallaxRef, frontRef, frameRef]);
+  const sections = useSectionRefs();
 
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible: the store's sceneInView, written
@@ -49,5 +53,6 @@ export function useSceneLayers(): SceneLayers {
     wrapperRef,
     contentRef,
     held,
+    sections,
   };
 }

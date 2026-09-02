@@ -5,8 +5,8 @@ import SharedLife from "./SharedLife";
 import Bracketed, { PanelShownContext } from "@/ui/panel/Bracketed";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
-import { type SceneSection } from "@/content/site";
 import { TUCK, stopBody, stopFrame, stopHeading } from "@/theme/classes";
+import type { StopProps } from "./Scene";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -93,7 +93,7 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
  * wiring; the per-stop differences (side placement, heading sizes, which
  * ornament) are the conditionals below.
  */
-export default function AboutHousesStop({ section: s }: { section: SceneSection }) {
+export default function AboutHousesStop({ section: s, ref }: StopProps) {
   // whether the reader is over the house churches' panel, seating its table,
   // or the who-we-are's, huddling its program
   const [over, setOver] = useState(false);
@@ -138,6 +138,7 @@ export default function AboutHousesStop({ section: s }: { section: SceneSection 
   const column = "flex flex-col gap-5 md:gap-[26px]";
   return (
     <section
+      ref={ref}
       id={s.id}
       data-screen-label={s.label}
       className={`${base} ${clear} items-center ${side}`}

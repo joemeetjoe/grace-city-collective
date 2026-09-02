@@ -8,11 +8,11 @@ import PanelReveal from "@/ui/panel/PanelReveal";
 import {
   GATHERING_MARKS,
   type GatheringMark as Mark,
-  type SceneSection,
 } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { PHONE_BODY, TUCK, serif, stopFrame, stopHeading } from "@/theme/classes";
 import { REVEAL_STAGGER_MS } from "@/theme/motion";
+import type { StopProps } from "./Scene";
 import { useStopPanel } from "./useStopPanel";
 
 /**
@@ -80,7 +80,7 @@ function GatheringsCalendar({
 }
 
 /** the gatherings stop: the month's column beside the words, the emblems at the cards' feet */
-export default function GatheringsStop({ section: s }: { section: SceneSection }) {
+export default function GatheringsStop({ section: s, ref }: StopProps) {
   const site = useSite();
   // the gathering under the pointer, lighting the tiles beside the headline
   const [lit, setLit] = useState<Mark | null>(null);
@@ -95,6 +95,7 @@ export default function GatheringsStop({ section: s }: { section: SceneSection }
   const litInTurn = inTurn > 0 ? (marks[inTurn - 1] ?? null) : null;
   return (
     <section
+      ref={ref}
       id={s.id}
       data-screen-label={s.label}
       className={`${base} ${clear} items-center`}

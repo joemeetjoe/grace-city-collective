@@ -61,7 +61,7 @@ export function frontCutsAt(stop: number): ReadonlySet<string> {
 /**
  * The stop whose row applies at scroll position `sp` (sections from the top,
  * fractional). The camera holds a stop's frame through the first half of its
- * section and travels through the second (PentecostParallax), so the row
+ * section and travels through the second (engine/waypoints.ts), so the row
  * turns with the frame, at the half.
  */
 export function stopAt(sp: number): number {

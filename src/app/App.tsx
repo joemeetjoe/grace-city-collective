@@ -41,6 +41,7 @@ export default function App() {
     wrapperRef,
     contentRef,
     held,
+    sections,
   } = useSceneLayers();
   useIntroGate(parallaxRef);
   useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held });
@@ -84,6 +85,7 @@ export default function App() {
             frontCanvasRef={frontCanvasRef}
             frameRef={frameRef}
             sceneRef={sceneRef}
+            sections={sections}
           />
         </main>
       </div>

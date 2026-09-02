@@ -12,6 +12,7 @@ import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
 import { useBelowLg } from "@/layout/breakpoint";
 import { useViewportHeight } from "@/layout/viewportHeight";
+import type { SectionRefs } from "@/scroll/sectionRefs";
 import { useAppStore } from "@/state/appStore";
 
 /**
@@ -34,6 +35,8 @@ export type HomePageProps = {
   frontCanvasRef: RefObject<HTMLCanvasElement | null>;
   frameRef: RefObject<HTMLDivElement | null>;
   sceneRef: RefObject<HTMLDivElement | null>;
+  /** the scene sections as the stops mount them (useSceneLayers) */
+  sections: SectionRefs;
 };
 
 /**
@@ -47,6 +50,7 @@ export default function HomePage({
   frontCanvasRef,
   frameRef,
   sceneRef,
+  sections,
 }: HomePageProps) {
   const site = useSite();
   const intro = useAppStore((s) => s.intro);
@@ -83,7 +87,7 @@ export default function HomePage({
         card rolling up through it. lvh always covers; the overdraw hides
         under the bar while it is shown. Not dvh: that resizes the canvas
         all the way through the bar's transition, and onResize rebuilds
-        every layer's geometry (PentecostParallax.tsx) */}
+        every layer's geometry (engine/createParallaxScene.ts) */}
         <div
           ref={parallaxRef}
           data-parallax=""
@@ -97,6 +101,7 @@ export default function HomePage({
                 layerSpread={1.25}
                 tier={engineTier}
                 frontCanvas={frontCanvasRef}
+                sections={sections}
               />
             </Suspense>
           )}
@@ -163,8 +168,8 @@ export default function HomePage({
         minmax(0,1fr) column: a section's min-content can never widen the
         cell, and the sticky layers with it, past the viewport (#51) */}
         <div className="relative col-start-1 row-start-1 min-w-0">
-          {site.scene.map((s) => (
-            <Scene key={s.id} section={s} />
+          {site.scene.map((s, i) => (
+            <Scene key={s.id} section={s} ref={sections.at(i)} />
           ))}
         </div>
       </div>
