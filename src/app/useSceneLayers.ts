@@ -36,15 +36,9 @@ export function useSceneLayers(): SceneLayers {
 
   // once the scene has scrolled away the nav sits over long-form text, so it
   // takes an ink backdrop to stay legible: the store's sceneInView, written
-  // straight from the observer; in view again (the rest value) once unwatched
-  useEffect(() => {
-    const { setSceneInView } = useAppStore.getState();
-    const stop = observeInView(sceneRef.current, {}, setSceneInView);
-    return () => {
-      stop();
-      setSceneInView(true);
-    };
-  }, []);
+  // straight from the observer for the life of the mount; the next mount's
+  // init puts it back to its rest value (in view), so unwatching writes nothing
+  useEffect(() => observeInView(sceneRef.current, {}, useAppStore.getState().setSceneInView), []);
 
   return {
     parallaxRef,

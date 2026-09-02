@@ -2,7 +2,6 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  useRef,
   type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
@@ -39,7 +38,8 @@ export type RevealProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
  * drawn left to right just ahead of their words; so does the block itself
  * when it is the `rule-draw` item, as each entry of a long list is. Watched
  * once: the block comes in the first time it is seen and rests there, unless
- * `shown` drives it — and never waits past about half a screen of itself,
+ * `shown` drives it (then nothing is watched: no observer is ever made) —
+ * and never waits past about half a screen of itself,
  * however tall (useInViewOnce caps `threshold` by the viewport), so a list
  * is best revealed per item, each entry its own Reveal, rather than whole.
  * The motion itself is CSS (index.css, on `[data-reveal]`), only where
@@ -57,8 +57,7 @@ export default function Reveal({
   children,
   ...rest
 }: RevealProps) {
-  const ref = useRef<HTMLElement>(null);
-  const seen = useInViewOnce(ref, threshold, shown === undefined);
+  const [ref, seen] = useInViewOnce<HTMLElement>(threshold, shown === undefined);
   const on = shown ?? seen;
   // one element type stands in for the union: every tag here takes the same props
   const Tag = as as "div";

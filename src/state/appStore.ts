@@ -14,7 +14,11 @@ export type AppState = {
   intro: boolean;
   /** the visitor prefers reduced motion: no splash, native scroll, ornaments at rest */
   reducedMotion: boolean;
-  /** the asset tier the scene loads (device/tier.ts) */
+  /**
+   * the asset tier the device reads as (device/tier.ts): the mount's at
+   * init, then live (state/syncTier.ts). A fact only — the scene keeps the
+   * tier it mounted with, its textures cut for it (app/HomePage.tsx)
+   */
   tier: Tier;
   /** the still poster stands in for the scene: no WebGL, reduced motion, or Save-Data */
   fallback: boolean;
@@ -44,6 +48,8 @@ export type AppActions = {
   markReady: () => void;
   setActiveId: (id: string | null) => void;
   setSceneInView: (inView: boolean) => void;
+  /** the device reads as another tier now (a resize across the line, another display) */
+  setTier: (tier: Tier) => void;
 };
 
 export type AppStore = AppState & AppActions;
@@ -68,4 +74,5 @@ export const useAppStore = create<AppStore>()((set) => ({
   markReady: () => set({ ready: true }),
   setActiveId: (activeId) => set({ activeId }),
   setSceneInView: (sceneInView) => set({ sceneInView }),
+  setTier: (tier) => set({ tier }),
 }));

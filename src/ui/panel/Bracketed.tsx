@@ -52,8 +52,8 @@ export default function Bracketed({
   onMouseLeave,
   children,
 }: {
-  /** the panel, for the stop to watch (Scene) */
-  ref: React.RefObject<HTMLDivElement | null>;
+  /** the panel, for the stop to watch (useStopPanel's useInView) */
+  ref: React.Ref<HTMLDivElement>;
   /**
    * whether the panel is shown: its brackets slide home and its words rise,
    * and reset when it is not, so every turn of the page brings them in again

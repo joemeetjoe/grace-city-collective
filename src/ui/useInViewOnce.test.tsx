@@ -1,5 +1,4 @@
 import { act, render } from "@testing-library/react";
-import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -46,20 +45,21 @@ function Probe({
   threshold,
   height,
   rootMargin,
+  enabled = true,
 }: {
   threshold: number;
   height: number;
   rootMargin?: string;
+  enabled?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const seen = useInViewOnce(ref, threshold, true, rootMargin);
+  const [attach, seen] = useInViewOnce<HTMLDivElement>(threshold, enabled, rootMargin);
   return (
     <div
       ref={(el) => {
-        ref.current = el;
         if (el)
           el.getBoundingClientRect = () =>
             ({ height, width: 0, top: 0, left: 0 }) as DOMRect;
+        attach(el);
       }}
       data-seen={String(seen)}
     />
@@ -101,7 +101,7 @@ describe("cappedThreshold", () => {
 });
 
 describe("useInViewOnce", () => {
-  it("watches with the capped threshold, measured from the element and the viewport", () => {
+  it("watches with the capped threshold, measured from the element and the viewport as the watch starts", () => {
     const observers = stubObserver();
     vi.stubGlobal("innerHeight", 844);
     render(<Probe threshold={0.2} height={3530} />);
@@ -110,13 +110,8 @@ describe("useInViewOnce", () => {
       cappedThreshold(0.2, 844, 3530),
       9,
     );
-  });
-
-  it("passes a short block's threshold through untouched", () => {
-    const observers = stubObserver();
-    vi.stubGlobal("innerHeight", 844);
     render(<Probe threshold={0.2} height={300} />);
-    expect(observers[0].threshold).toBe(0.2);
+    expect(observers[1].threshold).toBe(0.2);
   });
 
   it("watches the plain viewport unless given a margin, which widens (or narrows) it", () => {
@@ -136,5 +131,17 @@ describe("useInViewOnce", () => {
     expect(el.getAttribute("data-seen")).toBe("false");
     act(() => observers[0].cb([{ isIntersecting: true }]));
     expect(el.getAttribute("data-seen")).toBe("true");
+    act(() => observers[0].cb([{ isIntersecting: false }]));
+    expect(el.getAttribute("data-seen")).toBe("true");
+  });
+
+  it("is true from the start, watching nothing, where there is no observer or it is not enabled", () => {
+    const observers = stubObserver();
+    const { container } = render(<Probe threshold={0.2} height={300} enabled={false} />);
+    expect(observers).toHaveLength(0);
+    expect(container.firstElementChild!.getAttribute("data-seen")).toBe("true");
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const plain = render(<Probe threshold={0.2} height={300} />);
+    expect(plain.container.firstElementChild!.getAttribute("data-seen")).toBe("true");
   });
 });

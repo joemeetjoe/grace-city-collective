@@ -4,7 +4,6 @@ import {
   Suspense,
   useEffect,
   useLayoutEffect,
-  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -48,7 +47,6 @@ const PLACEHOLDER = "min-h-[100svh]";
  */
 export default function LongformGate() {
   const site = useSite();
-  const ref = useRef<HTMLDivElement>(null);
   const [requested, setRequested] = useState(false);
   const mounted = useSyncExternalStore(subscribeLongform, isLongformMounted);
 
@@ -64,7 +62,7 @@ export default function LongformGate() {
   }, []);
 
   // the reader nears: two viewports below the fold, once
-  const near = useInViewOnce(ref, 0, true, LONGFORM_MARGIN);
+  const [ref, near] = useInViewOnce<HTMLDivElement>(0, true, LONGFORM_MARGIN);
   useEffect(() => {
     if (near) void requestLongform();
   }, [near]);

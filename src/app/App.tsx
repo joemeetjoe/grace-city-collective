@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import DotRail from "@/features/nav/DotRail";
 import { STACK } from "@/theme/classes";
@@ -15,6 +15,7 @@ import { sectionMarkers } from "@/scroll/markers";
 import { useActiveSection } from "@/scroll/useActiveSection";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
+import { syncTier } from "@/state/syncTier";
 
 /**
  * the shell: the splash, the fixed chrome (nav, dot rail), and the smoother's
@@ -28,6 +29,8 @@ export default function App() {
   // the store's state for this mount — the intro policy, the device's
   // verdicts — decided once, before anything below reads it (initApp.ts)
   useState(() => initApp(ids[0] ?? null));
+  // of those, the tier stays live: the device's current one, as a fact (syncTier.ts)
+  useEffect(syncTier, []);
 
   const {
     parallaxRef,

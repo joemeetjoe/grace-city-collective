@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 import CollectiveScript from "./CollectiveScript";
 import Seal from "./Seal";
@@ -14,6 +14,7 @@ import {
 } from "./lockupMetrics";
 import { useBelowLg } from "@/layout/breakpoint";
 import { cn } from "@/lib/utils";
+import { useMeasure } from "@/ui/useMeasure";
 
 /** the hero's wordmark on one line, lg and up */
 export const HERO_LOCKUP_SIZE = "clamp(30px,7.2vw,108px)";
@@ -29,24 +30,8 @@ export type LockupProps = {
   style?: CSSProperties;
 };
 
-/** The wordmark's live font size in px, re-measured whenever it resizes. */
-function useWordmarkFontSize(ref: React.RefObject<HTMLElement | null>): number {
-  const [px, setPx] = useState(0);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => setPx(parseFloat(getComputedStyle(el).fontSize) || 0);
-    measure();
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", measure);
-      return () => window.removeEventListener("resize", measure);
-    }
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [ref]);
-  return px;
-}
+/** the wordmark's live font size in px (useMeasure re-reads it whenever the wordmark resizes) */
+const readFontPx = (el: HTMLElement): number => parseFloat(getComputedStyle(el).fontSize) || 0;
 
 /**
  * The resting logo lockup: "Grace City" · "Collective" in script · the seal
@@ -63,11 +48,10 @@ export default function Lockup({
   className,
   style,
 }: LockupProps) {
-  const wordmarkRef = useRef<HTMLSpanElement>(null);
   const stacked = useBelowLg();
   const scriptEm = stacked ? STACKED_SCRIPT_EM : SCRIPT_EM;
   const sealEm = stacked ? STACKED_SEAL_EM : SEAL_EM;
-  const fontPx = useWordmarkFontSize(wordmarkRef);
+  const [wordmarkRef, fontPx] = useMeasure(readFontPx, 0);
   const script = forceScript || stacked || showScript(scriptHeightFor(fontPx, scriptEm));
 
   // the full stop: on the tail's line after "Collective", on the baseline after "Grace City"

@@ -59,7 +59,8 @@ src/
   marks/     # brand-mark family: Seal, Lockup, CollectiveScript, GMark,
              #   GatheringMark, SowingMark + their geometry/metrics
   ui/        # shared presentational primitives + generic hooks:
-             #   Reveal, SmoothHeight, useInView*, useInTurn,
+             #   Reveal, SmoothHeight, watch (useSyncExternalStore shape),
+             #   useInView (+ useInViewOnce), useInTurn, useMeasure,
              #   CornerOrnaments, OrnateRule, panel/
   features/  # the vertical slices, one folder per feature
     nav/       # SiteNav, NavLinks, MobileNav, DotRail
@@ -84,7 +85,11 @@ lib, theme  →  device  →  state  →  scroll, layout, content  →  engine, 
   seam (`seam.ts`, `window.__gcc`). It sits just above `device` because it
   holds a `Tier`; everything from `scroll` up may read and subscribe to it,
   and `app` alone decides its state (`app/initApp.ts`). Refs and DOM handles
-  never go in it.
+  never go in it. `tier` alone stays live after init (#118, `syncTier.ts`
+  over `device/deviceProfile.ts`'s `subscribeTier`): a resize across the
+  tier's width line or a move to another display updates the fact, while
+  the scene keeps the tier it mounted with (`app/HomePage.tsx`), so no
+  texture ever reloads mid-session.
 
 - The engine is consumed only via `@/engine`; there are no other barrels.
 - Import convention: `@/` for cross-directory imports, `./` within a

@@ -1,4 +1,6 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useCallback } from "react";
+
+import { useInView } from "./useInView";
 
 /**
  * The most of a viewport's worth of a block that may have to show before it
@@ -28,8 +30,9 @@ export function cappedThreshold(
 }
 
 /**
- * Whether an element has been on screen yet: false until `threshold` of it
- * crosses the viewport, then true for good — the signal behind everything
+ * Whether an element has been on screen yet: a ref callback to attach to
+ * it, and false until `threshold` of it crosses the viewport, then true for
+ * good — `useInView` held at its first yes, the signal behind everything
  * that draws or rises in once and then rests. The threshold is capped by
  * the element's height against the viewport (`cappedThreshold`), so a tall
  * block comes in once about half a screen of it shows, never later. True
@@ -39,36 +42,20 @@ export function cappedThreshold(
  * driving the state itself. `rootMargin` is IntersectionObserver's: a
  * positive bottom margin sees the element coming before it is on screen.
  */
-export function useInViewOnce(
-  ref: RefObject<Element | null>,
+export function useInViewOnce<E extends Element = Element>(
   threshold = 0,
   enabled = true,
   rootMargin = "0px",
-): boolean {
-  const [seen, setSeen] = useState(
-    () => !enabled || typeof IntersectionObserver === "undefined",
+): [attach: (el: E | null) => void, seen: boolean] {
+  const capped = useCallback(
+    (el: Element) => cappedThreshold(threshold, window.innerHeight, el.getBoundingClientRect().height),
+    [threshold],
   );
-  useEffect(() => {
-    const el = ref.current;
-    if (seen || !enabled || !el || typeof IntersectionObserver === "undefined")
-      return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        setSeen(true);
-        io.disconnect();
-      },
-      {
-        threshold: cappedThreshold(
-          threshold,
-          window.innerHeight,
-          el.getBoundingClientRect().height,
-        ),
-        rootMargin,
-      },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [ref, threshold, enabled, seen, rootMargin]);
-  return seen;
+  return useInView<E>({
+    threshold: capped,
+    rootMargin,
+    enabled,
+    once: true,
+    initial: !enabled || typeof IntersectionObserver === "undefined",
+  });
 }

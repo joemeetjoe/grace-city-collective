@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 import { useAppStore } from "@/state/appStore";
 import {
   PANEL_SHOWN_BELOW_LG,
@@ -30,9 +28,7 @@ import { EMBLEM_LIT_STEP_MS, ORNAMENT_LIT_AT_MS } from "@/theme/motion";
 export function useStopPanel(count = 1) {
   const belowLg = useBelowLg();
   const reduced = useAppStore((s) => s.reducedMotion);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const settled = useInView(
-    panelRef,
+  const [panelRef, settled] = useInView<HTMLDivElement>(
     belowLg ? PANEL_SHOWN_BELOW_LG : PANEL_SHOWN_DESKTOP,
   );
   const shown = belowLg ? reduced || settled : settled;

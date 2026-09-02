@@ -72,4 +72,10 @@ describe("appStore", () => {
     state().setSceneInView(true);
     expect(state().sceneInView).toBe(true);
   });
+
+  it("takes the device's live tier as a fact, leaving every other fact alone", () => {
+    state().init({ intro: true, reducedMotion: false, tier: TIERS.desktop, fallback: false });
+    state().setTier(TIERS.mobile);
+    expect(state()).toMatchObject({ intro: true, tier: TIERS.mobile, fallback: false });
+  });
 });

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type RefObject } from "react";
+import { lazy, Suspense, useState, type RefObject } from "react";
 
 import CornerOrnaments, {
   FRAME_ARM,
@@ -52,6 +52,10 @@ export default function HomePage({
   const intro = useAppStore((s) => s.intro);
   const fallback = useAppStore((s) => s.fallback);
   const tier = useAppStore((s) => s.tier);
+  // the tier the scene mounts with, held for the mount: its textures are cut
+  // for this one and never reload, so the store's live tier (state/syncTier.ts)
+  // moving mid-session stays a fact and changes nothing here
+  const [engineTier] = useState(tier);
   const markReady = useAppStore((s) => s.markReady);
   // below lg the frame's dvh steps as the URL bar moves; a measured px
   // height lets the layer's transition glide between the steps instead
@@ -91,7 +95,7 @@ export default function HomePage({
             <Suspense fallback={null}>
               <PentecostParallax
                 layerSpread={1.25}
-                tier={tier}
+                tier={engineTier}
                 frontCanvas={frontCanvasRef}
               />
             </Suspense>
