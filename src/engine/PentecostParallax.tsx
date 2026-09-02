@@ -25,6 +25,8 @@ import { armGyroOnFirstTouch } from "@/device/gyro";
 import { bakeUv, maskBounds, type MaskBounds } from "@/device/maskBounds";
 import { TIERS, tierWidth, type Tier } from "@/device/tier";
 import { getScrollTop } from "@/scroll/position";
+import { useAppStore } from "@/state/appStore";
+import { seam } from "@/state/seam";
 import { measureSections, sectionProgressAt, type SectionRect } from "@/scroll/sectionRects";
 import {
   FULL_RECT,
@@ -147,10 +149,6 @@ export type PentecostParallaxProps = {
    * emberCount() of the viewport — none under prefers-reduced-motion
    */
   embers?: number;
-  /** every texture (and cuts.json) has arrived; fires once */
-  onReady?: () => void;
-  /** a texture arrived: how many so far, of how many requested */
-  onProgress?: (loaded: number, total: number) => void;
   /**
    * a second canvas, stacked above the page's type, for the nearest layers
    * (layerSplit.ts); without it everything draws to the one canvas
@@ -309,22 +307,14 @@ export default function PentecostParallax({
   orbitPitch = 2.5,
   reliefGain: reliefMax = 0.8,
   embers,
-  onReady,
-  onProgress,
   frontCanvas,
   className,
 }: PentecostParallaxProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frontRef = useRef(frontCanvas);
   const tierRef = useRef(tier);
-  const onReadyRef = useRef(onReady);
-  const onProgressRef = useRef(onProgress);
   // lets the opts effect below wake a sleeping render loop (#68)
   const wakeRef = useRef<() => void>(() => {});
-  useEffect(() => {
-    onReadyRef.current = onReady;
-    onProgressRef.current = onProgress;
-  }, [onReady, onProgress]);
   // live props, so tweaking them never rebuilds the scene
   const opts = useRef({
     layerSpread, figureRelief, beamGlow, rays, flameDrift, idleDrift, dollyIntensity, orbitYaw, orbitPitch, reliefMax,
@@ -374,8 +364,9 @@ export default function PentecostParallax({
     const manager = new THREE.LoadingManager();
     const loader = new THREE.TextureLoader(manager);
     const maxAniso = renderer.capabilities.getMaxAnisotropy();
-    // once per effect run; a run torn down by StrictMode is disposed and never reports
-    const reportReady = readyOnce(() => onReadyRef.current?.());
+    // once per effect run, straight to the store (the splash reads it); a run
+    // torn down by StrictMode is disposed and never reports
+    const reportReady = readyOnce(() => useAppStore.getState().markReady());
     // the manager's queue has drained: every texture has landed
     let loaded = false;
 
@@ -619,8 +610,8 @@ export default function PentecostParallax({
         });
       doveLayer = layers.find((l) => l.name === "dove");
       byName = new Map(layers.map((l) => [l.name, l]));
-      // a debug build exposes the layers so a shot script can solo them
-      if (import.meta.env.VITE_SCENE_DEBUG) window.__gccScene = { layers, scene, camera };
+      // a debug build hangs the layers on the page's seam so a shot script can solo them
+      if (import.meta.env.VITE_SCENE_DEBUG) seam().scene = { layers, scene, camera } satisfies SceneDebug;
 
       // the light, as planes of its own between the dove and the crowd, drawn
       // right after the crowd (see RAY_NEAR_Z) and registered like the cuts
@@ -976,7 +967,7 @@ export default function PentecostParallax({
         if (disposed) return;
         // a texture that lands after the scene settles still gets painted
         dirty = true;
-        onProgressRef.current?.(loaded, total);
+        useAppStore.getState().setProgress(loaded, total);
       };
     };
     supportsAvif().then(load);
@@ -1015,8 +1006,5 @@ export default function PentecostParallax({
   return <canvas ref={canvasRef} aria-hidden className={className ?? "absolute inset-0 block h-full w-full"} />;
 }
 
-declare global {
-  interface Window {
-    __gccScene?: { layers: Layer[]; scene: THREE.Scene; camera: THREE.Camera };
-  }
-}
+/** what a debug build hangs on `window.__gcc.scene` (state/seam.ts) for tools/shots/cdp-rects.mjs */
+export type SceneDebug = { layers: Layer[]; scene: THREE.Scene; camera: THREE.Camera };

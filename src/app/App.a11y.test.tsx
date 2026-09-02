@@ -17,8 +17,9 @@ vi.mock("@/device/fallback", async (orig) => ({
 
 vi.mock("@/engine/PentecostParallax", async () => {
   const { useEffect } = await import("react");
-  function ParallaxStub({ onReady }: { onReady?: () => void }) {
-    useEffect(() => onReady?.(), [onReady]);
+  const { useAppStore } = await import("@/state/appStore");
+  function ParallaxStub() {
+    useEffect(() => useAppStore.getState().markReady(), []);
     return <div data-parallax-stub="" />;
   }
   return { default: ParallaxStub };

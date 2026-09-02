@@ -12,7 +12,7 @@ import {
   RULE_WEIGHT,
   gMarkAspect,
 } from "./gMarkGeometry";
-import { site } from "@/content/site";
+import { useSite } from "@/content/useSite";
 
 export type GMarkProps = {
   /** rendered height: px as a number, or any CSS length (e.g. "0.63em") */
@@ -36,12 +36,13 @@ export type GMarkProps = {
  */
 export default function GMark({
   size = 28,
-  title = `${site.name} mark`,
+  title,
   ruled = false,
   decorative = false,
   className,
   style,
 }: GMarkProps) {
+  const site = useSite();
   const pad = ruled ? PAD : 0;
   const vw = W + 2 * pad;
   const vh = H + 2 * pad;
@@ -52,7 +53,7 @@ export default function GMark({
       : { width: `calc(${size} * ${aspect})`, height: size };
   const a11y = decorative
     ? { "aria-hidden": true as const }
-    : { role: "img", "aria-label": title };
+    : { role: "img", "aria-label": title ?? `${site.name} mark` };
   return (
     <svg
       {...a11y}

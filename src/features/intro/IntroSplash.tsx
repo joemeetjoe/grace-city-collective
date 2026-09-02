@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { gsap } from "@/lib/gsap";
+import { useAppStore } from "@/state/appStore";
 import { introGateOpen } from "./gate";
 import { buildHandoff, navMark } from "./handoff";
 import { listenForSkip, markIntroPlayed } from "./introPolicy";
@@ -11,14 +12,8 @@ import { createTrace, holdClockThroughStalls, type Trace } from "./trace";
 
 
 export type IntroSplashProps = {
-  /** every parallax texture has arrived */
-  ready: boolean;
-  /** the textures' share so far, 0–1; drives the rule ahead of the time floor */
-  progress?: number;
   /** the visitor gestured past the intro; the gate no longer waits for the full run */
   skipped?: boolean;
-  /** the handoff has landed; unmount the splash */
-  onDone: () => void;
   /** trace factory — injectable so tests can scrub the floor */
   build?: typeof createTrace;
   /** handoff factory — injectable so tests can scrub the travel */
@@ -30,7 +25,9 @@ export type IntroSplashProps = {
  * fills the viewport and its red rule draws itself around the box as the
  * textures arrive. Once they are in (and the rule has had its minimum run,
  * or the visitor skipped), the rule closes and the mark travels into the nav
- * while the scene fades up underneath.
+ * while the scene fades up underneath. The textures' progress and the ready
+ * signal come off the store (the engine writes them); the handoff's landing
+ * finishes the intro there, which unmounts the splash.
  *
  * The splash stands in index.html as static markup (staticSplash.ts) from
  * the page's first paint, the hero headline included, set in the hero's box
@@ -41,23 +38,19 @@ export type IntroSplashProps = {
  * while the intro is pending, takes over without a pixel moving.
  */
 export default function IntroSplash({
-  ready,
-  progress = 0,
   skipped = false,
-  onDone,
   build = createTrace,
   handoff = buildHandoff,
 }: IntroSplashProps) {
+  const ready = useAppStore((s) => s.ready);
+  const progress = useAppStore((s) => s.progress);
+  const finishIntro = useAppStore((s) => s.finishIntro);
   const rootRef = useRef<HTMLElement | null>(null);
   const traceRef = useRef<Trace | null>(null);
   const handoffRef = useRef<gsap.core.Timeline | null>(null);
   const [minimumElapsed, setMinimumElapsed] = useState(false);
   const [gestured, setGestured] = useState(false);
   const stopListeningRef = useRef<() => void>(() => {});
-  const onDoneRef = useRef(onDone);
-  useEffect(() => {
-    onDoneRef.current = onDone;
-  }, [onDone]);
 
   // before paint: the static splash is the splash, taken over as it stands;
   // it goes when this unmounts, in the same commit that shows the hero's h1
@@ -136,11 +129,11 @@ export default function IntroSplash({
       headline: root.querySelector<HTMLElement>(`[${SPLASH_HEADLINE_ATTR}]`),
       nav: navMark(),
       parallax: parallaxLayers(),
-      onComplete: () => onDoneRef.current(),
+      onComplete: finishIntro,
     });
     // handoff is configuration fixed for the life of the splash
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, minimumElapsed, skipped, gestured]);
+  }, [ready, minimumElapsed, skipped, gestured, finishIntro]);
 
   // the splash is the adopted static markup; nothing to render here
   return null;

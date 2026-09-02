@@ -1,0 +1,75 @@
+import { afterEach, describe, expect, it } from "vitest";
+
+import { TIERS } from "@/device/tier";
+import { REST_STATE, useAppStore } from "./appStore";
+
+const state = () => useAppStore.getState();
+
+afterEach(() => useAppStore.setState(REST_STATE));
+
+describe("appStore", () => {
+  it("rests as a full-motion desktop past its intro, nothing loaded, on the scene", () => {
+    expect(state()).toMatchObject(REST_STATE);
+    expect(state().intro).toBe(false);
+    expect(state().ready).toBe(false);
+    expect(state().activeId).toBeNull();
+    expect(state().sceneInView).toBe(true);
+  });
+
+  it("init takes a mount's decisions and puts every live fact back to rest", () => {
+    state().setProgress(3, 4);
+    state().markReady();
+    state().setActiveId("faq");
+    state().setSceneInView(false);
+    state().init({ intro: true, reducedMotion: false, tier: TIERS.mobile, fallback: false, activeId: "hero" });
+    expect(state()).toMatchObject({
+      intro: true,
+      reducedMotion: false,
+      tier: TIERS.mobile,
+      fallback: false,
+      progress: 0,
+      ready: false,
+      activeId: "hero",
+      sceneInView: true,
+    });
+    // the opening section is optional: none is current until the watch reports
+    state().init({ intro: false, reducedMotion: true, tier: TIERS.desktop, fallback: true });
+    expect(state()).toMatchObject({ intro: false, reducedMotion: true, fallback: true, activeId: null });
+  });
+
+  it("loading runs progress → ready, and the intro finishes once", () => {
+    state().init({ intro: true, reducedMotion: false, tier: TIERS.desktop, fallback: false });
+    state().setProgress(0, 0);
+    expect(state().progress).toBe(0);
+    state().setProgress(1, 4);
+    expect(state().progress).toBe(0.25);
+    state().setProgress(4, 4);
+    expect(state().progress).toBe(1);
+    expect(state().ready).toBe(false);
+    state().markReady();
+    expect(state().ready).toBe(true);
+    expect(state().intro).toBe(true);
+    state().finishIntro();
+    expect(state().intro).toBe(false);
+    state().finishIntro();
+    expect(state().intro).toBe(false);
+  });
+
+  it("tracks the active section and whether the scene is in view, and tells subscribers", () => {
+    const seen: (string | null)[] = [];
+    const stop = useAppStore.subscribe((s, prev) => {
+      if (s.activeId !== prev.activeId) seen.push(s.activeId);
+    });
+    state().setActiveId("about");
+    state().setActiveId("about");
+    state().setActiveId("give");
+    expect(seen).toEqual(["about", "give"]);
+    stop();
+    state().setActiveId(null);
+    expect(seen).toEqual(["about", "give"]);
+    state().setSceneInView(false);
+    expect(state().sceneInView).toBe(false);
+    state().setSceneInView(true);
+    expect(state().sceneInView).toBe(true);
+  });
+});

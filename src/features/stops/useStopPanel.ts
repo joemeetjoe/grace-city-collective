@@ -1,6 +1,6 @@
-import { useContext, useRef } from "react";
+import { useRef } from "react";
 
-import { ReducedMotionContext } from "@/app/contexts";
+import { useAppStore } from "@/state/appStore";
 import {
   PANEL_SHOWN_BELOW_LG,
   PANEL_SHOWN_DESKTOP,
@@ -32,7 +32,7 @@ export const EMBLEM_LIT_STEP_MS = 400;
  */
 export function useStopPanel(count = 1) {
   const belowLg = useBelowLg();
-  const reduced = useContext(ReducedMotionContext);
+  const reduced = useAppStore((s) => s.reducedMotion);
   const panelRef = useRef<HTMLDivElement>(null);
   const settled = useInView(
     panelRef,

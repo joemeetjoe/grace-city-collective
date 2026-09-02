@@ -1,7 +1,5 @@
-import { useContext } from "react";
-
-import { IntroPendingContext } from "@/app/contexts";
 import { serif } from "@/app/styles";
+import { useAppStore } from "@/state/appStore";
 import Kicker from "@/ui/panel/Kicker";
 import type { SceneSection } from "@/content/site";
 import HeroLockup from "./HeroLockup";
@@ -9,7 +7,8 @@ import { between, stopFrame } from "./tuck";
 
 /** the hero stop: the one headline over the scene, and the lockup at its foot below lg */
 export default function HeroStop({ section: s }: { section: SceneSection }) {
-  const pending = useContext(IntroPendingContext);
+  // the splash is still up: the kicker's rule waits for the handoff
+  const pending = useAppStore((s) => s.intro);
   const { base } = stopFrame(s.id);
   return (
     <section

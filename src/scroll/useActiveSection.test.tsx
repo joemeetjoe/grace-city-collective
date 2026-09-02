@@ -2,18 +2,22 @@ import { act, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ScrollTrigger } from "@/lib/gsap";
+import { REST_STATE, useAppStore } from "@/state/appStore";
 
 import { type SectionWatch, useActiveSection, watchWithScrollTrigger } from "./useActiveSection";
 
 afterEach(() => {
   ScrollTrigger.killAll();
+  useAppStore.setState(REST_STATE);
   vi.restoreAllMocks();
 });
 
 const IDS = ["hero", "about", "faq"] as const;
 
+/** the hook keeps the store's activeId; the probe shows it, opening on the first id as App's init does */
 function Probe({ watch }: { watch: SectionWatch }) {
-  const active = useActiveSection(IDS, watch);
+  useActiveSection(IDS, watch);
+  const active = useAppStore((s) => s.activeId);
   return (
     <>
       <output>{active}</output>
@@ -25,7 +29,8 @@ function Probe({ watch }: { watch: SectionWatch }) {
 }
 
 describe("useActiveSection", () => {
-  it("starts on the first section and follows whatever the watch reports", () => {
+  it("opens on the store's section and follows whatever the watch reports", () => {
+    useAppStore.setState({ activeId: IDS[0] });
     let report: ((id: string) => void) | undefined;
     const stop = vi.fn();
     const watch: SectionWatch = (sections, setActive) => {

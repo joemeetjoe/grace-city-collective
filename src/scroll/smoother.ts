@@ -1,12 +1,6 @@
 import { gsap, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
+import { seam } from "@/state/seam";
 import { installScrollDriver, type ScrollDriver } from "./position";
-
-declare global {
-  interface Window {
-    /** instant scroll through the smoother, for the screenshot helper (tools/shots) */
-    __gccScrollTo?: (top: number) => void;
-  }
-}
 
 /** seconds the smoothed position takes to catch up with the wheel */
 export const SMOOTH_SECONDS = 1.1;
@@ -116,8 +110,9 @@ export type SmoothScroll = {
 
 /**
  * Create the smoother over `wrapper`/`content` when the policy allows one,
- * install it as the page's scroll driver and expose the instant scroll the
- * screenshot helper looks for. The returned dispose undoes all of it.
+ * install it as the page's scroll driver and hang the instant scroll the
+ * screenshot helper looks for on the page's seam (`window.__gcc.scrollTo`,
+ * state/seam.ts). The returned dispose undoes all of it.
  */
 export function createSmoothScroll(
   wrapper: HTMLElement,
@@ -128,7 +123,7 @@ export function createSmoothScroll(
   if (!options) return null;
   const smoother = ScrollSmoother.create({ wrapper, content, ...options });
   installScrollDriver(smoothDriver(smoother));
-  window.__gccScrollTo = (top) => {
+  seam().scrollTo = (top) => {
     gsap.killTweensOf(smoother); // an in-flight jump would keep writing over it
     smoother.scrollTo(top, false);
     settleSmoother(smoother);
@@ -139,7 +134,7 @@ export function createSmoothScroll(
     transforms: smoother.smooth() > 0,
     dispose() {
       document.documentElement.removeAttribute(SMOOTH_SCROLL_ATTR);
-      delete window.__gccScrollTo;
+      delete seam().scrollTo;
       installScrollDriver(null);
       smoother.kill();
     },

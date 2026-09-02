@@ -49,19 +49,19 @@ try {
   await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: dpr, mobile, screenWidth: W, screenHeight: H });
   await send("Page.addScriptToEvaluateOnNewDocument", { source: `try { sessionStorage.setItem("gcc:intro-played", "1"); } catch {}` });
   await send("Page.navigate", { url });
-  for (let i = 0; i < 100; i++) { if (await evaluate(`!!window.__gccScene && document.readyState === "complete"`)) break; await sleep(200); }
-  if (!(await evaluate("!!window.__gccScene"))) throw new Error("no window.__gccScene: build with VITE_SCENE_DEBUG=1");
+  for (let i = 0; i < 100; i++) { if (await evaluate(`!!window.__gcc?.scene && document.readyState === "complete"`)) break; await sleep(200); }
+  if (!(await evaluate("!!window.__gcc?.scene"))) throw new Error("no window.__gcc.scene: build with VITE_SCENE_DEBUG=1");
   await sleep(1500);
   const n = await evaluate(`document.querySelectorAll("section[data-screen-label]").length`);
   const positions = at.length ? at : Array.from({ length: n }, (_, i) => i);
   const result = [];
   for (const sp of positions) {
     const i = Math.min(n - 1, Math.floor(sp));
-    await evaluate(`(() => { const s = document.querySelectorAll("section[data-screen-label]")[${i}]; const r = s.getBoundingClientRect(); const top = r.top + window.scrollY + ${sp - i} * r.height; if (window.__gccScrollTo) window.__gccScrollTo(top); else window.scrollTo({ top, behavior: "instant" }); })()`);
+    await evaluate(`(() => { const s = document.querySelectorAll("section[data-screen-label]")[${i}]; const r = s.getBoundingClientRect(); const top = r.top + window.scrollY + ${sp - i} * r.height; if (window.__gcc?.scrollTo) window.__gcc.scrollTo(top); else window.scrollTo({ top, behavior: "instant" }); })()`);
     await sleep(2200);
     const r = await evaluate(`(() => {
       const B = ${JSON.stringify(bboxes)};
-      const { layers, camera } = window.__gccScene;
+      const { layers, camera } = window.__gcc.scene;
       const IW = 16, IH = 16 * (2519 / 2048);
       const rects = {};
       for (const l of layers) {

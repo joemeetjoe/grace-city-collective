@@ -48,7 +48,8 @@ The batch dissolved `src/components/` into feature + engine modules:
 ```
 src/
   main.tsx  index.css  vite-env.d.ts  assets/ test/
-  app/       # composition root: App, contexts, jump, styles
+  app/       # composition root: App, HomePage, initApp, jump, styles
+  state/     # the app store (zustand) + the window.__gcc tooling seam
   engine/    # the Three.js renderer; index.ts is the repo's ONE barrel
              #   (PentecostParallax, StaticPoster, vignetteCss)
   device/    # Three-free capability policy: tier, preload, gyro, fallback,
@@ -74,9 +75,16 @@ src/
 Dependencies point downward only:
 
 ```
-lib, theme  →  device  →  scroll, layout, content  →  engine, marks, ui
+lib, theme  →  device  →  state  →  scroll, layout, content  →  engine, marks, ui
             →  features/ (intro, stops, longform, nav)  →  app
 ```
+
+- `state/` (#117) is the app store (`appStore.ts`: intro, reducedMotion,
+  tier, fallback, progress, ready, activeId, sceneInView) and the tooling
+  seam (`seam.ts`, `window.__gcc`). It sits just above `device` because it
+  holds a `Tier`; everything from `scroll` up may read and subscribe to it,
+  and `app` alone decides its state (`app/initApp.ts`). Refs and DOM handles
+  never go in it.
 
 - The engine is consumed only via `@/engine`; there are no other barrels.
 - Import convention: `@/` for cross-directory imports, `./` within a

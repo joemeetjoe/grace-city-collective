@@ -214,9 +214,10 @@ async function loadOnce({ send, evaluate, on }, url) {
   let traceAt = null;
   const traceBegun = () =>
     evaluate(`document.querySelector("[data-intro-splash]") ? Math.round(performance.now()) : null`).catch(() => null);
+  // the app has mounted and its store says the intro is over (src/state/seam.ts)
   const introDone = () =>
     evaluate(
-      `document.querySelector("#root > *") != null && document.querySelector("[data-intro-pending]") == null ? Math.round(performance.now()) : null`,
+      `document.querySelector("#root > *") != null && window.__gcc?.store.getState().intro === false ? Math.round(performance.now()) : null`,
     ).catch(() => null);
   const started = Date.now();
   while (Date.now() - started < 60_000) {

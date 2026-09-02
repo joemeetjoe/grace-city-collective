@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useAppStore } from "@/state/appStore";
 import { activeSection } from "./activeSection";
 
 /** a section on the page, by id and element */
@@ -53,19 +54,18 @@ export const watchWithScrollTrigger: SectionWatch = (sections, setActive) => {
 };
 
 /**
- * The id of the section under the viewport's midpoint, kept in sync while
- * mounted. `ids` must be stable (memoised): the watch is rebuilt when it
- * changes. Ids with no element on the page are skipped. Starts on the first
- * id until the watch reports.
+ * Keeps the store's `activeId` — the section under the viewport's midpoint —
+ * in sync while mounted. `ids` must be stable (memoised): the watch is
+ * rebuilt when it changes. Ids with no element on the page are skipped. The
+ * opening section is the store's from init (app/initApp.ts) until the watch
+ * reports.
  */
-export function useActiveSection(ids: readonly string[], watch: SectionWatch = watchWithScrollTrigger): string | null {
-  const [active, setActive] = useState<string | null>(ids[0] ?? null);
+export function useActiveSection(ids: readonly string[], watch: SectionWatch = watchWithScrollTrigger): void {
   useEffect(() => {
     const sections = ids.flatMap((id) => {
       const el = document.getElementById(id);
       return el ? [{ id, el }] : [];
     });
-    return watch(sections, setActive);
+    return watch(sections, useAppStore.getState().setActiveId);
   }, [ids, watch]);
-  return active;
 }

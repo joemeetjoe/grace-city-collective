@@ -1,8 +1,7 @@
-import { useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
-import { useBelowLg } from "@/layout/breakpoint";
-import { useViewportHeight } from "@/layout/viewportHeight";
-import { useInView } from "@/ui/useInView";
+import { useAppStore } from "@/state/appStore";
+import { observeInView } from "@/ui/useInView";
 
 export type SceneLayers = {
   parallaxRef: RefObject<HTMLDivElement | null>;
@@ -14,14 +13,13 @@ export type SceneLayers = {
   /** the smoother's content, the page's <main> */
   contentRef: RefObject<HTMLElement | null>;
   held: RefObject<HTMLDivElement | null>[];
-  sceneInView: boolean;
-  frameHeight: number | null;
 };
 
 /**
- * the scene's DOM handles and viewport measures. Every ref and the held list
- * originate here, in one hook, so useSmoothScroll keeps its run-once contract
- * with the same ref objects for the life of the mount.
+ * the scene's DOM handles. Every ref and the held list originate here, in
+ * one hook, so useSmoothScroll keeps its run-once contract with the same ref
+ * objects for the life of the mount. The one fact the scene's box yields —
+ * whether it is on screen — goes to the store, never out of here as state.
  */
 export function useSceneLayers(): SceneLayers {
   const parallaxRef = useRef<HTMLDivElement>(null);
@@ -37,12 +35,16 @@ export function useSceneLayers(): SceneLayers {
   const [held] = useState(() => [parallaxRef, frontRef, frameRef]);
 
   // once the scene has scrolled away the nav sits over long-form text, so it
-  // takes an ink backdrop to stay legible
-  const sceneInView = useInView(sceneRef, { initial: true });
-
-  // below lg the frame's dvh steps as the URL bar moves; a measured px
-  // height lets the layer's transition glide between the steps instead
-  const frameHeight = useViewportHeight(useBelowLg());
+  // takes an ink backdrop to stay legible: the store's sceneInView, written
+  // straight from the observer; in view again (the rest value) once unwatched
+  useEffect(() => {
+    const { setSceneInView } = useAppStore.getState();
+    const stop = observeInView(sceneRef.current, {}, setSceneInView);
+    return () => {
+      stop();
+      setSceneInView(true);
+    };
+  }, []);
 
   return {
     parallaxRef,
@@ -53,7 +55,5 @@ export function useSceneLayers(): SceneLayers {
     wrapperRef,
     contentRef,
     held,
-    sceneInView,
-    frameHeight,
   };
 }

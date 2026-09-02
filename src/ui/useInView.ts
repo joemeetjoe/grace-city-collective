@@ -38,6 +38,24 @@ export type InViewOptions = {
 };
 
 /**
+ * Watch `el` for `onChange(inView)` through an IntersectionObserver over the
+ * (margined) viewport; the returned function stops watching. Nothing is
+ * watched, and nothing reported, where the observer is missing (jsdom, very
+ * old engines) or there is no element. The primitive under `useInView`, and
+ * what the scene's own watch writes to the store with (app/useSceneLayers.ts).
+ */
+export function observeInView(
+  el: Element | null,
+  { threshold = 0, rootMargin = "0px" }: Omit<InViewOptions, "initial">,
+  onChange: (inView: boolean) => void,
+): () => void {
+  if (!el || typeof IntersectionObserver === "undefined") return () => {};
+  const io = new IntersectionObserver(([entry]) => onChange(entry.isIntersecting), { threshold, rootMargin });
+  io.observe(el);
+  return () => io.disconnect();
+}
+
+/**
  * Whether an element is on screen, live: true while `threshold` of it
  * crosses the viewport (shrunk by `rootMargin`), false again when it
  * leaves — the signal behind everything that plays every time it is
@@ -53,13 +71,9 @@ export function useInView(
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold, rootMargin },
-    );
-    io.observe(el);
+    const stop = observeInView(el, { threshold, rootMargin }, setInView);
     return () => {
-      io.disconnect();
+      stop();
       // the next watch starts from `initial` again, not from the last report
       setInView(initial);
     };

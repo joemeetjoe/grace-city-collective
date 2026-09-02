@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from "react";
 
 import { useBelowLg } from "@/layout/breakpoint";
 import { gsap, Observer, ScrollTrigger } from "@/lib/gsap";
+import { useAppStore } from "@/state/appStore";
 import { inScene, pageTarget, type PageDirection } from "./paging";
 import { createSmoothScroll, isTouchOnly, settleSmoother, type SmoothScroll } from "./smoother";
 import { documentTop, snapTo, type SnapLayout } from "./snap";
@@ -74,7 +75,7 @@ function scrollSeat(smooth: SmoothScroll | null) {
  * long-form scrolls freely; coming back up, the scene takes the scroll again
  * at the last section's top. What gets past the hold (keys, a dragged
  * scrollbar, the tail of a re-entry) settles on the nearest section once it
- * rests. Under reduced motion, and below lg (scrollMode), nothing is created:
+ * rests. Under reduced motion (the store's), and below lg (scrollMode), nothing is created:
  * native scroll, CSS sticky, no paging — the camera still scrubs by the
  * scroll position, over the sections' own heights. On a touch-only desktop
  * the smoother is skipped (native momentum) but the paging applies. A resize
@@ -84,7 +85,8 @@ function scrollSeat(smooth: SmoothScroll | null) {
  * each frame — not ScrollTrigger's snap: that one kills its tween on any wheel
  * event, prevented or not, and a swipe's tail keeps those coming.
  */
-export function useSmoothScroll({ wrapper, content, scene, held }: Refs, reducedMotion: boolean): void {
+export function useSmoothScroll({ wrapper, content, scene, held }: Refs): void {
+  const reducedMotion = useAppStore((s) => s.reducedMotion);
   const belowLg = useBelowLg();
   useEffect(() => {
     const wrapperEl = wrapper.current;

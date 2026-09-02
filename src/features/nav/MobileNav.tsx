@@ -3,7 +3,7 @@ import { Dialog } from "radix-ui";
 import { useState } from "react";
 
 import GMark from "@/marks/GMark";
-import { site } from "@/content/site";
+import { useSite } from "@/content/useSite";
 import { cn } from "@/lib/utils";
 
 export const MENU_LABEL = "Menu";
@@ -38,6 +38,7 @@ export default function MobileNav({
   onNavigate,
   className,
 }: MobileNavProps) {
+  const site = useSite();
   const [open, setOpen] = useState(false);
 
   const go = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {

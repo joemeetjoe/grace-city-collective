@@ -1,4 +1,4 @@
-import { jump, jumpTo } from "@/app/jump";
+import { useJump } from "@/app/jump";
 import { GHOST_BUTTON, SEAL_BUTTON } from "@/app/styles";
 import { GLASS, GLASS_CORNERS } from "@/theme/glass";
 import GMark from "@/marks/GMark";
@@ -27,6 +27,7 @@ export default function SiteNav({
   sceneInView: boolean;
 }) {
   const site = useSite();
+  const { jump, jumpTo } = useJump();
   return (
     <div
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}

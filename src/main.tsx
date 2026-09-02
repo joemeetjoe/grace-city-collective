@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from '@/app/App'
+import { SiteProvider } from '@/content/siteContext'
 import { supportsAvif } from '@/device/avif'
 import { readFallbackInputs, shouldUseStaticFallback } from '@/device/fallback'
 import { injectPreloads } from '@/device/preload'
@@ -20,6 +21,8 @@ if (!shouldUseStaticFallback(readFallbackInputs())) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <SiteProvider>
+      <App />
+    </SiteProvider>
   </StrictMode>,
 )

@@ -8,10 +8,11 @@ import { STACK } from "@/theme/layerSplit";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
 import LongformGate from "@/features/longform/LongformGate";
-import { IntroPendingContext, ReducedMotionContext } from "./contexts";
 import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
-import type { Tier } from "@/device/tier";
+import { useBelowLg } from "@/layout/breakpoint";
+import { useViewportHeight } from "@/layout/viewportHeight";
+import { useAppStore } from "@/state/appStore";
 
 /**
  * the scene, from the engine chunk: requested the moment the page mounts (not
@@ -26,14 +27,8 @@ const PentecostParallax = lazy(loadParallax);
 const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
 
+/** the scene's DOM handles (useSceneLayers), and nothing else: every fact comes off the store */
 export type HomePageProps = {
-  intro: boolean;
-  reducedMotion: boolean;
-  fallback: boolean;
-  tier: Tier;
-  frameHeight: number | null;
-  markReady: () => void;
-  reportProgress: (loaded: number, total: number) => void;
   parallaxRef: RefObject<HTMLDivElement | null>;
   frontRef: RefObject<HTMLDivElement | null>;
   frontCanvasRef: RefObject<HTMLCanvasElement | null>;
@@ -47,13 +42,6 @@ export type HomePageProps = {
  * the splash, and the smoother wiring.
  */
 export default function HomePage({
-  intro,
-  reducedMotion,
-  fallback,
-  tier,
-  frameHeight,
-  markReady,
-  reportProgress,
   parallaxRef,
   frontRef,
   frontCanvasRef,
@@ -61,6 +49,13 @@ export default function HomePage({
   sceneRef,
 }: HomePageProps) {
   const site = useSite();
+  const intro = useAppStore((s) => s.intro);
+  const fallback = useAppStore((s) => s.fallback);
+  const tier = useAppStore((s) => s.tier);
+  const markReady = useAppStore((s) => s.markReady);
+  // below lg the frame's dvh steps as the URL bar moves; a measured px
+  // height lets the layer's transition glide between the steps instead
+  const frameHeight = useViewportHeight(useBelowLg());
 
   return (
     <>
@@ -98,8 +93,6 @@ export default function HomePage({
                 layerSpread={1.25}
                 tier={tier}
                 frontCanvas={frontCanvasRef}
-                onReady={markReady}
-                onProgress={reportProgress}
               />
             </Suspense>
           )}
@@ -166,13 +159,9 @@ export default function HomePage({
         minmax(0,1fr) column: a section's min-content can never widen the
         cell, and the sticky layers with it, past the viewport (#51) */}
         <div className="relative col-start-1 row-start-1 min-w-0">
-          <IntroPendingContext.Provider value={intro}>
-            <ReducedMotionContext.Provider value={reducedMotion}>
-              {site.scene.map((s) => (
-                <Scene key={s.id} section={s} />
-              ))}
-            </ReducedMotionContext.Provider>
-          </IntroPendingContext.Provider>
+          {site.scene.map((s) => (
+            <Scene key={s.id} section={s} />
+          ))}
         </div>
       </div>
 

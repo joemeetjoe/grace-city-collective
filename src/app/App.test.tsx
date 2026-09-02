@@ -27,12 +27,9 @@ vi.mock("@/scroll/useSmoothScroll", async (orig) => {
   const mod = await orig<typeof import("@/scroll/useSmoothScroll")>();
   return {
     ...mod,
-    useSmoothScroll: (
-      refs: Parameters<typeof mod.useSmoothScroll>[0],
-      reduced: boolean,
-    ) => {
+    useSmoothScroll: (refs: Parameters<typeof mod.useSmoothScroll>[0]) => {
       smoother.calls.push({ held: refs.held });
-      return mod.useSmoothScroll(refs, reduced);
+      return mod.useSmoothScroll(refs);
     },
   };
 });
@@ -54,8 +51,9 @@ vi.mock("@/features/intro/handoff", async (orig) => {
 // WebGL does not exist in jsdom: stand in for the scene and report ready at once
 vi.mock("@/engine/PentecostParallax", async () => {
   const { useEffect } = await import("react");
-  function ParallaxStub({ onReady }: { onReady?: () => void }) {
-    useEffect(() => onReady?.(), [onReady]);
+  const { useAppStore } = await import("@/state/appStore");
+  function ParallaxStub() {
+    useEffect(() => useAppStore.getState().markReady(), []);
     return <div data-parallax-stub="" />;
   }
   return { default: ParallaxStub };
@@ -166,8 +164,8 @@ describe("App splash headline (#107)", () => {
     const heading = site.scene[0].heading;
     const { container } = render(<App />);
     const root = container.firstElementChild!;
-    // while the intro is pending index.css hides [data-hero-headline] under this attribute; the splash's h1 is the one that paints
-    expect(root.hasAttribute("data-intro-pending")).toBe(true);
+    // while the intro is pending index.css hides [data-hero-headline] under this class; the splash's h1 is the one that paints
+    expect(root.classList.contains("intro-pending")).toBe(true);
     const splashH1 = document.querySelector("[data-intro-splash] h1")!;
     expect(splashH1.textContent).toBe(heading);
     expect(container.querySelector("[data-hero-headline]")!.textContent).toBe(heading);
@@ -180,7 +178,7 @@ describe("App splash headline (#107)", () => {
     // landed: the splash is gone, its headline lifted the settle's distance on the way
     expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
     expect(document.querySelector("[data-intro-splash]")).toBeNull();
-    expect(root.hasAttribute("data-intro-pending")).toBe(false);
+    expect(root.classList.contains("intro-pending")).toBe(false);
     // exactly one h1 carries the heading now: the hero's, shown
     const h1s = [...document.querySelectorAll("h1")].filter((h) => h.textContent === heading);
     expect(h1s).toHaveLength(1);

@@ -1,9 +1,10 @@
 import { act, fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
 import { site } from "@/content/site";
+import { REST_STATE, useAppStore } from "@/state/appStore";
 import IntroSplash from "./IntroSplash";
 import { NAV_MARK, buildHandoff, navMark } from "./handoff";
 import { HERO_SETTLE_PX } from "./heroRise";
@@ -66,11 +67,21 @@ describe("navMark", () => {
   });
 });
 
-afterEach(() => vi.restoreAllMocks());
+// the splash reads the textures' progress and the ready signal off the store
+// and finishes the intro there; each test starts with the splash up
+beforeEach(() => useAppStore.setState({ ...REST_STATE, intro: true }));
+afterEach(() => {
+  vi.restoreAllMocks();
+  useAppStore.setState(REST_STATE);
+});
+/** every texture is in */
+const loaded = () => useAppStore.getState().markReady();
+/** the splash is still up */
+const intro = () => useAppStore.getState().intro;
 
 describe("IntroSplash", () => {
   it("covers the viewport on ink with the ruled G mark and the headline on it", () => {
-    render(<IntroSplash ready={false} onDone={() => {}} />);
+    render(<IntroSplash />);
     const root = document.querySelector("[data-intro-splash]") as HTMLElement;
     expect(root.style.position).toBe("fixed");
     expect(root.style.inset).toBe("0px");
@@ -86,7 +97,7 @@ describe("IntroSplash", () => {
 
   it("starts with the rule undrawn and lets the floor draw it out to the hold", () => {
     const { build, tl } = capture();
-    render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
+    render(<IntroSplash build={build} />);
     expect(ruleReach(splashRule())).toBe(0);
     act(() => {
       tl().progress(1);
@@ -96,8 +107,8 @@ describe("IntroSplash", () => {
 
   it("the textures pull the rule ahead of the floor, gliding out to their share", () => {
     const { build, trace } = capture();
-    const { rerender } = render(<IntroSplash ready={false} progress={0} onDone={() => {}} build={build} />);
-    rerender(<IntroSplash ready={false} progress={0.5} onDone={() => {}} build={build} />);
+    render(<IntroSplash build={build} />);
+    act(() => useAppStore.setState({ progress: 0.5 }));
     // nothing has moved yet: the splash has not been painted
     expect(ruleReach(splashRule())).toBe(0);
     act(() => {
@@ -112,7 +123,7 @@ describe("IntroSplash", () => {
 
   it("starts the trace on the frame after its first paint, and not before", async () => {
     const { build, tl } = capture();
-    render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
+    render(<IntroSplash build={build} />);
     expect(tl().paused()).toBe(true);
     await act(
       () =>
@@ -125,7 +136,7 @@ describe("IntroSplash", () => {
 
   it("a splash unmounted before its first frame never starts", async () => {
     const { build, tl } = capture();
-    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} build={build} />);
+    const { unmount } = render(<IntroSplash build={build} />);
     unmount();
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -135,7 +146,7 @@ describe("IntroSplash", () => {
 
   it("holds gsap's clock through stalls while up, and lets it go on unmount", () => {
     const spy = vi.spyOn(gsap.ticker, "lagSmoothing");
-    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} />);
+    const { unmount } = render(<IntroSplash />);
     expect(spy).toHaveBeenLastCalledWith(100, 16);
     unmount();
     expect(spy).toHaveBeenLastCalledWith(500, 33);
@@ -145,7 +156,7 @@ describe("IntroSplash", () => {
     document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
     const stat = document.querySelector(`[${STATIC_SPLASH_ATTR}]`)!;
     const h1 = stat.querySelector(`[${SPLASH_HEADLINE_ATTR}]`)!;
-    const { unmount } = render(<IntroSplash ready={false} onDone={() => {}} />);
+    const { unmount } = render(<IntroSplash />);
     // nothing rebuilt: the headline that painted first is the one the splash keeps (it is the LCP element, #107)
     expect(document.querySelector(`[${LIVE_SPLASH_ATTR}]`)).toBe(stat);
     expect(stat.getAttribute("aria-hidden")).toBe("true");
@@ -159,7 +170,7 @@ describe("IntroSplash", () => {
 
   it("does not hand off when the floor finishes before the textures are in", () => {
     const { build, tl, handoff, handoffs } = capture();
-    render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
+    render(<IntroSplash build={build} handoff={handoff} />);
     act(() => {
       tl().progress(1);
     });
@@ -168,8 +179,8 @@ describe("IntroSplash", () => {
 
   it("does not hand off when the textures arrive before the floor has run", () => {
     const { build, trace, handoff, handoffs } = capture();
-    const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
-    rerender(<IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />);
+    render(<IntroSplash build={build} handoff={handoff} />);
+    act(() => loaded());
     expect(handoffs).toHaveLength(0);
     act(() => {
       trace().start();
@@ -181,29 +192,23 @@ describe("IntroSplash", () => {
 
   it("closes the rule and hands off once the floor has run and the textures are in", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const onDone = vi.fn();
-    const { rerender } = render(
+    render(
       <>
         <Stage />
-        <IntroSplash ready={false} onDone={onDone} build={build} handoff={handoff} />
+        <IntroSplash build={build} handoff={handoff} />
       </>,
     );
     act(() => {
       tl().progress(1);
     });
-    rerender(
-      <>
-        <Stage />
-        <IntroSplash ready onDone={onDone} build={build} handoff={handoff} />
-      </>,
-    );
+    act(() => loaded());
     expect(handoffs).toHaveLength(1);
-    expect(onDone).not.toHaveBeenCalled();
+    expect(intro()).toBe(true);
     act(() => {
       handoffs[0].progress(1);
     });
     expect(ruleReach(splashRule())).toBeCloseTo(1, 6);
-    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(intro()).toBe(false);
     // the headline lifted the settle's distance as the ink dissolved (#107): the hero's lines settle from there
     const headline = document.querySelector(`[${SPLASH_HEADLINE_ATTR}]`)!;
     expect(gsap.getProperty(headline, "y")).toBe(-HERO_SETTLE_PX);
@@ -217,21 +222,16 @@ describe("IntroSplash", () => {
       return { ...r, top: r.y, left: r.x, right: r.x + r.width, bottom: r.y + r.height, toJSON: () => r } as DOMRect;
     });
     const { build, tl, handoff, handoffs } = capture();
-    const { rerender, unmount } = render(
+    const { unmount } = render(
       <>
         <Stage />
-        <IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />
+        <IntroSplash build={build} handoff={handoff} />
       </>,
     );
     act(() => {
       tl().progress(1);
     });
-    rerender(
-      <>
-        <Stage />
-        <IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />
-      </>,
-    );
+    act(() => loaded());
     const nav = document.querySelector(NAV_MARK) as SVGSVGElement;
     const traveller = document.querySelector("[data-intro-splash] [data-g-mark]") as SVGSVGElement;
     // the nav's copy hides while the traveller is on its way
@@ -251,11 +251,11 @@ describe("IntroSplash", () => {
 
   it("fades the mark in place when the nav has no mark to land on", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
+    render(<IntroSplash build={build} handoff={handoff} />);
     act(() => {
       tl().progress(1);
     });
-    rerender(<IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />);
+    act(() => loaded());
     act(() => {
       handoffs[0].progress(1);
     });
@@ -265,42 +265,42 @@ describe("IntroSplash", () => {
 
   it("hands off only once even as the gate inputs keep changing", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const onDone = vi.fn();
-    const { rerender } = render(<IntroSplash ready onDone={onDone} build={build} handoff={handoff} />);
+    loaded();
+    const { rerender } = render(<IntroSplash build={build} handoff={handoff} />);
     act(() => {
       tl().progress(1);
     });
-    rerender(<IntroSplash ready skipped onDone={onDone} build={build} handoff={handoff} />);
+    rerender(<IntroSplash skipped build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(1);
   });
 
   it("a skipped splash with textures in hands off without waiting out the floor", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const onDone = vi.fn();
-    const { rerender } = render(<IntroSplash ready={false} onDone={onDone} build={build} handoff={handoff} />);
-    rerender(<IntroSplash ready skipped onDone={onDone} build={build} handoff={handoff} />);
+    const { rerender } = render(<IntroSplash build={build} handoff={handoff} />);
+    act(() => loaded());
+    rerender(<IntroSplash skipped build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(1);
     // the floor is jumped to its end so the rule closes from the hold
     expect(tl().progress()).toBe(1);
     act(() => {
       handoffs[0].progress(1);
     });
-    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(intro()).toBe(false);
   });
 
   it("a skip before the textures are in still waits on ink", () => {
     const { build, handoff, handoffs } = capture();
-    const { rerender } = render(<IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />);
-    rerender(<IntroSplash ready={false} skipped onDone={() => {}} build={build} handoff={handoff} />);
+    const { rerender } = render(<IntroSplash build={build} handoff={handoff} />);
+    rerender(<IntroSplash skipped build={build} handoff={handoff} />);
     expect(handoffs).toHaveLength(0);
   });
 
   it("holds the parallax on ink while mounted and fades it up through the handoff", () => {
     const { build, tl, handoff, handoffs } = capture();
-    const { rerender, unmount } = render(
+    const { unmount } = render(
       <>
         <Stage />
-        <IntroSplash ready={false} onDone={() => {}} build={build} handoff={handoff} />
+        <IntroSplash build={build} handoff={handoff} />
       </>,
     );
     const parallax = document.querySelector("[data-parallax]") as HTMLElement;
@@ -310,12 +310,7 @@ describe("IntroSplash", () => {
     act(() => {
       tl().progress(1);
     });
-    rerender(
-      <>
-        <Stage />
-        <IntroSplash ready onDone={() => {}} build={build} handoff={handoff} />
-      </>,
-    );
+    act(() => loaded());
     act(() => {
       handoffs[0].progress(1);
     });
@@ -329,14 +324,14 @@ describe("IntroSplash", () => {
   describe("skip gesture", () => {
     function mountSkippable(ready = true) {
       const { build, tl, handoff, handoffs } = capture();
-      const onDone = vi.fn();
+      if (ready) loaded();
       const view = render(
         <>
           <Stage />
-          <IntroSplash ready={ready} onDone={onDone} build={build} handoff={handoff} />
+          <IntroSplash build={build} handoff={handoff} />
         </>,
       );
-      return { ...view, tl, handoff, handoffs, onDone, build };
+      return { ...view, tl, handoff, handoffs, build };
     }
 
     it.each([
@@ -345,7 +340,7 @@ describe("IntroSplash", () => {
       ["a wheel scroll", () => fireEvent.wheel(window, { deltaY: 40 })],
       ["a touch scroll", () => fireEvent.touchMove(window)],
     ] as const)("%s during the splash jumps the floor to its end and, with textures in, hands off", (_gesture, dispatch) => {
-      const { tl, handoffs, onDone } = mountSkippable();
+      const { tl, handoffs } = mountSkippable();
       expect(tl().progress()).toBeLessThan(1);
       act(() => {
         dispatch();
@@ -355,31 +350,26 @@ describe("IntroSplash", () => {
       act(() => {
         handoffs[0].progress(1);
       });
-      expect(onDone).toHaveBeenCalledTimes(1);
+      expect(intro()).toBe(false);
     });
 
     it("a skip before the textures are in does not hand off until ready flips", () => {
-      const { tl, handoffs, onDone, rerender, build, handoff } = mountSkippable(false);
+      const { tl, handoffs } = mountSkippable(false);
       act(() => {
         fireEvent.pointerDown(window);
       });
       expect(tl().progress()).toBe(1);
       expect(handoffs).toHaveLength(0);
-      rerender(
-        <>
-          <Stage />
-          <IntroSplash ready onDone={onDone} build={build} handoff={handoff} />
-        </>,
-      );
+      act(() => loaded());
       expect(handoffs).toHaveLength(1);
       act(() => {
         handoffs[0].progress(1);
       });
-      expect(onDone).toHaveBeenCalledTimes(1);
+      expect(intro()).toBe(false);
     });
 
     it("gesture listeners are gone after unmount", () => {
-      const { handoffs, onDone, unmount } = mountSkippable(false);
+      const { handoffs, unmount } = mountSkippable(false);
       unmount();
       expect(() => {
         fireEvent.pointerDown(window);
@@ -387,7 +377,7 @@ describe("IntroSplash", () => {
         fireEvent.wheel(window);
       }).not.toThrow();
       expect(handoffs).toHaveLength(0);
-      expect(onDone).not.toHaveBeenCalled();
+      expect(intro()).toBe(true);
     });
 
     it("writes the session flag when the gate opens", () => {

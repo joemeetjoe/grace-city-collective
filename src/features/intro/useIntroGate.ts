@@ -1,41 +1,30 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
+import { useAppStore } from "@/state/appStore";
 import { HERO_HEADLINE, riseHeroHeadline } from "./heroRise";
-import { readPolicyInputs, shouldPlayIntro } from "./introPolicy";
 import { buildNavReveal, collectNavReveal } from "./navReveal";
 import { fadeParallaxFromInk } from "./restingFade";
 import { SPLASH_HEADLINE } from "./splashComposition";
 import { removeStaticSplash } from "./staticSplashDom";
 
-export type IntroGate = {
-  intro: boolean;
-  reducedMotion: boolean;
-  finishIntro: () => void;
-};
-
-/** whether the splash plays this session, and the reveals that follow it */
-export function useIntroGate(
-  parallax: RefObject<HTMLDivElement | null>,
-): IntroGate {
-  // decided once per mount: once per session, and never under reduced motion
-  const [policy] = useState(() => readPolicyInputs());
-  const [intro, setIntro] = useState(() => shouldPlayIntro(policy));
+/**
+ * The reveals around the splash, off the store's `intro` and `reducedMotion`
+ * (decided once per mount, app/initApp.ts): the reduced-motion fade from
+ * ink, the nav's unfurl and the headline's rise after a played intro, and
+ * the static splash's removal when none plays.
+ */
+export function useIntroGate(parallax: RefObject<HTMLDivElement | null>): void {
+  const intro = useAppStore((s) => s.intro);
+  const reducedMotion = useAppStore((s) => s.reducedMotion);
 
   // no splash for reduced motion: the page still opens from ink with a short fade
   useEffect(() => {
-    if (!policy.reducedMotion) return;
+    if (!reducedMotion) return;
     const fade = fadeParallaxFromInk(parallax.current);
     return () => {
       fade?.kill();
     };
-  }, [policy.reducedMotion, parallax]);
+  }, [reducedMotion, parallax]);
 
   // after a played intro, the nav unfurls from its mark and the hero headline
   // arrives, the moment the splash's mark has landed: before the first paint
@@ -64,8 +53,4 @@ export function useIntroGate(
   useLayoutEffect(() => {
     if (!intro) removeStaticSplash();
   }, [intro]);
-
-  const finishIntro = useCallback(() => setIntro(false), []);
-
-  return { intro, reducedMotion: policy.reducedMotion, finishIntro };
 }

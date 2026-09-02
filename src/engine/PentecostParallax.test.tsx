@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 
 import { TIERS } from "@/device/tier";
+import { REST_STATE, useAppStore } from "@/state/appStore";
 
 type FakeRenderer = {
   initialised: Set<THREE.Texture>;
@@ -139,13 +140,22 @@ afterEach(() => {
   document.body.replaceChildren();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  useAppStore.setState(REST_STATE);
 });
 
 const frame = () => act(() => vi.advanceTimersByTimeAsync(16));
 
+/** the loading the scene writes to the store: every progress report, and whether it is ready */
+function loading() {
+  const progress: number[] = [];
+  useAppStore.subscribe((s, prev) => {
+    if (s.progress !== prev.progress) progress.push(s.progress);
+  });
+  return { progress, ready: () => useAppStore.getState().ready };
+}
+
 async function mountAndLoad(front: boolean) {
-  const onReady = vi.fn();
-  const onProgress = vi.fn();
+  const load = loading();
   const frontCanvas = front ? { current: document.createElement("canvas") } : undefined;
   // the scene paces itself against the page's labelled sections (sectionRects.ts)
   for (const label of ["Hero", "About", "Gatherings", "Give", "Visit"]) {
@@ -153,22 +163,22 @@ async function mountAndLoad(front: boolean) {
     section.dataset.screenLabel = label;
     document.body.append(section);
   }
-  render(<PentecostParallax tier={TIERS.mobile} frontCanvas={frontCanvas} onReady={onReady} onProgress={onProgress} />);
+  render(<PentecostParallax tier={TIERS.mobile} frontCanvas={frontCanvas} />);
   // the AVIF verdict resolves, the loads go out
   await act(() => vi.advanceTimersByTimeAsync(0));
   expect(fakes.deliveries).toBeGreaterThan(20);
-  for (let i = 0; i < 400 && !onReady.mock.calls.length; i++) await frame();
-  expect(onReady).toHaveBeenCalledTimes(1);
-  return { onReady, onProgress };
+  for (let i = 0; i < 400 && !load.ready(); i++) await frame();
+  expect(load.ready()).toBe(true);
+  return load;
 }
 
 describe("PentecostParallax texture warm-up (#104)", () => {
-  it("reports ready only once every texture has landed and been initialised", async () => {
-    const { onProgress } = await mountAndLoad(false);
+  it("reports ready to the store only once every texture has landed and been initialised", async () => {
+    const { progress } = await mountAndLoad(false);
     const [renderer] = fakes.renderers;
-    const [loaded, total] = onProgress.mock.calls.at(-1)!;
-    expect(loaded).toBe(total);
-    expect(total).toBe(fakes.deliveries);
+    // one report per texture, the last at the whole
+    expect(progress.length).toBe(fakes.deliveries);
+    expect(progress.at(-1)).toBe(1);
     // nothing rendered yet (the canvas was off screen); the warmer did every upload
     expect(renderer.renders).toHaveLength(0);
     expect(renderer.initialised.size).toBeGreaterThan(20);

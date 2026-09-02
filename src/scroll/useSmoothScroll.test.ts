@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import { Observer, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
+import { REST_STATE, useAppStore } from "@/state/appStore";
 import { installScrollDriver } from "./position";
 import { SMOOTH_SCROLL_ATTR } from "./smoother";
 
@@ -63,6 +64,7 @@ describe("useSmoothScroll", () => {
   afterEach(() => {
     page.unmount();
     installScrollDriver(null);
+    useAppStore.setState(REST_STATE);
     vi.restoreAllMocks();
   });
 
@@ -71,12 +73,12 @@ describe("useSmoothScroll", () => {
     const smoother = vi.spyOn(ScrollSmoother, "create");
     const observer = vi.spyOn(Observer, "create");
     const trigger = vi.spyOn(ScrollTrigger, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, false));
+    const { unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(smoother).not.toHaveBeenCalled();
     expect(observer).not.toHaveBeenCalled();
     expect(trigger).not.toHaveBeenCalled();
     expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
-    expect(window.__gccScrollTo).toBeUndefined();
+    expect(window.__gcc?.scrollTo).toBeUndefined();
     unmount();
   });
 
@@ -84,7 +86,7 @@ describe("useSmoothScroll", () => {
     viewportBelowLg(false);
     const observer = vi.spyOn(Observer, "create");
     const trigger = vi.spyOn(ScrollTrigger, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, false));
+    const { unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(observer).toHaveBeenCalledTimes(1);
     expect(observer.mock.calls[0][0]).toMatchObject({ type: "touch", preventDefault: true });
     expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ trigger: page.refs.scene.current }));
@@ -93,9 +95,10 @@ describe("useSmoothScroll", () => {
 
   it("reduced motion is native at any width", () => {
     viewportBelowLg(false);
+    useAppStore.setState({ reducedMotion: true });
     const observer = vi.spyOn(Observer, "create");
     const smoother = vi.spyOn(ScrollSmoother, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, true));
+    const { unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(observer).not.toHaveBeenCalled();
     expect(smoother).not.toHaveBeenCalled();
     unmount();
@@ -123,7 +126,7 @@ describe("useSmoothScroll", () => {
       observers.push(fake);
       return fake as unknown as Observer;
     });
-    const { rerender, unmount } = renderHook(() => useSmoothScroll(page.refs, false));
+    const { rerender, unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(observers).toHaveLength(1);
 
     below = true;
