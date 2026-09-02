@@ -127,6 +127,17 @@ verdict each capture ran under.
   put it on the wire while the shell is still downloading.
 - `budget.mjs` (`pnpm budget`) — the static byte budget from `dist/` against
   `budget.json`, with a poster row for the fallback path's one image.
+- `lighthouse.mjs` (`pnpm lighthouse`) — Lighthouse CI on both profiles
+  (`lighthouserc.<profile>.cjs`); the median run's scores and metrics.
+- `longTasks.mjs` — what is inside each long task a Lighthouse report
+  lists: the audit's own task selection under simulated throttling, each
+  task's trace events and, with the V8 profiler in the trace, its samples
+  by source, by nearest `src/` frame and by leaf frame, resolved through
+  the source maps of a `vite build --sourcemap`. Needs a report from
+  Lighthouse's CLI with `--save-assets` (the trace beside the report);
+  the run and its reading are in
+  [`docs/perf/main-thread-slices.md`](../docs/perf/main-thread-slices.md).
+  `longTasksReport.mjs` is the pure half; its tests run in the unit project.
 
 ## Share card (`tools/share/`)
 

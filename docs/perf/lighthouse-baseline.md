@@ -73,7 +73,8 @@ one shift on `nav.fixed`.
 From `long-tasks` in the mobile median report; all in the shell chunk
 (`assets/index-*.js`), all between 3.0 s and 3.6 s into the load — the
 window in which the shell mounts and the splash hands off. This is the
-list #114 slices:
+list #114 slices — the attribution and the drafts are in
+[`main-thread-slices.md`](main-thread-slices.md):
 
 | start   | duration | script          |
 | ------: | -------: | --------------- |
