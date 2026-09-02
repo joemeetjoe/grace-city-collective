@@ -63,7 +63,7 @@ function matches(re: RegExp, skip: (file: string) => boolean = () => false): str
  */
 const KEY_EXCEPTIONS: Record<string, string[]> = {
   // the step's words remount to replay their rise: a state key on one element, not a list key
-  "features/stops/VisitStop.tsx": ["way"],
+  "features/stops/VisitStop.tsx": ["way.step"],
   // a stop's paragraphs are strings in the content (SceneSection.body: string[]); nothing else names one
   "features/stops/StopWords.tsx": ["p"],
   // the passages of a refs string, split on `;`: their text is all that names them, and the index guards a repeat

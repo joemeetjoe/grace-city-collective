@@ -104,7 +104,7 @@ export function wayIn(content: SiteContent): Waymark[] {
 
 /** the way in's words, from the content or, where none were published, the built-in ones */
 export function wayInWords(content: SiteContent): WayInWords {
-  return content.wayInWords ?? site.wayInWords!;
+  return content.wayInWords ?? WAY_IN_WORDS;
 }
 
 /** every id a nav item may point at: scene stops first, long-form after */
@@ -119,6 +119,13 @@ const LIVE = "https://www.gracecitycollective.com";
  * of your own, and what `wayIn` falls back to where the content published
  * none. WayIn draws one emblem per step by position, so keep them five.
  */
+/** the way in's own words: the arrows tell the story on ("and then") and back ("before that") */
+const WAY_IN_WORDS: WayInWords = {
+  list: "The way in",
+  back: { label: "Back a step", word: "Before that" },
+  next: { label: "Next step", word: "And then" },
+};
+
 const WAY_IN: Waymark[] = [
   {
     id: "say-hello",
@@ -239,12 +246,7 @@ export const site: SiteContent = {
   ],
 
   wayIn: WAY_IN,
-  // the way in's own words: the arrows tell the story on ("and then") and back ("before that")
-  wayInWords: {
-    list: "The way in",
-    back: { label: "Back a step", word: "Before that" },
-    next: { label: "Next step", word: "And then" },
-  },
+  wayInWords: WAY_IN_WORDS,
 
   longform: [
     {

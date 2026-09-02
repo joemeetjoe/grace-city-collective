@@ -8,7 +8,7 @@
  */
 
 /** the hash that names `id`; the top of the page has none, so a shared link to the top is the bare path */
-export function hashFor(id: string, top: string): string {
+export function hashFor<Id extends string>(id: Id, top: Id): string {
   return id === top ? "" : `#${id}`;
 }
 
@@ -17,10 +17,10 @@ export function hashFor(id: string, top: string): string {
  * the top (the first id), a listed id is itself, and anything else is
  * nobody's — null, left alone.
  */
-export function idFromHash(hash: string, ids: readonly string[]): string | null {
+export function idFromHash<Id extends string>(hash: string, ids: readonly Id[]): Id | null {
   if (hash === "" || hash === "#") return ids[0] ?? null;
   const id = hash.startsWith("#") ? hash.slice(1) : null;
-  return id != null && ids.includes(id) ? id : null;
+  return ids.find((known) => known === id) ?? null;
 }
 
 /**
