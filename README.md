@@ -15,9 +15,12 @@ pnpm dev      # Vite dev server
 pnpm test     # Vitest
 pnpm lint     # ESLint
 pnpm build    # tsc + Vite → dist/
+pnpm budget   # static byte budget over dist/ (tools/perf/budget.json)
 ```
 
-Vite 8, React 19, TypeScript, Tailwind 4, three.js, gsap.
+Vite 8, React 19, TypeScript, Tailwind 4, three.js, gsap. CI
+(`.github/workflows/ci.yml`) runs lint, test, build and the byte budget on
+every pull request and push to main.
 
 ## Base path
 

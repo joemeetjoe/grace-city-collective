@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "transfer": "node tools/perf/transfer.mjs",
+    "budget": "node tools/perf/budget.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

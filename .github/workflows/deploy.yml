@@ -80,6 +80,7 @@ jobs:
           aws s3 sync dist/ "s3://$S3_BUCKET/"
           --delete
           --exclude "assets/*"
+          --exclude ".vite/*"
           --exclude "index.html"
           --cache-control "public, max-age=86400"
 

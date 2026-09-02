@@ -54,6 +54,10 @@ export default defineConfig({
     },
   },
   build: {
+    // dist/.vite/manifest.json: the static byte budget (tools/perf/budget.mjs)
+    // reads it to find the shell and engine chunks, the css and each hashed
+    // texture and font without guessing at file names
+    manifest: true,
     // the Doré textures ship as hashed files whatever their size (#97): a
     // 150-byte mask pack inlined as a data URI would sit in the JS bundle
     // and never in the tier's cache

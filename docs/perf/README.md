@@ -71,3 +71,27 @@ next to the page's own marks (`trace`: the splash's G-mark trace began;
 `gate`) — which is how the order things arrive in is checked: the engine
 chunk (#98) starts downloading before the shell has finished, and the trace
 is animating before the engine has landed.
+
+## Static budget (Wire 7/8, #100)
+
+`pnpm budget` is the same table without a browser: it reads Vite's manifest
+(`dist/.vite/manifest.json`) for the shell chunk and its css, the engine
+chunk, the two latin font files and every texture of each tier's
+`src/assets/dore/<width>/`, plus `index.html` and the favicon, and sizes
+them the way the CDN sends them — brotli for html/js/css/svg, raw for
+webp/woff2 — so its numbers line up with the gate column above. It then
+checks each tier's total and every category against the ceilings in
+`tools/perf/budget.json` and exits 1 on a breach; CI
+(`.github/workflows/ci.yml`) runs it after `pnpm build` on every pull
+request and push to main.
+
+```bash
+pnpm build
+pnpm budget            # the table, and the exit code
+pnpm budget --files    # every file per tier with its wire kB
+pnpm budget --budget other.json   # check against another budget file
+```
+
+To raise a ceiling deliberately, change the number in the same PR as the
+change that needs it and say why in the PR. #102 tightens the ceilings once
+the Wire batch has landed.
