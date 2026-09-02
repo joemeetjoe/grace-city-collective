@@ -1,43 +1,51 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { gsap } from "@/lib/gsap";
+import { registerRevealTarget, type RevealKind } from "@/state/revealTargets";
 import { NAV_REVEAL_SECONDS, NAV_REVEAL_STAGGER } from "@/theme/motion";
 import { NAV_REVEAL_DROP, NAV_REVEAL_SLIDE, buildNavReveal, collectNavReveal } from "./navReveal";
 
-/** the desktop nav and the dot rail, as App.tsx lays them out */
+const unregister: (() => void)[] = [];
+
+/** the desktop nav and the dot rail, as App.tsx lays them out and the nav registers them */
 function stage(): HTMLElement {
   const root = document.createElement("div");
   root.innerHTML = `
     <nav>
-      <div data-nav-actions="">
-        <a id="give" data-nav-reveal="">Give</a>
-        <a id="join" data-nav-reveal="">Join Sunday</a>
+      <div>
+        <a id="give" data-kind="action">Give</a>
+        <a id="join" data-kind="action">Join Sunday</a>
       </div>
-      <div data-nav-links="" data-nav-glass="" id="pill">
-        <a id="l1" data-nav-reveal="">One</a>
-        <a id="l2" data-nav-reveal="">Two</a>
-        <a id="l3" data-nav-reveal="">Three</a>
+      <div id="pill" data-kind="glass">
+        <a id="l1" data-kind="link">One</a>
+        <a id="l2" data-kind="link">Two</a>
+        <a id="l3" data-kind="link">Three</a>
       </div>
-      <a id="mark">mark</a>
+      <a id="mark" data-kind="mark">mark</a>
     </nav>
-    <nav data-dot-rail="">
-      <span data-nav-glass="" id="strip"></span>
-      <a id="d1" data-nav-reveal=""></a>
-      <a id="d2" data-nav-reveal=""></a>
+    <nav>
+      <span id="strip" data-kind="glass"></span>
+      <a id="d1" data-kind="dot"></a>
+      <a id="d2" data-kind="dot"></a>
     </nav>`;
   document.body.appendChild(root);
+  for (const el of root.querySelectorAll<HTMLElement>("[data-kind]")) {
+    unregister.push(registerRevealTarget(el.dataset.kind as RevealKind, el));
+  }
   return root;
 }
 
 const ids = (els: Element[]) => els.map((el) => el.id);
 
 afterEach(() => {
+  for (const off of unregister.splice(0)) off();
   document.body.innerHTML = "";
 });
 
 describe("collectNavReveal", () => {
   it("reads the links and the calls to action from the mark outward, the dots top down, and every glass", () => {
-    const targets = collectNavReveal(stage());
+    stage();
+    const targets = collectNavReveal();
     expect(ids(targets.links)).toEqual(["l3", "l2", "l1"]);
     expect(ids(targets.actions)).toEqual(["join", "give"]);
     expect(ids(targets.dots)).toEqual(["d1", "d2"]);
@@ -45,16 +53,23 @@ describe("collectNavReveal", () => {
   });
 
   it("leaves the mark alone: the handoff lands it", () => {
-    const targets = collectNavReveal(stage());
+    stage();
+    const targets = collectNavReveal();
     const all = [...targets.links, ...targets.actions, ...targets.dots, ...targets.glass];
     expect(all.find((el) => el.id === "mark")).toBeUndefined();
+  });
+
+  it("finds nothing once the nav has unregistered", () => {
+    stage();
+    for (const off of unregister.splice(0)) off();
+    expect(collectNavReveal()).toEqual({ links: [], actions: [], dots: [], glass: [] });
   });
 });
 
 describe("buildNavReveal", () => {
   it("drops the links in one by one from the mark, then the actions, and slides the dots in from the edge", () => {
     const root = stage();
-    const targets = collectNavReveal(root);
+    const targets = collectNavReveal();
     const tl = buildNavReveal(targets);
     tl.pause(0);
     const at = (id: string) => root.querySelector<HTMLElement>(`#${id}`)!;

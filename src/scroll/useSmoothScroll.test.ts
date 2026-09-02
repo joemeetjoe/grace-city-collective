@@ -26,8 +26,8 @@ describe("scrollMode", () => {
   });
 });
 
-const SCENE = ["hero", "about"];
-const LONGFORM = ["faq"];
+const SCENE = ["hero", "about"] as const;
+const LONGFORM = ["faq"] as const;
 
 /** the smoother's wrapper and content around a scene of sections and a long-form one, on the page, registered by ref */
 function mountPage() {

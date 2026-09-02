@@ -7,6 +7,7 @@ import {
   NAV_REVEAL_STAGGER,
 } from "@/theme/motion";
 import { rgba, tokens } from "@/theme/tokens";
+import { revealTargets } from "@/state/revealTargets";
 
 /** how far a link drops into place, and how far a dot slides in from the edge, in px (the timings: theme/motion.ts) */
 export const NAV_REVEAL_DROP = 8;
@@ -28,17 +29,17 @@ export type NavRevealTargets = {
 };
 
 /**
- * Everything the cascade moves, read from the page: the section links are
- * played from the mark outward, so their document order is reversed, as is
- * the calls to action's, which sit to the left of the links.
+ * Everything the cascade moves, as the nav registered it (state/revealTargets.ts):
+ * the section links are played from the mark outward, so their document
+ * order is reversed, as is the calls to action's, which sit to the left of
+ * the links.
  */
-export function collectNavReveal(root: ParentNode = document): NavRevealTargets {
-  const all = (sel: string) => Array.from(root.querySelectorAll(sel));
+export function collectNavReveal(): NavRevealTargets {
   return {
-    links: all("[data-nav-links] [data-nav-reveal]").reverse(),
-    actions: all("[data-nav-actions] [data-nav-reveal]").reverse(),
-    dots: all("[data-dot-rail] [data-nav-reveal]"),
-    glass: all("[data-nav-glass]"),
+    links: revealTargets("link").reverse(),
+    actions: revealTargets("action").reverse(),
+    dots: revealTargets("dot"),
+    glass: revealTargets("glass"),
   };
 }
 

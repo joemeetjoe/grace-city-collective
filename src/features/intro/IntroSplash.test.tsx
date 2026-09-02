@@ -5,8 +5,9 @@ import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
 import { site } from "@/content/site";
 import { REST_STATE, useAppStore } from "@/state/appStore";
+import { registerRevealTarget, revealRef } from "@/state/revealTargets";
 import IntroSplash from "./IntroSplash";
-import { NAV_MARK, buildHandoff, navMark } from "./handoff";
+import { buildHandoff, navMark } from "./handoff";
 import { HERO_SETTLE_PX } from "./heroRise";
 import { SPLASH_MARK_SIZE } from "./splashMark";
 import { LIVE_SPLASH_ATTR, SPLASH_HEADLINE_ATTR, STATIC_SPLASH_ATTR, staticSplashMarkup } from "./staticSplash";
@@ -36,7 +37,7 @@ function Stage() {
       <div data-parallax="" />
       <div data-parallax-front="" />
       <nav>
-        <a href="#hero" data-nav-mark="">
+        <a href="#hero" ref={revealRef("mark")}>
           <GMark size={40} ruled />
         </a>
       </nav>
@@ -47,23 +48,29 @@ function Stage() {
 const splashRule = () => document.querySelector<SVGPathElement>("[data-intro-splash] [data-g-mark-rule]")!;
 
 describe("navMark", () => {
-  it("picks the nav mark that is laid out, whichever breakpoint's it is", () => {
+  it("picks the registered nav mark that is laid out, whichever breakpoint's it is", () => {
     const root = document.createElement("div");
     root.innerHTML = `
-      <a data-nav-mark="" data-which="phone"><svg data-g-mark=""></svg></a>
-      <a data-nav-mark="" data-which="xl"><svg data-g-mark=""></svg></a>`;
+      <a id="phone"><svg data-g-mark=""></svg></a>
+      <a id="xl"><svg data-g-mark=""></svg></a>`;
+    const links = Array.from(root.querySelectorAll("a"));
+    const off = links.map((a) => registerRevealTarget("mark", a));
     const rect = (w: number) =>
       ({ x: 0, y: 0, width: w, height: w, top: 0, left: 0, right: w, bottom: w, toJSON: () => ({}) }) as DOMRect;
-    const marks = Array.from(root.querySelectorAll<SVGSVGElement>(NAV_MARK));
+    const marks = links.map((a) => a.querySelector("svg")!);
     vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(0));
     vi.spyOn(marks[1], "getBoundingClientRect").mockReturnValue(rect(40));
-    expect(navMark(root)?.parentElement?.dataset.which).toBe("xl");
+    expect(navMark()?.parentElement?.id).toBe("xl");
     vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(40));
     vi.spyOn(marks[1], "getBoundingClientRect").mockReturnValue(rect(0));
-    expect(navMark(root)?.parentElement?.dataset.which).toBe("phone");
+    expect(navMark()?.parentElement?.id).toBe("phone");
     // neither laid out: no destination, so the handoff fades the mark in place
     vi.spyOn(marks[0], "getBoundingClientRect").mockReturnValue(rect(0));
-    expect(navMark(root)).toBeNull();
+    expect(navMark()).toBeNull();
+    // and once the nav has unregistered, nothing to land on
+    for (const f of off) f();
+    vi.spyOn(marks[1], "getBoundingClientRect").mockReturnValue(rect(40));
+    expect(navMark()).toBeNull();
   });
 });
 
@@ -232,7 +239,7 @@ describe("IntroSplash", () => {
       tl().progress(1);
     });
     act(() => loaded());
-    const nav = document.querySelector(NAV_MARK) as SVGSVGElement;
+    const nav = document.querySelector("nav a[href='#hero'] [data-g-mark]") as SVGSVGElement;
     const traveller = document.querySelector("[data-intro-splash] [data-g-mark]") as SVGSVGElement;
     // the nav's copy hides while the traveller is on its way
     expect(nav.style.opacity).toBe("0");

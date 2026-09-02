@@ -363,12 +363,13 @@ body::-webkit-scrollbar {
    store's `intro`) the nav's pieces and the hero headline wait unseen, so the
    ink lifts on an empty bar; the handoff's cascade
    (src/features/intro/navReveal.ts) and the headline's rise
-   (src/features/intro/heroRise.ts) bring them in. Unlayered, so they beat
+   (src/features/intro/heroRise.ts) bring them in. The nav's classes are
+   NAV_REVEAL and NAV_GLASS (src/theme/classes.ts). Unlayered, so they beat
    the elements' own utilities. */
-.intro-pending [data-nav-reveal] {
+.intro-pending .nav-reveal {
   opacity: 0;
 }
-.intro-pending [data-nav-glass] {
+.intro-pending .nav-glass {
   background-color: transparent;
   border-color: transparent;
 }

@@ -7,6 +7,7 @@ import { sectionIds } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { initApp } from "./initApp";
 import { useJump } from "./jump";
+import { JumpProvider } from "./jumpContext";
 import HomePage from "./HomePage";
 import { useSceneLayers } from "./useSceneLayers";
 import IntroSplash from "@/features/intro/IntroSplash";
@@ -44,12 +45,10 @@ export default function App() {
   } = useSceneLayers(ids);
   useIntroGate(parallaxRef);
   // the smoother, the paging, and the section watch that keeps the store's
-  // activeId — which section is under the viewport's midpoint, read here
-  // for the nav links and the dot rail alike
+  // activeId — which section is under the viewport's midpoint, read by the
+  // nav links and the dot rail from the store
   const scroll = useSmoothScroll({ wrapper: wrapperRef, content: contentRef, scene: sceneRef, held, sections });
   const intro = useAppStore((s) => s.intro);
-  const activeId = useAppStore((s) => s.activeId);
-  const sceneInView = useAppStore((s) => s.sceneInView);
   const jump = useJump(scroll);
 
   return (
@@ -60,17 +59,16 @@ export default function App() {
     >
       {intro && <IntroSplash />}
 
-      {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
-      <SiteNav activeId={activeId} sceneInView={sceneInView} jump={jump} />
+      {/* the fixed chrome's links jump through the page's scroll: the jump
+          reaches them by context (jumpContext.tsx), the active section by the store */}
+      <JumpProvider jump={jump}>
+        {/* the nav outlives the scene: fixed for the whole page (SiteNav) */}
+        <SiteNav />
 
-      {/* the section dots, fixed outside the smoother's content like the nav,
-          and stacked with it so section copy never covers a dot */}
-      <DotRail
-        markers={markers}
-        activeId={activeId}
-        onNavigate={jump.jumpTo}
-        className={STACK.nav}
-      />
+        {/* the section dots, fixed outside the smoother's content like the nav,
+            and stacked with it so section copy never covers a dot */}
+        <DotRail markers={markers} className={STACK.nav} />
+      </JumpProvider>
 
       {/* everything that scrolls lives in the smoother's content; the wrapper
           becomes its fixed viewport when the smoother is on (src/scroll).

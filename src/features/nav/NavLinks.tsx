@@ -1,13 +1,11 @@
-import { FOCUS_RING } from "@/theme/classes";
-import type { NavItem } from "@/content/site";
+import { FOCUS_RING, NAV_GLASS, NAV_REVEAL } from "@/theme/classes";
+import { useSite } from "@/content/useSite";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/state/appStore";
+import { revealRef } from "@/state/revealTargets";
+import { useNavigate } from "./useNavigate";
 
 export type NavLinksProps = {
-  items: readonly NavItem[];
-  /** the section under the viewport's midpoint; its link is marked current */
-  activeId: string | null;
-  /** a link was chosen; the caller scrolls */
-  onNavigate?: (id: string) => void;
   className?: string;
 };
 
@@ -18,34 +16,30 @@ export type NavLinksProps = {
  * left under the pointer. Each link is a piece of the nav's cascade
  * (src/features/intro/navReveal.ts), and the row wears the glass that fades up with it.
  */
-export default function NavLinks({
-  items,
-  activeId,
-  onNavigate,
-  className,
-}: NavLinksProps) {
+export default function NavLinks({ className }: NavLinksProps) {
+  const site = useSite();
+  const activeId = useAppStore((s) => s.activeId);
+  const navigate = useNavigate();
   return (
     <div
-      data-nav-links=""
-      data-nav-glass=""
+      ref={revealRef("glass")}
       className={cn(
+        NAV_GLASS,
         "flex flex-wrap items-center gap-[clamp(12px,1.7vw,30px)] text-[11px] uppercase tracking-[0.22em] text-cream/70",
         className,
       )}
     >
-      {items.map((n) => {
+      {site.nav.map((n) => {
         const active = n.id === activeId;
         return (
           <a
             key={n.id}
+            ref={revealRef("link")}
             href={`#${n.id}`}
-            data-nav-reveal=""
             aria-current={active ? "location" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigate?.(n.id);
-            }}
+            onClick={navigate(n.id)}
             className={cn(
+              NAV_REVEAL,
               "relative rounded-sm transition-colors duration-300 after:absolute after:inset-x-0 after:-bottom-1.5 after:h-px after:origin-left after:bg-seal after:transition-transform after:duration-500 after:ease-site hover:after:scale-x-100",
               FOCUS_RING,
               active ? "text-seal after:scale-x-100 hover:text-seal" : "after:scale-x-0 hover:text-cream",

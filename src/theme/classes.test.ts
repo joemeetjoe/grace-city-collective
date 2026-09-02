@@ -10,6 +10,8 @@ import {
   GLASS_CORNERS,
   LINK_SWEEP,
   LONGFORM_SECTION,
+  NAV_GLASS,
+  NAV_REVEAL,
   ORNAMENT_IN_COLUMN,
   PHONE_BODY,
   STACK,
@@ -23,6 +25,7 @@ import {
   longformContainer,
   longformHeading,
   ornamentColumn,
+  navMark,
   panel,
   pill,
   serif,
@@ -83,6 +86,13 @@ describe("the measures index.css tokenises", () => {
   });
 });
 
+describe("the nav's arrival", () => {
+  it("is what index.css keeps unseen while the splash is up: the pieces at opacity 0, the glass clear", () => {
+    expect(indexCss).toMatch(new RegExp(`\\.intro-pending \\.${NAV_REVEAL} \\{\\s*opacity: 0;`));
+    expect(indexCss).toMatch(new RegExp(`\\.intro-pending \\.${NAV_GLASS} \\{\\s*background-color: transparent;`));
+  });
+});
+
 describe("stacking order", () => {
   it("runs back canvas, between, handoff, front canvas, copy, nav, cover, each a class whose number the script can read", () => {
     const steps = [STACK.back, STACK.between, STACK.handoff, STACK.front, STACK.copy, STACK.nav, STACK.cover];
@@ -138,6 +148,14 @@ describe("the bundles answer with the class lists they replaced", () => {
     expect(pill({ intent: "close" })).toBe(`${base} cursor-pointer text-cream/85 hover:text-cream`);
     expect(pill({ intent: "ghost" })).toBe(`${base} border border-cream/45 hover:border-cream hover:bg-cream/10`);
     expect(pill({ intent: "seal" })).toBe(`${base} bg-seal font-bold text-cream hover:bg-seal-deep`);
+  });
+
+  it("the nav's G mark, at the xl corner (SiteNav) and on the phone bar and the sheet (MobileNav)", () => {
+    expectSame(
+      navMark({ seat: "corner" }),
+      `inline-flex rounded-sm text-cream transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
+    );
+    expectSame(navMark({ seat: "bar" }), `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`);
   });
 
   it("the stop headlines", () => {

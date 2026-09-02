@@ -1,14 +1,13 @@
-import { GLASS } from "@/theme/classes";
+import { GLASS, NAV_GLASS, NAV_REVEAL } from "@/theme/classes";
 import { cn } from "@/lib/utils";
 import type { SectionMarker } from "@/scroll/markers";
+import { useAppStore } from "@/state/appStore";
+import { revealRef } from "@/state/revealTargets";
+import { useNavigate } from "./useNavigate";
 
 export type DotRailProps = {
   /** every section in page order, from sectionMarkers(site) */
   markers: readonly SectionMarker[];
-  /** the section under the viewport's midpoint; its dot is filled */
-  activeId: string | null;
-  /** a dot was chosen; the caller scrolls */
-  onNavigate?: (id: string) => void;
   className?: string;
 };
 
@@ -21,16 +20,12 @@ export type DotRailProps = {
  * compete with thumbs. Each dot is a piece of the nav's cascade
  * (src/features/intro/navReveal.ts), and the glass strip fades up with it.
  */
-export default function DotRail({
-  markers,
-  activeId,
-  onNavigate,
-  className,
-}: DotRailProps) {
+export default function DotRail({ markers, className }: DotRailProps) {
+  const activeId = useAppStore((s) => s.activeId);
+  const navigate = useNavigate();
   return (
     <nav
       aria-label="Sections"
-      data-dot-rail=""
       className={cn(
         "fixed top-1/2 right-[clamp(18px,3vw,40px)] hidden -translate-y-1/2 flex-col items-end gap-1.5 lg:flex",
         className,
@@ -41,9 +36,9 @@ export default function DotRail({
           corners, at the strip's own scale */}
       <span
         aria-hidden
-        data-dot-glass=""
-        data-nav-glass=""
+        ref={revealRef("glass")}
         className={cn(
+          NAV_GLASS,
           "absolute -inset-y-2.5 -right-[7px] -z-10 w-7 rounded-tl-[12px] rounded-br-[12px]",
           GLASS,
         )}
@@ -53,19 +48,15 @@ export default function DotRail({
         return (
           <a
             key={m.id}
+            ref={revealRef("dot")}
             href={`#${m.id}`}
-            data-nav-reveal=""
             aria-label={m.label}
             aria-current={active ? "location" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigate?.(m.id);
-            }}
-            className="group flex items-center gap-3 rounded-full p-1 outline-none focus-visible:ring-1 focus-visible:ring-cream/60"
+            onClick={navigate(m.id)}
+            className={`${NAV_REVEAL} group flex items-center gap-3 rounded-full p-1 outline-none focus-visible:ring-1 focus-visible:ring-cream/60`}
           >
             <span
               aria-hidden
-              data-dot-label=""
               className={cn(
                 "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-site",
                 active ? "text-seal" : "text-cream/80",
@@ -75,7 +66,6 @@ export default function DotRail({
             </span>
             <span
               aria-hidden
-              data-dot=""
               className={cn(
                 "block size-1.5 rounded-full border transition-[background-color,border-color,transform] duration-500 ease-site",
                 active

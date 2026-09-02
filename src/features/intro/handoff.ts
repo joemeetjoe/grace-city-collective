@@ -8,6 +8,7 @@ import {
 } from "@/theme/motion";
 import { rgba, tokens } from "@/theme/tokens";
 import { gsap } from "@/lib/gsap";
+import { revealTargets } from "@/state/revealTargets";
 import { HERO_SETTLE_PX } from "./heroRise";
 
 /**
@@ -36,8 +37,8 @@ export type HandoffContext = {
   onComplete: () => void;
 };
 
-/** the nav's G mark, the traveller's destination */
-export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
+/** the G mark's svg inside a nav mark link (marks/GMark.tsx) */
+const G_MARK = "[data-g-mark]";
 
 /** whether an element takes up room on screen (not display: none) */
 function laidOut(el: Element | null): el is SVGSVGElement {
@@ -48,11 +49,14 @@ function laidOut(el: Element | null): el is SVGSVGElement {
 
 /**
  * The nav's mark at this breakpoint: the phone bar's and the xl corner's are
- * both in the DOM, one of them display: none, so the laid-out one is the one
- * the traveller can land on; null where neither is (the mark fades in place).
+ * both registered (state/revealTargets.ts), one of them display: none, so the
+ * laid-out one is the one the traveller can land on; null where neither is
+ * (the mark fades in place).
  */
-export function navMark(root: ParentNode = document): SVGSVGElement | null {
-  return Array.from(root.querySelectorAll<SVGSVGElement>(NAV_MARK)).find(laidOut) ?? null;
+export function navMark(): SVGSVGElement | null {
+  return revealTargets("mark")
+    .map((link) => link.querySelector<SVGSVGElement>(G_MARK))
+    .find(laidOut) ?? null;
 }
 
 /**

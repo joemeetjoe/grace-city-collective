@@ -1,15 +1,17 @@
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { gsap } from "@/lib/gsap";
-import { STACK } from "@/theme/classes";
+import { NAV_GLASS, STACK } from "@/theme/classes";
 import { sectionIds, site } from "@/content/site";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
+import { MENU_LABEL } from "@/features/nav/MobileNav";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
 import type { ScrollDriver } from "@/scroll/position";
+import { revealTargets } from "@/state/revealTargets";
 
 // jsdom cannot probe for WebGL; each test says whether it is there
 const seams = vi.hoisted(() => ({ webgl: true }));
@@ -273,17 +275,18 @@ describe("App hero seal", () => {
 describe("App nav", () => {
   it("the nav carries the G mark at both breakpoints, linked to the top, and no seal", () => {
     const { container } = render(<App />);
-    const marks = Array.from(container.querySelectorAll("nav [data-nav-mark] [data-g-mark]"));
+    const marks = Array.from(container.querySelectorAll("nav a[href='#hero'] [data-g-mark]"));
     expect(marks.length).toBe(2);
-    expect(marks.filter((m) => m.closest("[data-mobile-nav]")).length).toBe(1);
-    for (const mark of marks) expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
+    // one beside the Menu button, the other at the xl corner; both the traveller's landing (handoff picks the laid-out one)
+    const bar = screen.getByRole("button", { name: MENU_LABEL }).parentElement!;
+    expect(marks.filter((m) => bar.contains(m)).length).toBe(1);
+    expect(revealTargets("mark")).toEqual(marks.map((m) => m.closest("a")));
     expect(container.querySelector("nav [data-seal]")).toBeNull();
   });
 
   it("the mobile nav sits in the same sticky nav as the desktop links", () => {
     const { container } = render(<App />);
-    const mobile = container.querySelector("nav [data-mobile-nav]")!;
-    expect(mobile).not.toBeNull();
+    expect(container.querySelector("nav")!.contains(screen.getByRole("button", { name: MENU_LABEL }))).toBe(true);
   });
 });
 
@@ -588,7 +591,7 @@ describe("App stops below lg (#56)", () => {
 describe("App section markers", () => {
   it("the nav link and the rail dot agree on the current section", () => {
     const { container } = render(<App />);
-    const rail = container.querySelector("[data-dot-rail]")!;
+    const rail = screen.getByRole("navigation", { name: "Sections" });
     expect(rail.querySelectorAll("a").length).toBe(sectionIds(site).length);
     const current = Array.from(
       container.querySelectorAll("[aria-current='location']"),
@@ -604,7 +607,7 @@ describe("App section markers", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     smoothers.driver = driver;
     const { container } = render(<App />);
-    const rail = container.querySelector("[data-dot-rail]")!;
+    const rail = screen.getByRole("navigation", { name: "Sections" });
     expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(
       false,
     );
@@ -812,13 +815,12 @@ describe("App canvas split", () => {
     const { container } = render(<App />);
     const nav = container.querySelector("nav")!;
     expect(nav.className).not.toMatch(/backdrop-blur-md/);
-    const links = container.querySelector("nav [data-nav-links]")!;
+    const links = container.querySelector(`nav .${NAV_GLASS}`)!;
     expect(links.className).toMatch(/backdrop-blur/);
     expect(links.className).toMatch(/bg-ink\/\d+/);
     // the dot rail's column of dots wears it too
-    expect(
-      container.querySelector("[data-dot-rail] [data-dot-glass]")!.className,
-    ).toMatch(/backdrop-blur/);
+    const rail = screen.getByRole("navigation", { name: "Sections" });
+    expect(rail.querySelector(`.${NAV_GLASS}`)!.className).toMatch(/backdrop-blur/);
   });
 
   it("the nav, the dot rail and the frame border stay above the front canvas", () => {
@@ -826,9 +828,7 @@ describe("App canvas split", () => {
     expect(
       container.querySelector("nav")!.closest(`.${STACK.nav}`),
     ).not.toBeNull();
-    expect(has(container.querySelector("[data-dot-rail]"), STACK.nav)).toBe(
-      true,
-    );
+    expect(has(screen.getByRole("navigation", { name: "Sections" }), STACK.nav)).toBe(true);
     expect(
       container.querySelector("[data-scene-frame]")!.closest(`.${STACK.copy}`),
     ).not.toBeNull();

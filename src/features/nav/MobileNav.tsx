@@ -1,51 +1,46 @@
 import { Dialog } from "radix-ui";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
 import GMark from "@/marks/GMark";
-import { BUTTON_CORNERS, STACK, pill, serif } from "@/theme/classes";
+import { STACK, navMark, pill, serif } from "@/theme/classes";
+import { NAV_MARK_SIZE } from "@/theme/measures";
+import type { SectionId } from "@/content/site";
 import { useSite } from "@/content/useSite";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/state/appStore";
+import { revealRef } from "@/state/revealTargets";
+import { useNavigate } from "./useNavigate";
 
 export const MENU_LABEL = "Menu";
 export const CLOSE_LABEL = "Close menu";
-/** the mark's height: the same G as the xl corner's, so the intro's traveller lands on one size everywhere */
-export const MARK_SIZE = 40;
-
-/** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens; the mark stays bare — its own box is enough of a seat */
-const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;
 
 export type MobileNavProps = {
-  /** the section under the viewport's midpoint; its link in the sheet is marked current */
-  activeId?: string | null;
-  /** a link was chosen; the caller scrolls (the sheet has already closed) */
-  onNavigate?: (id: string) => void;
   className?: string;
 };
 
 /**
  * The phone and tablet nav: the G mark on the left, as the xl corner has it,
  * "Menu" on the right, and a full-screen sheet on ink with every nav link plus Give and
- * Join Sunday. Escape, the Close button, and any link close it.
+ * Join Sunday. Escape, the Close button, and any link close it. The current
+ * section's link in the sheet is marked current, off the store.
  */
-export default function MobileNav({
-  activeId = null,
-  onNavigate,
-  className,
-}: MobileNavProps) {
+export default function MobileNav({ className }: MobileNavProps) {
   const site = useSite();
+  const activeId = useAppStore((s) => s.activeId);
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const go = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    setOpen(false);
-    onNavigate?.(id);
+  /** a link in the sheet: the sheet closes, then the jump */
+  const go = (id: SectionId) => {
+    const jump = navigate(id);
+    return (e: MouseEvent<HTMLAnchorElement>) => {
+      setOpen(false);
+      jump(e);
+    };
   };
 
   return (
-    <div
-      data-mobile-nav=""
-      className={cn("flex w-full items-center justify-between", className)}
-    >
+    <div className={cn("flex w-full items-center justify-between", className)}>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Trigger asChild>
           <button
@@ -57,7 +52,6 @@ export default function MobileNav({
         </Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Content
-            data-nav-sheet=""
             aria-describedby={undefined}
             className={`fixed inset-0 ${STACK.cover} flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in`}
           >
@@ -74,13 +68,13 @@ export default function MobileNav({
                   Close
                 </button>
               </Dialog.Close>
-              {/* no data-nav-mark here: the sheet is never open while the intro plays */}
+              {/* not a reveal target: the sheet is never open while the intro plays */}
               <a
                 href="#hero"
-                onClick={(e) => go(e, "hero")}
-                className={seat}
+                onClick={go("hero")}
+                className={navMark({ seat: "bar" })}
               >
-                <GMark size={MARK_SIZE} ruled title={site.name} />
+                <GMark size={NAV_MARK_SIZE} ruled title={site.name} />
               </a>
             </div>
 
@@ -93,7 +87,7 @@ export default function MobileNav({
                   key={n.id}
                   href={`#${n.id}`}
                   aria-current={n.id === activeId ? "location" : undefined}
-                  onClick={(e) => go(e, n.id)}
+                  onClick={go(n.id)}
                   className={cn(
                     `${serif} text-[clamp(30px,5.6svh,48px)] leading-[1.1] transition-colors`,
                     n.id === activeId ? "text-seal hover:text-seal" : "text-cream/90 hover:text-cream",
@@ -107,14 +101,14 @@ export default function MobileNav({
             <div className="flex items-center gap-3 px-[clamp(28px,7vw,60px)] pb-[max(clamp(28px,6svh,52px),env(safe-area-inset-bottom))]">
               <a
                 href="#give"
-                onClick={(e) => go(e, "give")}
+                onClick={go("give")}
                 className={pill({ intent: "ghost" })}
               >
                 Give
               </a>
               <a
                 href="#visit"
-                onClick={(e) => go(e, "visit")}
+                onClick={go("visit")}
                 className={pill({ intent: "seal" })}
               >
                 Join Sunday
@@ -123,15 +117,15 @@ export default function MobileNav({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      {/* the mark carries data-nav-mark: the intro's traveller lands on it, as
-          on the xl corner's (IntroSplash picks whichever is laid out) */}
+      {/* the bar's mark is the intro traveller's landing, as the xl corner's
+          is (the handoff picks whichever is laid out) */}
       <a
+        ref={revealRef("mark")}
         href="#hero"
-        data-nav-mark=""
-        onClick={(e) => go(e, "hero")}
-        className={seat}
+        onClick={go("hero")}
+        className={navMark({ seat: "bar" })}
       >
-        <GMark size={MARK_SIZE} ruled title={site.name} />
+        <GMark size={NAV_MARK_SIZE} ruled title={site.name} />
       </a>
 
     </div>

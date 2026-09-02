@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import type { SectionId } from "@/content/site";
 import { TIERS, type Tier } from "@/device/tier";
 
 /**
@@ -27,7 +28,7 @@ export type AppState = {
   /** every texture (or the poster) has arrived */
   ready: boolean;
   /** the section under the viewport's midpoint, read by the nav links and the dot rail alike */
-  activeId: string | null;
+  activeId: SectionId | null;
   /** the scene is on screen; once it has scrolled away the nav takes an ink backdrop */
   sceneInView: boolean;
 };
@@ -35,7 +36,7 @@ export type AppState = {
 /** what a mount decides once (app/initApp.ts): the intro policy and the device's verdicts */
 export type AppProfile = Pick<AppState, "intro" | "reducedMotion" | "tier" | "fallback"> & {
   /** the section the page opens on, current until the section watch reports (scroll/sectionWatch.ts) */
-  activeId?: string | null;
+  activeId?: SectionId | null;
 };
 
 export type AppActions = {
@@ -46,7 +47,7 @@ export type AppActions = {
   /** a texture arrived: how many so far, of how many requested */
   setProgress: (loaded: number, total: number) => void;
   markReady: () => void;
-  setActiveId: (id: string | null) => void;
+  setActiveId: (id: SectionId | null) => void;
   setSceneInView: (inView: boolean) => void;
   /** the device reads as another tier now (a resize across the line, another display) */
   setTier: (tier: Tier) => void;

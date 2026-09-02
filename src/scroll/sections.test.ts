@@ -16,7 +16,7 @@ describe("createSectionRegistry", () => {
   });
 
   it("skips ids with no element on the page, and forgets one that unmounts", () => {
-    const registry = createSectionRegistry(["hero", "missing"]);
+    const registry = createSectionRegistry(["hero", "faq"]);
     const hero = document.createElement("section");
     registry.ref("hero")(hero);
     expect(registry.sections().map((s) => s.id)).toEqual(["hero"]);

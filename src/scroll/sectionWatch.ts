@@ -1,5 +1,6 @@
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
+import type { SectionId } from "@/content/site";
 import { gsap } from "@/lib/gsap";
 import { activeSection } from "./activeSection";
 import type { WatchedSection } from "./sections";
@@ -36,7 +37,7 @@ export type SectionWatch = {
  * sections' document tops are measured again for whoever pages by them
  * (attachPager.ts, through `boxes` and `onMeasure`).
  */
-export function watchSections(sections: WatchedSection[], setActive: (id: string) => void): SectionWatch {
+export function watchSections(sections: WatchedSection[], setActive: (id: SectionId | null) => void): SectionWatch {
   let boxes: SectionBox[] = [];
   const listeners = new Set<() => void>();
   const ctx = gsap.context(() => {

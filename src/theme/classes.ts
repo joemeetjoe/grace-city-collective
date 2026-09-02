@@ -88,6 +88,19 @@ export const LINK_SWEEP = "link-sweep";
 /** a button: it lifts a pixel and casts a soft glow of its own colour on hover, and settles on press (index.css) */
 export const BUTTON_LIFT = "btn-lift";
 
+/* ---- the nav's arrival: what waits unseen while the splash is up ---------- */
+
+/**
+ * A piece of the nav the intro's cascade brings in — a section link, a call
+ * to action, a dot — and the frosted glass behind the links and the dots:
+ * while the splash is up (`.intro-pending` on the root, App.tsx) the pieces
+ * sit at opacity 0 and the glass clear (index.css), and the cascade
+ * (features/intro/navReveal.ts) plays them in from there. The elements
+ * themselves reach the cascade through state/revealTargets.ts.
+ */
+export const NAV_REVEAL = "nav-reveal";
+export const NAV_GLASS = "nav-glass";
+
 /* ---- buttons ------------------------------------------------------------ */
 
 /**
@@ -124,6 +137,21 @@ export const pill = cva(`${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] upper
       close: "cursor-pointer text-cream/85 hover:text-cream",
       ghost: "border border-cream/45 hover:border-cream hover:bg-cream/10",
       seal: "bg-seal font-bold text-cream hover:bg-seal-deep",
+    },
+  },
+});
+
+/**
+ * The nav's G mark, by seat: bare at the xl corner, dimming under the
+ * pointer; on the phone bar — and the sheet, the same seat, so the mark never
+ * jumps when the sheet opens — padded and cornered like a button, its own
+ * box seat enough. Its height is NAV_MARK_SIZE (measures.ts) at every seat.
+ */
+export const navMark = cva("inline-flex text-cream", {
+  variants: {
+    seat: {
+      corner: `rounded-sm transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`,
+      bar: `${BUTTON_CORNERS} p-1.5`,
     },
   },
 });

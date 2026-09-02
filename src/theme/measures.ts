@@ -23,6 +23,9 @@ export const PANEL_PAD: VwClamp = [18, 2.6, 32];
 /** the lockup's clearance at the hero's foot */
 export const LOCKUP_FOOT: VwClamp = [22, 4.2, 52];
 
+/** the nav's G mark, in px: the same height on the phone bar, the sheet and at the xl corner, so the intro's traveller lands on one size everywhere (classes.ts navMark) */
+export const NAV_MARK_SIZE = 40;
+
 /** every measure by its `--spacing-*` name in index.css (measures.test.ts) */
 export const CSS_MEASURES: Readonly<Record<string, VwClamp>> = {
   gutter: GUTTER,

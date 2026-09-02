@@ -1,9 +1,11 @@
-import type { Jump } from "@/app/jump";
 import GMark from "@/marks/GMark";
-import { FOCUS_RING, GLASS, GLASS_CORNERS, STACK, button } from "@/theme/classes";
+import { GLASS, GLASS_CORNERS, NAV_REVEAL, STACK, button, navMark } from "@/theme/classes";
+import { NAV_MARK_SIZE } from "@/theme/measures";
 import MobileNav from "./MobileNav";
 import NavLinks from "./NavLinks";
-import { useSite } from "@/content/useSite";
+import { useNavigate } from "./useNavigate";
+import { useAppStore } from "@/state/appStore";
+import { revealRef } from "@/state/revealTargets";
 
 /**
  * The nav outlives the scene: fixed for the whole page, zero height so it
@@ -11,22 +13,13 @@ import { useSite } from "@/content/useSite";
  * ancestor would turn fixed into absolute. Over the scene the bar itself
  * carries no backdrop-filter at all (not even blur(0)): a backdrop-filter
  * makes the bar a backdrop root, and the links' frosted glass inside it
- * could then blur only the bar's own contents, never the scene
+ * could then blur only the bar's own contents, never the scene. Once the
+ * scene has scrolled away (the store's `sceneInView`) the nav sits over
+ * long-form text, so it takes an ink backdrop to stay legible.
  */
-export default function SiteNav({
-  activeId,
-  sceneInView,
-  jump: { jump, jumpTo },
-}: {
-  /** which section is under the viewport's midpoint, lighting its link */
-  activeId: string | null;
-  /** once the scene has scrolled away the nav sits over long-form text, so it
-      takes an ink backdrop to stay legible */
-  sceneInView: boolean;
-  /** the nav's jumps, through the page's scroll (app/jump.ts) */
-  jump: Jump;
-}) {
-  const site = useSite();
+export default function SiteNav() {
+  const sceneInView = useAppStore((s) => s.sceneInView);
+  const navigate = useNavigate();
   return (
     <div
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
@@ -39,30 +32,23 @@ export default function SiteNav({
         {/* below xl: the seal mark and a Menu that opens the sheet. Nine links,
             the mark and both buttons need ~1240px for one row, so the full
             desktop nav waits for the xl breakpoint */}
-        <MobileNav
-          className="xl:hidden"
-          activeId={activeId}
-          onNavigate={jumpTo}
-        />
+        <MobileNav className="xl:hidden" />
         {/* from xl up, on the left: the two calls to action, stood in from
             the frame's rounded corner so they do not crowd the curve */}
-        <div
-          data-nav-actions=""
-          className="hidden items-center gap-3 xl:ml-[clamp(24px,3.2vw,56px)] xl:flex"
-        >
+        <div className="hidden items-center gap-3 xl:ml-[clamp(24px,3.2vw,56px)] xl:flex">
           <a
+            ref={revealRef("action")}
             href="#give"
-            data-nav-reveal=""
-            onClick={(e) => jump(e, "give")}
-            className={button({ intent: "ghost", size: "navHollow" })}
+            onClick={navigate("give")}
+            className={`${NAV_REVEAL} ${button({ intent: "ghost", size: "navHollow" })}`}
           >
             Give
           </a>
           <a
+            ref={revealRef("action")}
             href="#visit"
-            data-nav-reveal=""
-            onClick={(e) => jump(e, "visit")}
-            className={button({ intent: "seal", size: "nav" })}
+            onClick={navigate("visit")}
+            className={`${NAV_REVEAL} ${button({ intent: "seal", size: "nav" })}`}
           >
             Join Sunday
           </a>
@@ -70,19 +56,14 @@ export default function SiteNav({
         {/* from xl up, on the right: the section links, then the G mark at the corner */}
         <div className="hidden items-center gap-[clamp(14px,1.8vw,26px)] xl:flex">
           {/* the words alone take the glass; the mark beside them stays bare */}
-          <NavLinks
-            items={site.nav}
-            activeId={activeId}
-            onNavigate={jumpTo}
-            className={`${GLASS} ${GLASS_CORNERS} px-[clamp(10px,1.2vw,18px)] py-2`}
-          />
+          <NavLinks className={`${GLASS} ${GLASS_CORNERS} px-[clamp(10px,1.2vw,18px)] py-2`} />
           <a
+            ref={revealRef("mark")}
             href="#hero"
-            data-nav-mark=""
-            onClick={(e) => jump(e, "hero")}
-            className={`inline-flex rounded-sm text-cream transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`}
+            onClick={navigate("hero")}
+            className={navMark({ seat: "corner" })}
           >
-            <GMark size={40} ruled />
+            <GMark size={NAV_MARK_SIZE} ruled />
           </a>
         </div>
       </nav>

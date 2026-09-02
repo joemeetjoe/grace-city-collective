@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
+import type { SectionId } from "@/content/site";
 import { createSectionRegistry, type SectionRegistry } from "@/scroll/sections";
 import { useAppStore } from "@/state/appStore";
 import { observeInView } from "@/ui/useInView";
@@ -26,7 +27,7 @@ export type SceneLayers = {
  * scene's box yields — whether it is on screen — goes to the store, never
  * out of here as state.
  */
-export function useSceneLayers(ids: readonly string[]): SceneLayers {
+export function useSceneLayers(ids: readonly SectionId[]): SceneLayers {
   const parallaxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const frontRef = useRef<HTMLDivElement>(null);

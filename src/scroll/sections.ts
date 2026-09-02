@@ -1,5 +1,7 @@
+import type { SectionId } from "@/content/site";
+
 /** a section on the page, by id and element */
-export type WatchedSection = { id: string; el: HTMLElement };
+export type WatchedSection = { id: SectionId; el: HTMLElement };
 
 /**
  * The page's sections as refs. The components that render a section mount
@@ -11,14 +13,14 @@ export type WatchedSection = { id: string; el: HTMLElement };
  */
 export type SectionRegistry = {
   /** the callback ref a section mounts with; the same function for the same id */
-  ref(id: string): (el: HTMLElement | null) => void;
+  ref(id: SectionId): (el: HTMLElement | null) => void;
   /** the sections on the page, in `order`; an id with no element yet is skipped */
   sections(): WatchedSection[];
 };
 
-export function createSectionRegistry(order: readonly string[]): SectionRegistry {
-  const els = new Map<string, HTMLElement>();
-  const refs = new Map<string, (el: HTMLElement | null) => void>();
+export function createSectionRegistry(order: readonly SectionId[]): SectionRegistry {
+  const els = new Map<SectionId, HTMLElement>();
+  const refs = new Map<SectionId, (el: HTMLElement | null) => void>();
   return {
     ref(id) {
       let ref = refs.get(id);

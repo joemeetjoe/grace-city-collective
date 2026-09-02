@@ -1,6 +1,8 @@
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { SectionId } from "@/content/site";
+
 import { watchSections } from "./sectionWatch";
 
 afterEach(() => {
@@ -9,9 +11,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function layout(tops: Record<string, number>, viewport = 900) {
+function layout(tops: Partial<Record<SectionId, number>>, viewport = 900) {
   Object.defineProperty(window, "innerHeight", { value: viewport, configurable: true });
-  return Object.entries(tops).map(([id, top]) => {
+  return (Object.entries(tops) as [SectionId, number][]).map(([id, top]) => {
     const el = document.createElement("section");
     el.id = id;
     vi.spyOn(el, "getBoundingClientRect").mockImplementation(() => ({ top }) as DOMRect);

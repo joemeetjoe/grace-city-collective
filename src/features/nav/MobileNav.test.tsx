@@ -1,10 +1,18 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import MobileNav, { MARK_SIZE, MENU_LABEL } from "./MobileNav";
+import MobileNav, { MENU_LABEL } from "./MobileNav";
+import { JumpProvider } from "@/app/jumpContext";
 import { site } from "@/content/site";
+import { REST_STATE, useAppStore } from "@/state/appStore";
+import { revealTargets } from "@/state/revealTargets";
+import { NAV_MARK_SIZE } from "@/theme/measures";
 
-afterEach(() => vi.restoreAllMocks());
+// the sheet portals into the body, so the body is left to RTL's cleanup
+afterEach(() => {
+  vi.restoreAllMocks();
+  useAppStore.setState(REST_STATE);
+});
 
 function openSheet() {
   fireEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
@@ -14,12 +22,12 @@ function openSheet() {
 describe("MobileNav", () => {
   it("at rest shows the ruled G mark, named for the site, and a Menu button, and no links", () => {
     const { container } = render(<MobileNav />);
-    const mark = container.querySelector('[data-mobile-nav] [data-g-mark][role="img"]') as SVGSVGElement;
+    const mark = container.querySelector('[data-g-mark][role="img"]') as SVGSVGElement;
     expect(mark).not.toBeNull();
     expect(mark.getAttribute("aria-label")).toBe(site.name);
     expect(mark.querySelector("[data-g-mark-rule]")).not.toBeNull();
-    expect(mark.style.height).toBe(`${MARK_SIZE}px`);
-    expect(container.querySelector("[data-mobile-nav] [data-seal]")).toBeNull();
+    expect(mark.style.height).toBe(`${NAV_MARK_SIZE}px`);
+    expect(container.querySelector("[data-seal]")).toBeNull();
     expect(screen.getByRole("button", { name: MENU_LABEL })).not.toBeNull();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(container.querySelectorAll("a[href^='#']").length).toBeLessThanOrEqual(1);
@@ -38,8 +46,9 @@ describe("MobileNav", () => {
     expect(visits).toEqual(["Visit", "Join Sunday"]);
   });
 
-  it("the sheet marks the current section's link in the seal colour", () => {
-    render(<MobileNav activeId="faq" />);
+  it("the sheet marks the store's current section's link in the seal colour", () => {
+    useAppStore.setState({ activeId: "faq" });
+    render(<MobileNav />);
     const sheet = openSheet();
     const current = sheet.querySelector("nav a[aria-current='location']")!;
     expect(current.getAttribute("href")).toBe("#faq");
@@ -70,29 +79,39 @@ describe("MobileNav", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("a link click closes the sheet and hands the target id up", () => {
-    const onNavigate = vi.fn();
-    render(<MobileNav onNavigate={onNavigate} />);
+  it("a link click closes the sheet and jumps to the section instead of following the hash", () => {
+    const jump = vi.fn();
+    render(
+      <JumpProvider jump={jump}>
+        <MobileNav />
+      </JumpProvider>,
+    );
     const sheet = openSheet();
-    fireEvent.click(sheet.querySelector("a[href='#faq']")!);
-    expect(onNavigate).toHaveBeenCalledWith("faq");
+    const followed = fireEvent.click(sheet.querySelector("nav a[href='#give']")!);
+    expect(followed).toBe(false);
+    expect(jump).toHaveBeenCalledTimes(1);
+    expect(jump).toHaveBeenCalledWith("give");
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("the bar's mark points back at the top and is the intro traveller's landing; the sheet's is not", () => {
-    const onNavigate = vi.fn();
-    const { container } = render(<MobileNav onNavigate={onNavigate} />);
-    const link = container.querySelector("[data-mobile-nav] a[href='#hero']")!;
-    expect(link.hasAttribute("data-nav-mark")).toBe(true);
+    const { container } = render(<MobileNav />);
+    const link = container.querySelector("a[href='#hero']")!;
     expect(link.querySelector("[data-g-mark]")).not.toBeNull();
-    fireEvent.click(link);
-    expect(onNavigate).toHaveBeenCalledWith("hero");
+    expect(revealTargets("mark")).toEqual([link]);
+    expect(fireEvent.click(link)).toBe(false);
     const sheet = openSheet();
     const sheetMark = sheet.querySelector("a[href='#hero'] [data-g-mark]") as SVGSVGElement;
     expect(sheetMark.getAttribute("aria-label")).toBe(site.name);
-    expect(sheetMark.style.height).toBe(`${MARK_SIZE}px`);
-    expect(sheet.querySelector("[data-nav-mark]")).toBeNull();
-    expect(document.querySelectorAll("[data-nav-mark]").length).toBe(1);
+    expect(sheetMark.style.height).toBe(`${NAV_MARK_SIZE}px`);
+    expect(revealTargets("mark")).toEqual([link]);
+  });
+
+  it("forgets its mark when it unmounts", () => {
+    const { unmount } = render(<MobileNav />);
+    expect(revealTargets("mark").length).toBe(1);
+    unmount();
+    expect(revealTargets("mark")).toEqual([]);
   });
 });
 
@@ -100,7 +119,8 @@ describe("MobileNav class lists", () => {
   const tokens = (el: Element) => el.className.split(/\s+/);
 
   it("a resting link wears cream with a cream hover; the current one wears seal with no cream", () => {
-    render(<MobileNav activeId="faq" />);
+    useAppStore.setState({ activeId: "faq" });
+    render(<MobileNav />);
     const sheet = openSheet();
     const rest = tokens(sheet.querySelector("nav a:not([aria-current])")!);
     const current = tokens(sheet.querySelector("nav a[aria-current='location']")!);
@@ -109,5 +129,13 @@ describe("MobileNav class lists", () => {
     expect(current).toEqual(expect.arrayContaining(["text-seal", "hover:text-seal"]));
     expect(current).not.toContain("text-cream/90");
     expect(current).not.toContain("hover:text-cream");
+  });
+
+  it("the mark sits in the same seat on the bar and in the sheet", () => {
+    const { container } = render(<MobileNav />);
+    const bar = container.querySelector("a[href='#hero']")!.className;
+    const sheet = openSheet();
+    expect(sheet.querySelector("a[href='#hero']")!.className).toBe(bar);
+    expect(bar.split(/\s+/)).toEqual(expect.arrayContaining(["inline-flex", "p-1.5", "text-cream", "rounded-tl-[12px]", "rounded-br-[12px]"]));
   });
 });
