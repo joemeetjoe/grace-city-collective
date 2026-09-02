@@ -1,7 +1,6 @@
-import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
 import { INTRO_PLAYED_KEY } from "./introKeys";
 
-export { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY };
+export { INTRO_PLAYED_KEY };
 
 export type IntroPolicyInputs = {
   /** the session flag is set: the intro already played or was skipped */
@@ -45,15 +44,16 @@ export function markIntroPlayed(storage: Storage | undefined = sessionStorageOrN
   }
 }
 
-/** gather the policy inputs from the browser (both seams injectable for tests) */
+/**
+ * gather the policy inputs: the session flag from the browser (the storage
+ * injectable for tests), and the preference as the mount read it — through
+ * the one runtime reader of the media query (state/syncReducedMotion.ts)
+ */
 export function readPolicyInputs(
+  reducedMotion: boolean,
   storage: Storage | undefined = sessionStorageOrNull(),
-  matchMedia: typeof window.matchMedia | undefined = window.matchMedia,
 ): IntroPolicyInputs {
-  return {
-    playedThisSession: readIntroPlayed(storage),
-    reducedMotion: matchMedia?.(REDUCED_MOTION_QUERY).matches ?? false,
-  };
+  return { playedThisSession: readIntroPlayed(storage), reducedMotion };
 }
 
 /** the gestures that skip the splash: there is no button, the gesture is the skip */

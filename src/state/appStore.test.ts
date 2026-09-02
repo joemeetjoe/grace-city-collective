@@ -94,4 +94,19 @@ describe("appStore", () => {
     state().setTier(TIERS.mobile);
     expect(state()).toMatchObject({ intro: true, tier: TIERS.mobile, fallback: false });
   });
+
+  it("takes the live reduced-motion preference as a fact, and brings a splash still up down with it (#132)", () => {
+    state().init({ intro: true, reducedMotion: false, tier: TIERS.desktop, fallback: false });
+    state().setProgress(1, 2);
+    state().setReducedMotion(true);
+    // the splash comes down without the intro counting as played; the mount's other decisions stand
+    expect(state()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: false, fallback: false, progress: 0.5 });
+    // flipping back brings nothing back: the intro is not replayed mid-session
+    state().setReducedMotion(false);
+    expect(state()).toMatchObject({ reducedMotion: false, intro: false, introPlayed: false });
+    // past the intro, only the fact moves
+    state().finishIntro();
+    state().setReducedMotion(true);
+    expect(state()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: true });
+  });
 });

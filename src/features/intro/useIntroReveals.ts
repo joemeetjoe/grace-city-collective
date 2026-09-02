@@ -19,19 +19,26 @@ function heroHeadline(): HTMLElement | null {
  * once the intro has played, and the static splash's removal in any session
  * the splash is not up in. Every target comes off the reveal registry; the
  * policy itself — whether the splash mounts — was decided at init
- * (app/initApp.ts, features/intro/introPolicy.ts).
+ * (app/initApp.ts, features/intro/introPolicy.ts). The preference can flip
+ * mid-session (state/syncReducedMotion.ts): a flip to reduced motion while
+ * the splash is up brings the store's intro down (appStore.setReducedMotion),
+ * so in one commit App unmounts IntroSplash (its controller's dispose jumps
+ * an in-flight handoff to its end), the static splash leaves, and the page
+ * opens from ink here as a reduced-motion session does.
  */
 export function useIntroReveals(): void {
   const intro = useAppStore((s) => s.intro);
   const introPlayed = useAppStore((s) => s.introPlayed);
   const reducedMotion = useAppStore((s) => s.reducedMotion);
 
-  // no splash for reduced motion: the page still opens from ink with a short fade
+  // no splash for reduced motion: the page still opens from ink with a short
+  // fade. A preference flipped back mid-fade lands it: the scene stands at
+  // rest with its opacity CSS's again, not caught half-way
   useEffect(() => {
     if (!reducedMotion) return;
     const fade = fadeParallaxFromInk(parallaxLayers());
     return () => {
-      fade?.kill();
+      fade?.progress(1).kill();
     };
   }, [reducedMotion]);
 

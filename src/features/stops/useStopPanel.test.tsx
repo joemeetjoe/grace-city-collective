@@ -83,6 +83,28 @@ describe("useStopPanel (#121): what lights the ornament, decided once", () => {
     expect(el.dataset.lit).toBe("true");
   });
 
+  it("a flip to reduced motion mid-play rests the ornament at once; a flip back plays it again from the beat (#132)", () => {
+    matchMedia(true);
+    const { container } = render(<Probe count={3} />);
+    const el = probe(container);
+    act(() => vi.advanceTimersByTime(ORNAMENT_LIT_AT_MS + EMBLEM_LIT_STEP_MS));
+    expect(el.dataset.lit).toBe("true");
+    expect(el.dataset.inTurn).toBe("2");
+    act(() => useAppStore.getState().setReducedMotion(true));
+    expect(el.dataset.shown).toBe("true");
+    expect(el.dataset.lit).toBe("false");
+    expect(el.dataset.inTurn).toBe("0");
+    // the sequence is off, not paused: nothing lights on the timers that were running
+    act(() => vi.advanceTimersByTime(EMBLEM_LIT_STEP_MS * 3));
+    expect(el.dataset.lit).toBe("false");
+    expect(el.dataset.inTurn).toBe("0");
+    act(() => useAppStore.getState().setReducedMotion(false));
+    expect(el.dataset.lit).toBe("false");
+    act(() => vi.advanceTimersByTime(ORNAMENT_LIT_AT_MS));
+    expect(el.dataset.lit).toBe("true");
+    expect(el.dataset.inTurn).toBe("1");
+  });
+
   it("under reduced motion below lg the panel is shown and the ornament rests", () => {
     matchMedia(true);
     useAppStore.setState({ reducedMotion: true });

@@ -20,7 +20,10 @@ export type AppState = {
    * does not mount in, which renders everything at rest
    */
   introPlayed: boolean;
-  /** the visitor prefers reduced motion: no splash, native scroll, ornaments at rest */
+  /**
+   * the visitor prefers reduced motion: no splash, native scroll, ornaments
+   * at rest, no idle drift. The mount's at init, then live (state/syncReducedMotion.ts)
+   */
   reducedMotion: boolean;
   /**
    * the asset tier the device reads as (device/tier.ts): the mount's at
@@ -66,6 +69,14 @@ type AppActions = {
   setSceneInView: (inView: boolean) => void;
   /** the device reads as another tier now (a resize across the line, another display) */
   setTier: (tier: Tier) => void;
+  /**
+   * the visitor's preference flipped mid-session (state/syncReducedMotion.ts).
+   * A splash still up comes down with it — the policy never plays the intro
+   * under reduced motion (features/intro/introPolicy.ts), and the page then
+   * opens from ink the way a reduced-motion session does; nothing is marked
+   * played. Every other consumer follows the fact from here
+   */
+  setReducedMotion: (reducedMotion: boolean) => void;
 };
 
 export type AppStore = AppState & AppActions;
@@ -94,4 +105,5 @@ export const useAppStore = create<AppStore>()((set) => ({
   setActiveId: (activeId) => set({ activeId }),
   setSceneInView: (sceneInView) => set({ sceneInView }),
   setTier: (tier) => set({ tier }),
+  setReducedMotion: (reducedMotion) => set((s) => ({ reducedMotion, intro: s.intro && !reducedMotion })),
 }));

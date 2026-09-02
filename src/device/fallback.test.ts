@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { detectWebgl, readFallbackInputs, shouldUseStaticFallback } from "./fallback";
+import { REDUCED_MOTION_QUERY } from "./reducedMotion";
 
 const live = { webgl: true, reducedMotion: false, saveData: false };
 
@@ -44,9 +45,18 @@ describe("detectWebgl", () => {
 
 describe("readFallbackInputs", () => {
   it("gathers the three signals from the browser", () => {
-    const matchMedia = vi.fn((q: string) => ({ matches: q.includes("reduce") }) as MediaQueryList);
     const nav = { connection: { saveData: true } } as unknown as Navigator;
     const doc = docWithContext(() => null);
-    expect(readFallbackInputs({ doc, matchMedia, nav })).toEqual({ webgl: false, reducedMotion: true, saveData: true });
+    expect(readFallbackInputs({ doc, reducedMotion: true, nav })).toEqual({ webgl: false, reducedMotion: true, saveData: true });
+  });
+
+  it("reads the preference through the one runtime reader when none is given (state/syncReducedMotion.ts)", () => {
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation(
+      (query: string) => ({ matches: query === REDUCED_MOTION_QUERY, media: query }) as MediaQueryList,
+    );
+    const nav = { connection: { saveData: false } } as unknown as Navigator;
+    expect(readFallbackInputs({ doc: docWithContext(() => null), nav }).reducedMotion).toBe(true);
+    expect(matchMedia).toHaveBeenCalledWith(REDUCED_MOTION_QUERY);
+    vi.restoreAllMocks();
   });
 });

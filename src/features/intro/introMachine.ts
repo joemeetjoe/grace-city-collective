@@ -211,9 +211,12 @@ export function createIntroController({
       releaseClock();
       trace.kill();
       // an interrupted handoff is jumped to its end so the nav's mark is
-      // shown and the parallax is up, where the page expects them
+      // shown and the parallax is up, where the page expects them — its
+      // callbacks aside: the landing is the timeline's own completion, and a
+      // splash brought down from outside (the preference flipped to reduced
+      // motion, #132) has its store set already and plays no reveal after
       if (timeline) {
-        if (timeline.progress() < 1) timeline.progress(1);
+        if (timeline.progress() < 1) timeline.progress(1, true);
         timeline.kill();
       }
       timeline = null;

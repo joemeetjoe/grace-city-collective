@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { Observer } from "gsap/Observer";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -141,6 +141,49 @@ describe("useSmoothScroll", () => {
     expect(useAppStore.getState().activeId).toBe("faq");
     unmount();
     expect(sectionTriggers()).toEqual([]);
+  });
+
+  it("a flip to reduced motion mid-session gives the smoother up for native scroll, the paging with it; a flip back builds both again (#132)", () => {
+    viewportBelowLg(false);
+    const observers: Array<{ kill: ReturnType<typeof vi.fn> }> = [];
+    vi.spyOn(Observer, "create").mockImplementation(() => {
+      const fake = { kill: vi.fn(), enable: vi.fn(), disable: vi.fn() };
+      observers.push(fake);
+      return fake as unknown as Observer;
+    });
+    const create = ScrollSmoother.create.bind(ScrollSmoother);
+    const smoothers: ScrollSmoother[] = [];
+    const created = vi.spyOn(ScrollSmoother, "create").mockImplementation((vars) => {
+      const smoother = create(vars);
+      smoothers.push(smoother);
+      return smoother;
+    });
+    const { result, unmount } = renderHook(() => useSmoothScroll(page.refs));
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(observers).toHaveLength(1);
+    const watched = sectionTriggers();
+    const kill = vi.spyOn(smoothers[0], "kill");
+
+    act(() => useAppStore.getState().setReducedMotion(true));
+    // native scroll: the smoother is gone with its seam and its mark, the pager with it, and the page reads the window's own position
+    expect(kill).toHaveBeenCalledTimes(1);
+    expect(observers[0].kill).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
+    expect(window.__gcc?.scrollTo).toBeUndefined();
+    expect(result.current.driver()).toBeNull();
+    expect(result.current.scrollTop()).toBe(document.documentElement.scrollTop);
+    // the section watch stands throughout
+    expect(sectionTriggers()).toEqual(watched);
+
+    act(() => useAppStore.getState().setReducedMotion(false));
+    expect(created).toHaveBeenCalledTimes(2);
+    expect(observers).toHaveLength(2);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(true);
+    expect(result.current.driver()).not.toBeNull();
+    expect(sectionTriggers()).toEqual(watched);
+    unmount();
+    expect(observers[1].kill).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
   });
 
   it("a resize across lg tears the paging down and builds it back whole, and leaves the smoother and the watch alone", () => {

@@ -9,7 +9,8 @@ import * as calendar from "@/features/stops/gatheringCalendarMetrics";
 import * as table from "@/features/stops/houseTableMetrics";
 import * as life from "@/features/stops/sharedLifeMetrics";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
-import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
+import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
+import { INTRO_PLAYED_KEY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { SCENE_ERROR_PREFIX } from "@/engine/sceneError";
 import { MENU_LABEL } from "@/features/nav/mobileNavLabels";
@@ -132,6 +133,33 @@ function matchOnly(...matching: string[]) {
 }
 
 const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
+
+/**
+ * matchMedia whose queries the test flips live, firing their change
+ * listeners — the preference toggled mid-session (#132, state/syncReducedMotion.ts)
+ */
+function matchLive(...matching: string[]) {
+  const on = new Set(matching);
+  const listeners = new Map<string, Set<() => void>>();
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => {
+    const fns = listeners.get(query) ?? new Set<() => void>();
+    listeners.set(query, fns);
+    return {
+      get matches() {
+        return on.has(query);
+      },
+      media: query,
+      addEventListener: (_: string, fn: () => void) => fns.add(fn),
+      removeEventListener: (_: string, fn: () => void) => fns.delete(fn),
+    } as unknown as MediaQueryList;
+  });
+  return (query: string, matches: boolean) =>
+    act(() => {
+      if (matches) on.add(query);
+      else on.delete(query);
+      for (const fn of [...(listeners.get(query) ?? [])]) fn();
+    });
+}
 /** a phone or tablet: the viewport is below Tailwind's lg */
 const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
@@ -190,6 +218,95 @@ describe("App intro policy", () => {
     expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
     // nothing played, so a later full-motion session still gets the intro
     expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+});
+
+describe("App reduced motion, live (#132)", () => {
+  // a static splash a failed test left behind must not be the next test's
+  afterEach(() => document.querySelector(`[${STATIC_SPLASH_ATTR}]`)?.remove());
+
+  it("a flip during the trace brings the splash down: the static splash leaves once, the page opens from ink, nothing counts as played", () => {
+    const flip = matchLive();
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    const staticRoot = document.querySelector<HTMLElement>(`[${STATIC_SPLASH_ATTR}]`)!;
+    const removed = vi.spyOn(staticRoot, "remove");
+    const { container } = render(<App />);
+    expect(document.querySelector("[data-intro-splash]")).toBe(staticRoot);
+    const parallax = container.querySelector("[data-parallax]") as HTMLElement;
+
+    flip(REDUCED_MOTION_QUERY, true);
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: false, fallback: false });
+    expect(handoffs.list).toHaveLength(0);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(removed).toHaveBeenCalledTimes(1);
+    expect(container.firstElementChild!.classList.contains("intro-pending")).toBe(false);
+    expect(container.querySelector("[data-poster]")).toBeNull();
+    expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
+    // nothing played: a later full-motion session still gets the intro
+    expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+
+  it("a flip mid-handoff brings the splash down: the handoff lands, callbacks aside, the static splash leaves once, the page opens from ink", async () => {
+    const flip = matchLive();
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    const staticRoot = document.querySelector<HTMLElement>(`[${STATIC_SPLASH_ATTR}]`)!;
+    const removed = vi.spyOn(staticRoot, "remove");
+    const { container } = render(<App />);
+    const root = container.firstElementChild!;
+    // the live splash is the static one, adopted
+    expect(document.querySelector("[data-intro-splash]")).toBe(staticRoot);
+    // a gesture skips the floor; the stub scene is ready, so the handoff builds and is in flight
+    fireEvent.pointerDown(window);
+    await waitFor(() => expect(handoffs.list).toHaveLength(1));
+    expect(handoffs.list[0].progress()).toBeLessThan(1);
+    const splashH1 = staticRoot.querySelector("h1")!;
+
+    flip(REDUCED_MOTION_QUERY, true);
+    // the splash is gone, its controller disposed: the handoff jumped to its
+    // end without landing (no reveal plays after), the static root removed once
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: false, fallback: false });
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(removed).toHaveBeenCalledTimes(1);
+    expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
+    expect(root.classList.contains("intro-pending")).toBe(false);
+    // the scene stays: no poster mid-session, that is the mount's decision
+    expect(container.querySelector("[data-poster]")).toBeNull();
+    // and the page opens from ink as a reduced-motion session does
+    const parallax = container.querySelector("[data-parallax]") as HTMLElement;
+    expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
+    // the gate had opened: the intro counts as played for the session, as it did before the flip
+    expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBe("1");
+
+    // flipped back mid-fade: the fade lands, the scene stands with its opacity CSS's again, and no splash returns
+    flip(REDUCED_MOTION_QUERY, false);
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: false, intro: false });
+    expect(parallax.style.opacity).toBe("");
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+  });
+
+  it("past the intro a flip rests the ornaments where they play, and a flip back plays them again", async () => {
+    const flip = matchLive(BELOW_LG_QUERY);
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    const across = drawing(container, table.VIEW_H, table.VIEW_W);
+    const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), { timeout: 3000 });
+    await waitFor(() => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""), { timeout: 3000 });
+
+    flip(REDUCED_MOTION_QUERY, true);
+    // at rest at once, the panels shown, the pointer notwithstanding, and nothing lights on a timer
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    expect(across).not.toHaveClass(STATE.lit);
+    expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
+    for (const mark of marks) expect(mark.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(across).not.toHaveClass(STATE.lit);
+    expect(marks[0].getAttribute("data-lit")).toBeNull();
+
+    flip(REDUCED_MOTION_QUERY, false);
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), { timeout: 3000 });
+    await waitFor(() => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""), { timeout: 3000 });
   });
 });
 

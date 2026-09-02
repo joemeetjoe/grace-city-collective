@@ -16,6 +16,7 @@ import { useIntroReveals } from "@/features/intro/useIntroReveals";
 import { sectionMarkers } from "@/scroll/markers";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
+import { syncReducedMotion } from "@/state/syncReducedMotion";
 import { syncTier } from "@/state/syncTier";
 
 /**
@@ -30,8 +31,10 @@ export default function App() {
   // the store's state for this mount — the intro policy, the device's
   // verdicts — decided once, before anything below reads it (initApp.ts)
   useState(() => initApp(ids[0] ?? null));
-  // of those, the tier stays live: the device's current one, as a fact (syncTier.ts)
+  // of those, the tier and the reduced-motion preference stay live: the
+  // device's current ones, as facts (syncTier.ts, syncReducedMotion.ts)
   useEffect(syncTier, []);
+  useEffect(syncReducedMotion, []);
 
   const {
     parallaxRef,

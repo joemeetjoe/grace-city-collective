@@ -39,8 +39,14 @@ export type SceneOptions = {
   beamGlow: number;
   /** the tongues' fire glow (held steady since #63) */
   flameDrift: boolean;
-  /** slow autonomous drift when the page is idle */
+  /** slow autonomous drift when the page is idle; never under reduced motion */
   idleDrift: boolean;
+  /**
+   * the visitor prefers reduced motion, live (#132): the idle drift stops.
+   * What the scene was built with stays built — the embers' count and the
+   * flames' ascent read the mount's value (SceneConfig.reducedMotion)
+   */
+  reducedMotion: boolean;
   /** half-swing of the pointer's orbit about the look-at point, degrees */
   orbitYaw: number;
   /** vertical half-swing of the same orbit, degrees */
@@ -143,7 +149,8 @@ export function tickFrame(state: TickState, input: TickInput): TickResult {
   const { pointer, cam, flock } = state;
   // is anything but the dust moving? — cheap reads only, no layout
   const pointerLive = Math.abs(pointer.tx - pointer.x) > POINTER_EPS || Math.abs(pointer.ty - pointer.y) > POINTER_EPS;
-  const moving = state.dirty || !state.settled || pointerLive || scrollMoved(scrollY, state.drawnScroll) || !!o.idleDrift;
+  const idle = o.idleDrift && !o.reducedMotion ? 1 : 0;
+  const moving = state.dirty || !state.settled || pointerLive || scrollMoved(scrollY, state.drawnScroll) || idle > 0;
   const frame = state.pacer.frame(now, moving);
   if (!frame.render) return { render: false, park: !moving && frame.emberRate === 0 };
   state.dirty = false;
@@ -164,7 +171,6 @@ export function tickFrame(state: TickState, input: TickInput): TickResult {
   const ease = smoothstep01(input.sectionCount > 1 ? sp / (input.sectionCount - 1) : 0);
   const ascent = ascentProgress(sp, input.reducedMotion);
 
-  const idle = o.idleDrift ? 1 : 0;
   const drift = {
     x: Math.sin(t * IDLE_DRIFT.x.rate) * IDLE_DRIFT.x.amp * idle,
     y: Math.cos(t * IDLE_DRIFT.y.rate) * IDLE_DRIFT.y.amp * idle,

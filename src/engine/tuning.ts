@@ -85,6 +85,7 @@ export const SCENE_DEFAULTS = {
   beamGlow: 1,
   flameDrift: true,
   idleDrift: false,
+  reducedMotion: false,
   orbitYaw: 3.5,
   orbitPitch: 2.5,
   reliefMax: 0.8,

@@ -8,7 +8,7 @@ import { reportSceneError } from "./sceneError";
 import type { SceneOptions } from "./tick";
 import { SCENE_DEFAULTS } from "./tuning";
 
-export type PentecostParallaxProps = Partial<Omit<SceneOptions, "reliefMax">> & {
+export type PentecostParallaxProps = Partial<Omit<SceneOptions, "reliefMax" | "reducedMotion">> & {
   /** figureRelief ramps to this with the pointer at either edge */
   reliefGain?: number;
   /** how many ray planes fan out from the dove (read once, when the scene builds) */
@@ -54,7 +54,7 @@ export default function PentecostParallax({
   const handle = useRef<SceneHandle | null>(null);
   const once = useRef({ tier, rays, embers, frontCanvas, sections, scrollTop }); // read once, at mount
   // live props, so tweaking them never rebuilds the scene: this effect runs first, so the scene builds with the first values
-  const options = useRef<SceneOptions>({ ...SCENE_DEFAULTS });
+  const options = useRef<Omit<SceneOptions, "reducedMotion">>({ ...SCENE_DEFAULTS }); // reducedMotion is the store's, not a prop's (#132)
   useEffect(() => {
     options.current = { layerSpread, figureRelief, beamGlow, flameDrift, idleDrift, orbitYaw, orbitPitch, reliefMax };
     handle.current?.setOptions(options.current);
@@ -69,9 +69,14 @@ export default function PentecostParallax({
     handle.current = createParallaxScene(
       { back: canvas, front: frontCanvas?.current },
       { tier, rays, embers, reducedMotion, sections, scrollTop, onProgress: setProgress, onReady: markReady, onError: reportSceneError, debug },
-      options.current,
+      { ...options.current, reducedMotion },
     );
+    // the preference stays live (#132, state/syncReducedMotion.ts): a flip reaches the scene as an option, so the idle drift stops and starts with it
+    const unsubscribe = useAppStore.subscribe((s, prev) => {
+      if (s.reducedMotion !== prev.reducedMotion) handle.current?.setOptions({ reducedMotion: s.reducedMotion });
+    });
     return () => {
+      unsubscribe();
       handle.current?.dispose();
       handle.current = null;
     };

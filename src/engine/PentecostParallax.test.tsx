@@ -129,6 +129,23 @@ vi.mock("three", async (orig) => {
 
 vi.mock("@/device/avif", () => ({ supportsAvif: () => Promise.resolve(false) }));
 
+// the factory seam (#132): each handle the wrapper mounts, with the options it was built over and its setOptions spied
+const factory = vi.hoisted(() => ({
+  handles: [] as Array<{ options: Record<string, unknown>; setOptions: ReturnType<typeof vi.fn> }>,
+}));
+vi.mock("./createParallaxScene", async (orig) => {
+  const mod = await orig<typeof import("./createParallaxScene")>();
+  return {
+    ...mod,
+    createParallaxScene: (...args: Parameters<typeof mod.createParallaxScene>) => {
+      const handle = mod.createParallaxScene(...args);
+      const setOptions = vi.fn(handle.setOptions);
+      factory.handles.push({ options: { ...args[2] }, setOptions });
+      return { ...handle, setOptions };
+    },
+  };
+});
+
 vi.mock("@/device/textureManifest", async (orig) => {
   const mod = await orig<typeof import("@/device/textureManifest")>();
   return {
@@ -146,6 +163,7 @@ import PentecostParallax from "./PentecostParallax";
 const visibility = { show: () => {} };
 
 beforeEach(() => {
+  factory.handles.length = 0;
   fakes.renderers.length = 0;
   fakes.contextClashes = 0;
   fakes.deliveries = 0;
@@ -283,6 +301,26 @@ describe("PentecostParallax as a wrapper (#120)", () => {
     expect(source.default).not.toMatch(/from "three"/);
     expect(source.default).not.toMatch(/querySelector|document\.hidden|window\./);
     expect(source.default.trimEnd().split("\n").length).toBeLessThan(90);
+  });
+});
+
+describe("PentecostParallax reduced motion, live (#132)", () => {
+  it("builds the scene with the store's preference and forwards a flip as an option, until unmounted", async () => {
+    const { unmount } = render(<PentecostParallax tier={TIERS.mobile} sections={sections()} />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(factory.handles).toHaveLength(1);
+    const [handle] = factory.handles;
+    expect(handle.options).toMatchObject({ reducedMotion: false });
+    act(() => useAppStore.getState().setReducedMotion(true));
+    expect(handle.setOptions).toHaveBeenCalledWith({ reducedMotion: true });
+    act(() => useAppStore.getState().setReducedMotion(false));
+    expect(handle.setOptions).toHaveBeenLastCalledWith({ reducedMotion: false });
+    // any other fact moving in the store is not the scene's
+    act(() => useAppStore.getState().setActiveId("faq"));
+    expect(handle.setOptions).toHaveBeenCalledTimes(2);
+    unmount();
+    act(() => useAppStore.getState().setReducedMotion(true));
+    expect(handle.setOptions).toHaveBeenCalledTimes(2);
   });
 });
 

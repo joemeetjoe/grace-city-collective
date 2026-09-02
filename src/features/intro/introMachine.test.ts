@@ -147,7 +147,7 @@ describe("createIntroController", () => {
     off();
   });
 
-  it("dispose mid-handoff jumps the handoff to its end, so the page is where it expects to be", () => {
+  it("dispose mid-handoff jumps the handoff to its end, so the page is where it expects to be, without landing it", () => {
     const { parallax, skipTarget, controller, off } = stage();
     useAppStore.getState().markReady();
     skipTarget.dispatchEvent(new Event("keydown"));
@@ -155,9 +155,11 @@ describe("createIntroController", () => {
     handoff.progress(0.5);
     controller.dispose();
     expect(handoff.progress()).toBe(1);
-    // the store was told on the way (the landing is the timeline's own completion)
-    expect(useAppStore.getState().intro).toBe(false);
     expect(parallax.style.opacity).toBe("");
+    // the landing is the timeline's own completion, not the jump's: whoever
+    // brought the splash down set the store (#132), and nothing plays after
+    expect(controller.state().phase).toBe("handing-off");
+    expect(useAppStore.getState()).toMatchObject({ intro: true, introPlayed: false });
     off();
   });
 
