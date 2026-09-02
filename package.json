@@ -13,6 +13,7 @@
     "transfer": "node tools/perf/transfer.mjs",
     "budget": "node tools/perf/budget.mjs",
     "lighthouse": "node tools/perf/lighthouse.mjs",
+    "paint": "node tools/perf/paint.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

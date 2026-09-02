@@ -25,7 +25,7 @@ const errors = {
 };
 
 /**
- * The timing metrics, in ms, are errors too since #115: each ceiling is the
+ * The timing metrics, in ms. TBT and Speed Index are errors since #115: each ceiling is the
  * post-batch median (docs/perf/vitals.md) plus a stated margin — roughly
  * 20 % on LCP and Speed Index, a noise floor on TBT (runs spread 0–7 ms on
  * desktop and 50–210 ms on mobile). To raise a ceiling deliberately, change
@@ -35,9 +35,16 @@ const errors = {
  * @param {{ lcp: number, tbt: number, si: number }} ceilings
  */
 const timings = ({ lcp, tbt, si }) => ({
-  // Largest Contentful Paint: on a first visit this is the splash headline
-  // (#107); raise it only for a change that paints more before the gate.
-  "largest-contentful-paint": ["error", { maxNumericValue: lcp }],
+  // Largest Contentful Paint: a warning, not an error, and deliberately so.
+  // On a first visit the largest paint is the splash headline, inline in the
+  // HTML with nothing render-blocking ahead of it, and Lantern cannot price
+  // that steadily: the same commit simulates ~755 ms or ~2180 ms of FCP from
+  // one run to the next, and LCP follows it between roughly 2.0 and 5.6 s.
+  // The browser's own number does not move (27-47 ms on every run of both
+  // profiles), so `pnpm paint` (tools/perf/paint.mjs) is the gate that holds
+  // this line and CI runs it. The ceiling here still catches a real drift.
+  // docs/perf/vitals.md records the measurements.
+  "largest-contentful-paint": ["warn", { maxNumericValue: lcp }],
   // Total Blocking Time: main-thread work between FCP and TTI; raise it only
   // with the long task named (docs/perf/main-thread-slices.md lists them).
   "total-blocking-time": ["error", { maxNumericValue: tbt }],
@@ -73,7 +80,8 @@ const profile = (name, settings, warn) => ({
 
 module.exports = {
   /** Lighthouse's default: a mid-tier phone on slow 4G, DPR 2.625 */
-  // #115: medians 2855 / 53 / 4510 ms on 87498a7
+  // #115: medians 2855 / 53 / 4510 ms on 87498a7; the LCP number is the low
+  // mode of a bimodal simulation and warns only (see above)
   mobile: profile("mobile", undefined, { lcp: 3400, tbt: 150, si: 5200 }),
   /** Lighthouse's desktop preset: no CPU/network throttling beyond its defaults */
   // #115: medians 908 / 0 / 1547 ms on 87498a7

@@ -107,10 +107,42 @@ engine chunk (desktop 486 kB, mobile 77 kB).
 | #114 | main-thread slices drafted from the trace | four fileable drafts with measured costs |
 | #115 | ceilings to errors, this document | — |
 
+## The simulated paint is bimodal; the gate reads the browser
+
+Measured while integrating the Shape batch, and worth knowing before anyone
+reads a red mobile LCP as a regression.
+
+Lighthouse's mobile LCP here is Lantern's estimate, not a measurement. The
+page's first paint is the splash headline, inline in the HTML with nothing
+render-blocking ahead of it, and Lantern prices that two different ways from
+run to run:
+
+| branch | run 1 | run 2 | run 3 |
+| --- | --: | --: | --: |
+| Vitals tip, simulated FCP / LCP | 2107 / 6175 | 755 / 2855 | 757 / 2857 |
+| Shape tip, simulated FCP / LCP | 2183 / 4733 | 2179 / 5554 | 2180 / 5555 |
+
+Probing single commits across the Shape batch lands in either mode with no
+pattern (#117 low, #116 high, #118 low, #120 high), so the mode is not a
+property of the code. The browser's own number, from a PerformanceObserver
+on `largest-contentful-paint`, does not move at all:
+
+| profile | observed LCP, every run |
+| --- | --: |
+| desktop | 27-47 ms |
+| mobile | 30-46 ms |
+
+So the mobile LCP assertion is a warning, and `pnpm paint`
+(`tools/perf/paint.mjs`) is the gate that holds the promise #107 made: the
+largest paint must be the splash headline and must land inside 400 ms, on
+both profiles, read from the browser. CI runs it after `pnpm budget`.
+Desktop LCP, TBT, Speed Index and CLS stay errors: they are stable.
+
 ## Gate ceilings (`tools/perf/lighthouseProfiles.cjs`)
 
-Errors, all: accessibility, SEO and best practices at 100; CLS ≤ 0.01; and
-the timings at the final median plus a stated margin:
+Errors: accessibility, SEO and best practices at 100; CLS ≤ 0.01; TBT and
+Speed Index at the final median plus a stated margin; and the observed paint
+through `pnpm paint`. Mobile LCP warns only, for the reason above:
 
 | profile | LCP | TBT | Speed Index |
 | --- | --: | --: | --: |

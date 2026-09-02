@@ -220,6 +220,16 @@ two font preloads the `gcc:font-preload` plugin writes into the head
 headless-Chrome timeline checks here; in CI the order is `test`, `build`,
 `test:build`, `budget`.
 
+## Paint (`tools/perf/`)
+
+`pnpm paint` loads the built site in hardware headless Chrome at both
+profiles and reads the browser's own `largest-contentful-paint` entries: the
+largest paint must be the splash headline and must land inside 400 ms
+(`--ceiling`). It exists because Lighthouse's simulated mobile LCP is
+bimodal on this page and cannot gate it — the measurements are in
+[`docs/perf/vitals.md`](../docs/perf/vitals.md). CI runs it after
+`pnpm budget`; the pure half (`paintReport.mjs`) is unit-tested.
+
 ## Lighthouse CI (`tools/perf/`)
 
 `pnpm lighthouse` runs Lighthouse CI over `dist/` on two profiles — the
