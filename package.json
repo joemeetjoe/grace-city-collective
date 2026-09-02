@@ -12,6 +12,7 @@
     "test:build": "vitest run --project build",
     "transfer": "node tools/perf/transfer.mjs",
     "budget": "node tools/perf/budget.mjs",
+    "lighthouse": "node tools/perf/lighthouse.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.12.3",
@@ -36,6 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.0.1",
+    "axe-core": "^4.13.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

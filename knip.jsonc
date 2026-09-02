@@ -2,8 +2,10 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   // src/main.tsx is found through index.html by knip's vite plugin; the shots
   // and perf scripts under tools/ are run by hand or from package.json and
-  // import nothing from src, so they are entries of their own.
-  "entry": ["tools/**/*.mjs"],
+  // import nothing from src, so they are entries of their own. The Lighthouse
+  // CI configs are loaded by `lhci --config` (tools/perf/lighthouse.mjs) and
+  // reach lighthouseProfiles.cjs through their own require.
+  "entry": ["tools/**/*.mjs", "tools/perf/lighthouserc.*.cjs"],
   // Tuning constants are exported for reading (an easing, a duration, a size)
   // and used only by the module that declares them. An export nothing else
   // imports and the module itself does not use is still reported.

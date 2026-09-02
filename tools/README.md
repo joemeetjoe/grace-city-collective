@@ -104,3 +104,37 @@ the noscript block, `robots.txt`, `sitemap.xml`, `llms.txt`,
 `llms-full.txt` and the share card. Later Vitals slices add their config and
 headless-Chrome timeline checks here; in CI the order is `test`, `build`,
 `test:build`, `budget`.
+
+## Lighthouse CI (`tools/perf/`)
+
+`pnpm lighthouse` runs Lighthouse CI over `dist/` on two profiles — the
+mobile default (a mid-tier phone on slow 4G, 4× CPU slowdown) and the
+desktop preset — three runs each, asserting on the median run
+(`lighthouserc.mobile.cjs`, `lighthouserc.desktop.cjs`, sharing
+`lighthouseProfiles.cjs`). Errors: accessibility, SEO and best practices at
+100, CLS at or under 0.01. Warnings: LCP, TBT and Speed Index against
+ceilings set from the first run, per profile; how to raise one is in the
+comment next to it. `lighthouse.mjs` runs both and prints one line per
+profile; CI runs it after `pnpm budget` and uploads the reports as the
+`lighthouse-reports` artifact whether the run is green or red.
+
+```bash
+pnpm build
+pnpm lighthouse                     # both profiles
+pnpm lighthouse --profile mobile    # one
+CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" pnpm lighthouse
+```
+
+lhci serves `dist/` itself on a free port and launches Chrome; set
+`CHROME_PATH` if it cannot find one (ubuntu-latest in CI has it). Reports
+land in `.lighthouseci/<profile>/` (gitignored): three `*.report.html` and
+`*.report.json` pairs and a `manifest.json` whose `isRepresentativeRun`
+entry is the median run the assertions read. The intro plays on every run
+— Lighthouse measures a cold load — so LCP includes the splash.
+
+The first run is committed as the vitals baseline in
+[`docs/perf/lighthouse-baseline.md`](../docs/perf/lighthouse-baseline.md)
+with the two median reports beside it. `tests/build/lighthouse.test.ts`
+checks the configs against the installed Lighthouse: every asserted audit
+id and category must exist in its default config, so a version bump cannot
+drop an assertion silently (`tests/build/lighthouseConfig.ts`).
