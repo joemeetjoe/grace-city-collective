@@ -16,8 +16,6 @@ export const HERO_RISE_PX = 28;
  * another — the same lines, never faded (their seconds and beat: theme/motion.ts).
  */
 export const HERO_SETTLE_PX = 8;
-/** the hero headline, marked in HeroStop.tsx */
-export const HERO_HEADLINE = "[data-hero-headline]";
 
 /** how the headline arrives: risen from below, faded, or settled from where the splash left it */
 export type HeroEntrance = "rise" | "settle";
@@ -46,7 +44,7 @@ const ENTRANCES: Record<HeroEntrance, gsap.TweenVars> = {
  * headline rewraps (SplitText's autoSplit), but only the first split is
  * animated — a resize must not replay the entrance. Only ever run after a
  * played intro, so never under reduced motion. Null where there is no
- * headline.
+ * headline (the page registers the hero's, kind "headline": state/revealTargets.ts).
  */
 export function riseHeroHeadline(headline: HTMLElement | null, delay = 0, entrance: HeroEntrance = "rise"): HeroRise | null {
   if (!headline) return null;

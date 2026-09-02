@@ -1,14 +1,14 @@
 import { gsap } from "@/lib/gsap";
 import { FADE_EASE, RESTING_FADE_SECONDS } from "@/theme/motion";
+import { revealTargets } from "@/state/revealTargets";
 
 /**
  * The scene's canvases — the back one under the type and the front one over
- * it (layerSplit.ts) — which every fade from ink must move together
+ * it (layerSplit.ts), whichever are rendered — which every fade from ink
+ * must move together; the page registers them (app/HomePage.tsx)
  */
-export const PARALLAX_LAYERS = "[data-parallax], [data-parallax-front]";
-
-export function parallaxLayers(root: ParentNode = document): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(PARALLAX_LAYERS));
+export function parallaxLayers(): HTMLElement[] {
+  return revealTargets("parallax").filter((el): el is HTMLElement => el instanceof HTMLElement);
 }
 
 /**

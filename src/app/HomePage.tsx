@@ -13,6 +13,7 @@ import { useViewportHeight } from "@/layout/viewportHeight";
 import type { SectionRegistry } from "@/scroll/sections";
 import type { PageScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
+import { revealRefWith } from "@/state/revealTargets";
 import SceneBoundary from "./SceneBoundary";
 
 /**
@@ -92,7 +93,9 @@ export default function HomePage({
       smoother transforms the content the sticky is inert and
       useSmoothScroll holds the sticky layers with a scrubbed translate.
       A held layer is transformed, so it is a stacking context of its
-      own: each carries one step of STACK (theme/classes.ts). */}
+      own: each carries one step of STACK (theme/classes.ts). Both
+      canvases register as the intro's parallax targets, held on ink
+      until the handoff fades them up (state/revealTargets.ts). */}
       <div ref={sceneRef} data-scene="" className="relative grid grid-cols-[minmax(0,1fr)]">
         {/* sticky, not fixed: it stays put while the sections scroll over it.
         lvh, not svh: on a phone the URL bar retracts as the reader scrolls
@@ -103,7 +106,7 @@ export default function HomePage({
         all the way through the bar's transition, and onResize rebuilds
         every layer's geometry (engine/createParallaxScene.ts) */}
         <div
-          ref={parallaxRef}
+          ref={revealRefWith("parallax", parallaxRef)}
           data-parallax=""
           className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
         >
@@ -135,7 +138,7 @@ export default function HomePage({
         (layerSplit.ts). Transparent, and no pointer events */}
         {!poster && (
           <div
-            ref={frontRef}
+            ref={revealRefWith("parallax", frontRef)}
             data-parallax-front=""
             className={`pointer-events-none sticky top-0 ${STACK.front} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
           >

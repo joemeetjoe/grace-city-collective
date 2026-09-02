@@ -5,6 +5,7 @@ import type { Link } from "@/content/site";
 import Kicker from "@/ui/panel/Kicker";
 import PanelReveal from "@/ui/panel/PanelReveal";
 import { button, stopBody, stopHeading } from "@/theme/classes";
+import { revealRef } from "@/state/revealTargets";
 
 /** the stops whose type sizes stopHeading sets */
 type WordsStop = NonNullable<VariantProps<typeof stopHeading>["stop"]>;
@@ -35,7 +36,8 @@ export type StopWordsProps = {
 /**
  * A stop's words (#121): its kicker, its headline at the stop's own type size
  * (stopHeading), its paragraphs (stopBody) and its call to action, in that
- * order. The hero's headline is the page's one h1 — the one the nearest
+ * order. The hero's headline is the page's one h1, registered for the intro
+ * to settle once the splash is gone (state/revealTargets.ts) — the one the nearest
  * figures may clip at its edges; it rises line by line once the splash has
  * handed off (heroRise.ts), and its measure is written in em, so the
  * metric-matched fallback face wraps it at the same width before the woff2
@@ -47,7 +49,7 @@ export default function StopWords(props: StopWordsProps) {
   const { kicker, kickerProps, heading, cta, reveal, kickerRises = false } = props;
   const words: ReactNode[] = [
     props.stop === "hero" ? (
-      <h1 key="heading" data-hero-headline="" className={stopHeading({ stop: "hero" })}>
+      <h1 key="heading" ref={revealRef("headline")} data-hero-headline="" className={stopHeading({ stop: "hero" })}>
         {heading}
       </h1>
     ) : (

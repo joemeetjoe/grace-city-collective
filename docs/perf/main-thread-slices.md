@@ -131,7 +131,7 @@ Draft 4 splits it.
 ### D. The intro handoff — 35 ms median, 51–55 ms in 3 of 9 (not filed)
 
 Observed 15.8–27.7 ms at ~2450 ms, when the splash's mark lands:
-`useIntroGate`'s layout effect (`src/features/intro/useIntroGate.ts:44`)
+the post-intro layout effect (then `useIntroGate.ts:44`, now `src/features/intro/useIntroReveals.ts`)
 builds the nav reveal and the hero rise. Profiled: gsap's CSSPlugin
 12.9–13.7 ms under `buildNavReveal`'s `arrive` (`navReveal.ts:54`, the
 `tl.fromTo` over the links, calls to action, dots and glass — computed

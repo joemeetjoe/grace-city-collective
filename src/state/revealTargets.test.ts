@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { registerRevealTarget, revealRef, revealTargets } from "./revealTargets";
+import { registerRevealTarget, revealRef, revealRefWith, revealTargets } from "./revealTargets";
 
 const unregister: (() => void)[] = [];
 const register = (kind: Parameters<typeof registerRevealTarget>[0], el: Element) => {
@@ -57,5 +57,26 @@ describe("revealRef", () => {
     // React <19 style: a null hands nothing back and registers nothing
     expect(revealRef("mark")(null)).toBeUndefined();
     expect(revealTargets("mark")).toEqual([]);
+  });
+});
+
+describe("revealRefWith", () => {
+  it("is one ref callback per ref object that registers the element, points the ref at it, and undoes both on cleanup", () => {
+    const ref = { current: null as HTMLDivElement | null };
+    expect(revealRefWith("parallax", ref)).toBe(revealRefWith("parallax", ref));
+    expect(revealRefWith("parallax", ref)).not.toBe(revealRefWith("parallax", { current: null }));
+    document.body.innerHTML = `<div id="p"></div>`;
+    const p = document.body.firstElementChild as HTMLDivElement;
+    const off = revealRefWith("parallax", ref)(p);
+    expect(revealTargets("parallax")).toEqual([p]);
+    expect(ref.current).toBe(p);
+    off!();
+    expect(revealTargets("parallax")).toEqual([]);
+    expect(ref.current).toBeNull();
+    // React <19 style: a null clears the ref and registers nothing
+    ref.current = p;
+    expect(revealRefWith("parallax", ref)(null)).toBeUndefined();
+    expect(ref.current).toBeNull();
+    expect(revealTargets("parallax")).toEqual([]);
   });
 });

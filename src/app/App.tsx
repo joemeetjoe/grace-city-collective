@@ -12,7 +12,7 @@ import HomePage from "./HomePage";
 import { useHashSync } from "./useHashSync";
 import { useSceneLayers } from "./useSceneLayers";
 import IntroSplash from "@/features/intro/IntroSplash";
-import { useIntroGate } from "@/features/intro/useIntroGate";
+import { useIntroReveals } from "@/features/intro/useIntroReveals";
 import { sectionMarkers } from "@/scroll/markers";
 import { useSmoothScroll } from "@/scroll/useSmoothScroll";
 import { useAppStore } from "@/state/appStore";
@@ -44,7 +44,7 @@ export default function App() {
     held,
     sections,
   } = useSceneLayers(ids);
-  useIntroGate(parallaxRef);
+  useIntroReveals();
   // the smoother, the paging, and the section watch that keeps the store's
   // activeId — which section is under the viewport's midpoint, read by the
   // nav links and the dot rail from the store

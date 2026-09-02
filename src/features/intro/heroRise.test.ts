@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { gsap } from "@/lib/gsap";
-import { HERO_HEADLINE, HERO_RISE_PX, HERO_SETTLE_PX, riseHeroHeadline } from "./heroRise";
+import { HERO_RISE_PX, HERO_SETTLE_PX, riseHeroHeadline } from "./heroRise";
 
 function headline(): HTMLElement {
   const h1 = document.createElement("h1");
@@ -18,7 +18,7 @@ afterEach(() => {
 describe("riseHeroHeadline", () => {
   it("does nothing without a headline", () => {
     expect(riseHeroHeadline(null)).toBeNull();
-    expect(document.querySelector(HERO_HEADLINE)).toBeNull();
+    expect(document.querySelector(".hero-line")).toBeNull();
   });
 
   it("splits the headline into lines that rise into place, then hands their styles back to CSS", () => {

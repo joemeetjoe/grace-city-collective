@@ -49,8 +49,11 @@ describe("appStore", () => {
     state().markReady();
     expect(state().ready).toBe(true);
     expect(state().intro).toBe(true);
+    expect(state().introPlayed).toBe(false);
     state().finishIntro();
     expect(state().intro).toBe(false);
+    // the intro played: the reveals that follow the splash key on this
+    expect(state().introPlayed).toBe(true);
     state().finishIntro();
     expect(state().intro).toBe(false);
   });

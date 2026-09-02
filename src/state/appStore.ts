@@ -13,6 +13,13 @@ import { TIERS, type Tier } from "@/device/tier";
 export type AppState = {
   /** the splash is still up */
   intro: boolean;
+  /**
+   * the intro played this mount and its handoff has landed: the nav unfurls
+   * and the hero headline settles in the commit that drops the splash
+   * (features/intro/useIntroReveals.ts). Never set in a session the splash
+   * does not mount in, which renders everything at rest
+   */
+  introPlayed: boolean;
   /** the visitor prefers reduced motion: no splash, native scroll, ornaments at rest */
   reducedMotion: boolean;
   /**
@@ -48,7 +55,7 @@ export type AppProfile = Pick<AppState, "intro" | "reducedMotion" | "tier" | "fa
 export type AppActions = {
   /** a mount's decisions in, and every live fact back to its rest value */
   init: (profile: AppProfile) => void;
-  /** the handoff has landed; the splash unmounts */
+  /** the handoff has landed (features/intro/introMachine.ts): the splash unmounts and the reveals follow */
   finishIntro: () => void;
   /** a texture arrived: how many so far, of how many requested */
   setProgress: (loaded: number, total: number) => void;
@@ -66,6 +73,7 @@ export type AppStore = AppState & AppActions;
 /** before any mount has decided: a full-motion desktop past its intro, nothing loaded */
 export const REST_STATE: AppState = {
   intro: false,
+  introPlayed: false,
   reducedMotion: false,
   tier: TIERS.desktop,
   fallback: false,
@@ -79,7 +87,7 @@ export const REST_STATE: AppState = {
 export const useAppStore = create<AppStore>()((set) => ({
   ...REST_STATE,
   init: ({ activeId = null, ...profile }) => set({ ...REST_STATE, ...profile, activeId }),
-  finishIntro: () => set({ intro: false }),
+  finishIntro: () => set({ intro: false, introPlayed: true }),
   setProgress: (loaded, total) => set({ progress: total ? loaded / total : 0 }),
   markReady: () => set({ ready: true }),
   failScene: (message) => set((s) => ({ sceneError: s.sceneError ?? message, ready: true })),

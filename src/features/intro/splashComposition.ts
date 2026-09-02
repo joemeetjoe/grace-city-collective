@@ -4,7 +4,7 @@
  * hero's own box, from the first paint. The headline is the page's largest
  * text and so its LCP element; on the splash it paints with the page's
  * first frame instead of after the gate, and the handoff has nothing to
- * move — the hero's h1 takes its place (useIntroGate.ts) and settles.
+ * move — the hero's h1 takes its place (useIntroReveals.ts) and settles.
  *
  * SPLASH_COMPOSITION picks one. The three with the headline are the
  * options shot for the design pass (docs/design/issue-107/README.md);
