@@ -1,4 +1,5 @@
 import { act, render } from "@testing-library/react";
+import { memo } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Reveal from "./Reveal";
@@ -83,6 +84,37 @@ describe("Reveal", () => {
     expect(items.map((li) => li.style.getPropertyValue("--i"))).toEqual(["0", "1", "2"]);
     // a child's own style survives the numbering
     expect(items[1].style.color).toBe("red");
+  });
+
+  it("leaves its children as they are: a memoised child is not rendered again as the block comes in, and stays numbered", () => {
+    const observers = stubObserver();
+    let renders = 0;
+    const Word = memo(function Word({ text }: { text: string }) {
+      renders += 1;
+      return <p>{text}</p>;
+    });
+    const { container, rerender } = render(
+      <Reveal>
+        <Word text="one" />
+        <Word text="two" />
+      </Reveal>,
+    );
+    const root = container.firstElementChild as HTMLElement;
+    expect(renders).toBe(2);
+    act(() => observers[0].cb([{ isIntersecting: true }]));
+    expect(root.getAttribute("data-reveal")).toBe("true");
+    expect(renders).toBe(2);
+    // and re-numbered when the children change
+    rerender(
+      <Reveal>
+        <Word text="one" />
+        <Word text="two" />
+        <p>three</p>
+      </Reveal>,
+    );
+    expect(renders).toBe(2);
+    const items = Array.from(root.children) as HTMLElement[];
+    expect(items.map((el) => el.style.getPropertyValue("--i"))).toEqual(["0", "1", "2"]);
   });
 
   it("follows `shown` instead of the viewport when driven, both ways", () => {

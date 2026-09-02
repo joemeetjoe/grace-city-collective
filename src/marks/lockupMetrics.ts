@@ -1,3 +1,8 @@
+/** The resting lockup's font size on one line, lg and up — the hero's wordmark, which renders it at this default. */
+export const LOCKUP_SIZE = "clamp(30px,7.2vw,108px)";
+/** The resting lockup's font size stacked, below lg: room for the script under it, never taller than the headline. */
+export const LOCKUP_SIZE_STACKED = "clamp(34px,6.4vw,72px)";
+
 /** Below this computed height "Collective" is dropped from the resting lockup. */
 export const SCRIPT_MIN_PX = 18;
 

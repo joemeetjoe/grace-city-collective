@@ -1,17 +1,11 @@
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  type CSSProperties,
-  type HTMLAttributes,
-  type ReactNode,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
 
+import { cssVars } from "@/theme/cssVars";
 import { REVEAL_STAGGER_MS } from "@/theme/motion";
 import { useInViewOnce } from "./useInViewOnce";
 
 /** how much of the block must be on screen before it comes in */
-export const REVEAL_THRESHOLD = 0.2;
+const REVEAL_THRESHOLD = 0.2;
 
 export type RevealTag = "div" | "header" | "footer" | "ol" | "ul" | "dl" | "li" | "p";
 
@@ -30,6 +24,25 @@ export type RevealProps = Omit<HTMLAttributes<HTMLElement>, "children"> & {
   threshold?: number;
   children: ReactNode;
 };
+
+/**
+ * Number the block's children for the stagger: each direct child's place,
+ * as the custom property the CSS reads (`--i`, index.css). Written on the
+ * element after each commit rather than cloned into the children's props,
+ * so the children keep their identity — a memoised child is not rendered
+ * again when the block is — and a child's own style is left as it is. Every
+ * node takes a place, as every child did before; a text node has no style
+ * to wear its place on.
+ */
+function number(block: HTMLElement): void {
+  let i = 0;
+  for (const child of block.childNodes) {
+    const at = String(i++);
+    if (!(child instanceof Element)) continue;
+    const { style } = child as HTMLElement | SVGElement;
+    if (style.getPropertyValue("--i") !== at) style.setProperty("--i", at);
+  }
+}
 
 /**
  * A block whose children rise into place one after another — faded and set
@@ -57,35 +70,34 @@ export default function Reveal({
   children,
   ...rest
 }: RevealProps) {
-  const [ref, seen] = useInViewOnce<HTMLElement>(threshold, shown === undefined);
+  const [watch, seen] = useInViewOnce<HTMLElement>(threshold, shown === undefined);
   const on = shown ?? seen;
+  const block = useRef<HTMLElement | null>(null);
+  const attach = useCallback(
+    (el: HTMLElement | null) => {
+      block.current = el;
+      watch(el);
+    },
+    [watch],
+  );
+  // the children may have changed with any render of the block: number them again before the paint
+  useLayoutEffect(() => {
+    if (block.current) number(block.current);
+  });
   // one element type stands in for the union: every tag here takes the same props
   const Tag = as as "div";
   return (
     <Tag
       {...rest}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={attach}
       data-reveal={on ? "true" : "false"}
-      style={
-        {
-          "--reveal-delay": `${delay}ms`,
-          "--reveal-stagger": `${stagger}ms`,
-          ...style,
-        } as CSSProperties
-      }
+      style={cssVars({
+        "--reveal-delay": `${delay}ms`,
+        "--reveal-stagger": `${stagger}ms`,
+        ...style,
+      })}
     >
-      {indexed(children)}
+      {children}
     </Tag>
-  );
-}
-
-/** each child numbered for its place in the stagger, as a custom property the CSS reads */
-function indexed(children: ReactNode): ReactNode[] {
-  return Children.toArray(children).map((child, i) =>
-    isValidElement<{ style?: CSSProperties }>(child)
-      ? cloneElement(child, {
-          style: { ...child.props.style, "--i": i } as CSSProperties,
-        })
-      : child,
   );
 }

@@ -2,11 +2,9 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { SOW_STEP_MS, SOW_TRAVEL_MS, TILE_STAGGER_MS } from "@/theme/motion";
-import SowingMark, {
-  ROWS,
-  TILES,
-} from "./SowingMark";
+import SowingMark from "./SowingMark";
 import { arrives, departs, parent } from "./sowing";
+import { ROWS, TILES } from "./sowingMarkMetrics";
 
 function tiles(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-tile]"));

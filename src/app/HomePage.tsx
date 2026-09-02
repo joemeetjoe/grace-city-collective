@@ -1,9 +1,7 @@
 import { lazy, Suspense, useMemo, useState, type RefObject } from "react";
 
-import CornerOrnaments, {
-  FRAME_ARM,
-  FRAME_INSET,
-} from "@/ui/CornerOrnaments";
+import CornerOrnaments from "@/ui/CornerOrnaments";
+import { FRAME_ARM, FRAME_INSET } from "@/ui/cornerOrnamentsMetrics";
 import { STACK } from "@/theme/classes";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
