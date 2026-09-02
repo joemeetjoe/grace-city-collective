@@ -69,6 +69,14 @@ verdict each capture ran under.
 - `budget.mjs` (`pnpm budget`) — the static byte budget from `dist/` against
   `budget.json`, with a poster row for the fallback path's one image.
 
+## Share card (`tools/share/`)
+
+- `share-image.py` — cuts `public/share.jpg` (1200×630, under 200 kB) from
+  the Doré plate as an ink-to-cream duotone; the Open Graph and Twitter tags
+  point at it. Run with a Python that has Pillow
+  (`~/Projects/dore-recut/.venv-recut/bin/python tools/share/share-image.py`)
+  whenever the plate or the crop constants change.
+
 ## Build-output tests (`tests/build/`)
 
 A second vitest project that reads `dist/` instead of `src/`:
@@ -89,6 +97,10 @@ Helpers for new checks live in `tests/build/dist.ts`: `DIST_DIR`,
 `tests/build/splashOrder.ts` holds the first predicate,
 `splashPrecedesBodyScripts(html)`: the static splash is the first thing in
 `<body>`, ahead of every body `<script>`, so it is on screen before any
-script that could paint has run. Later Vitals slices add their head-markup,
-generated-file, config and headless-Chrome timeline checks here; in CI the
-order is `test`, `build`, `test:build`, `budget`.
+script that could paint has run. `tests/build/surfaces.test.ts` checks the
+SEO and AI surfaces the `gcc:surfaces` plugin generates from
+`src/content/site.ts` (`src/content/surfaces.ts`): the head tags and JSON-LD,
+the noscript block, `robots.txt`, `sitemap.xml`, `llms.txt`,
+`llms-full.txt` and the share card. Later Vitals slices add their config and
+headless-Chrome timeline checks here; in CI the order is `test`, `build`,
+`test:build`, `budget`.

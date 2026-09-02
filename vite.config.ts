@@ -3,13 +3,31 @@ import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { staticSplashTags } from './src/features/intro/staticSplash'
+import { STATIC_SPLASH_ATTR, staticSplashTags } from './src/features/intro/staticSplash'
 import { engineChunkHref, enginePreloadScript } from './src/device/enginePreload'
+import { site } from './src/content/site'
+import {
+  LLMS_FILE,
+  LLMS_FULL_FILE,
+  SITEMAP_FILE,
+  headTags,
+  jsonLdTag,
+  llmsFullTxt,
+  llmsTxt,
+  noscriptBlock,
+  robotsTxt,
+  sitemapXml,
+} from './src/content/surfaces'
 
 // https://vite.dev/config/
 // Served from `/` in dev and on a custom domain; the Pages workflow sets
 // BASE_PATH=/grace-city-collective/ so built URLs land under the repo slug.
 const base = process.env.BASE_PATH || '/'
+
+// Where the site is published, for every absolute URL a crawler or a share
+// card reads (canonical, Open Graph, sitemap, robots): SITE_ORIGIN at build,
+// the production domain by default.
+const origin = process.env.SITE_ORIGIN || 'https://gracecitycollective.com'
 
 // The intro splash as static markup in index.html, on screen from the first
 // paint rather than once the bundle has mounted (src/features/intro/staticSplash.ts).
@@ -45,9 +63,42 @@ const enginePreload = (): Plugin => ({
   },
 })
 
+// The site for readers that do not run JavaScript, generated from the one
+// content object (src/content/surfaces.ts): the head tags, the JSON-LD graph
+// and the noscript block into index.html — the noscript after the splash and
+// before #root — and robots.txt, sitemap.xml, llms.txt and llms-full.txt as
+// files at the dist root.
+const surfaces = (): Plugin => {
+  const opts = { origin, base, splashSelector: `[${STATIC_SPLASH_ATTR}]` }
+  const files = () => ({
+    'robots.txt': robotsTxt(opts),
+    [SITEMAP_FILE]: sitemapXml(opts),
+    [LLMS_FILE]: llmsTxt(site, opts),
+    [LLMS_FULL_FILE]: llmsFullTxt(site, opts),
+  })
+  return {
+    name: 'gcc:surfaces',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        if (!ctx.filename.endsWith('index.html')) return
+        const root = '<div id="root">'
+        if (!html.includes(root)) throw new Error(`gcc:surfaces: no ${root} in index.html to put the noscript block before`)
+        return {
+          html: html.replace(root, `${noscriptBlock(site, opts)}${root}`),
+          tags: [...headTags(site, opts), jsonLdTag(site, opts)],
+        }
+      },
+    },
+    generateBundle() {
+      for (const [fileName, source] of Object.entries(files())) this.emitFile({ type: 'asset', fileName, source })
+    },
+  }
+}
+
 export default defineConfig({
   base,
-  plugins: [react(), tailwindcss(), staticSplash(), enginePreload()],
+  plugins: [react(), tailwindcss(), staticSplash(), surfaces(), enginePreload()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
