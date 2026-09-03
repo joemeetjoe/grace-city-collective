@@ -32,3 +32,21 @@ describe("formatPaintTable", () => {
     expect(text).toMatch(/mobile\s+35\s+400\s+h1/);
   });
 });
+
+import { pickChrome } from "./paintReport.mjs";
+
+describe("pickChrome", () => {
+  const mac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  const linux = "/usr/bin/google-chrome";
+
+  it("takes the flag first, then CHROME_PATH, then whichever candidate is installed", () => {
+    expect(pickChrome({ flag: "/my/chrome", env: "/env/chrome", exists: () => true })).toBe("/my/chrome");
+    expect(pickChrome({ env: "/env/chrome", exists: () => true })).toBe("/env/chrome");
+    expect(pickChrome({ exists: (p) => p === linux })).toBe(linux);
+    expect(pickChrome({ exists: (p) => p === mac })).toBe(mac);
+  });
+
+  it("says where it looked when no Chrome is installed", () => {
+    expect(() => pickChrome({ exists: () => false })).toThrow(/no Chrome/);
+  });
+});
