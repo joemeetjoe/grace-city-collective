@@ -128,7 +128,7 @@ export default function HouseTable({
       data-across={across ? "" : undefined}
       viewBox={across ? `0 0 ${VIEW_H} ${VIEW_W}` : `0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
-      className={cn("block text-cream", className)}
+      className={cn("text-cream", className)}
     >
       {/* on its side the whole drawing turns a quarter anticlockwise about the
           box, so the head comes to the left; the seats' own poses turn with it */}

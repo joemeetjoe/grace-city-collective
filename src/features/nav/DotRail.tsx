@@ -32,7 +32,7 @@ export default function DotRail({
       aria-label="Sections"
       data-dot-rail=""
       className={cn(
-        "fixed top-1/2 right-[clamp(18px,3vw,40px)] z-30 hidden -translate-y-1/2 flex-col items-end gap-1.5 lg:flex",
+        "fixed top-1/2 right-[clamp(18px,3vw,40px)] hidden -translate-y-1/2 flex-col items-end gap-1.5 lg:flex",
         className,
       )}
     >
@@ -67,8 +67,8 @@ export default function DotRail({
               aria-hidden
               data-dot-label=""
               className={cn(
-                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap text-cream/80 opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
-                active && "text-seal",
+                "text-[10px] uppercase tracking-[0.22em] whitespace-nowrap opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 motion-safe:transition-[opacity,transform] motion-safe:duration-300 motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]",
+                active ? "text-seal" : "text-cream/80",
               )}
             >
               {m.label}
@@ -77,8 +77,10 @@ export default function DotRail({
               aria-hidden
               data-dot=""
               className={cn(
-                "block size-1.5 rounded-full border border-cream/55 transition-[background-color,border-color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:border-cream",
-                active && "scale-[1.4] border-seal bg-seal group-hover:border-seal",
+                "block size-1.5 rounded-full border transition-[background-color,border-color,transform] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                active
+                  ? "scale-[1.4] border-seal bg-seal group-hover:border-seal"
+                  : "border-cream/55 group-hover:border-cream",
               )}
             />
           </a>

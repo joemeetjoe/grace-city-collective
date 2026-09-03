@@ -127,3 +127,12 @@ describe("HouseTable", () => {
     expect(turned!.querySelectorAll("[data-seat]").length).toBe(SEATS);
   });
 });
+
+describe("HouseTable class list", () => {
+  it("takes its display from the caller, so a hidden-until-md caller is not also block", () => {
+    const { container } = render(<HouseTable className="hidden md:block" />);
+    const tokens = container.querySelector("svg")!.getAttribute("class")!.split(/\s+/);
+    expect(tokens).toEqual(expect.arrayContaining(["text-cream", "hidden", "md:block"]));
+    expect(tokens).not.toContain("block");
+  });
+});

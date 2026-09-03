@@ -132,3 +132,12 @@ describe("SharedLife", () => {
     expect(at(5).y).toBeGreaterThan(at(4).y);
   });
 });
+
+describe("SharedLife class list", () => {
+  it("takes its display from the caller, so a hidden-until-md caller is not also block", () => {
+    const { container } = render(<SharedLife className="hidden md:block" />);
+    const tokens = container.querySelector("svg")!.getAttribute("class")!.split(/\s+/);
+    expect(tokens).toEqual(expect.arrayContaining(["text-cream", "hidden", "md:block"]));
+    expect(tokens).not.toContain("block");
+  });
+});

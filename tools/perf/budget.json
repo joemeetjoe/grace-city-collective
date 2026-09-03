@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Static byte budget for a tier's first load, checked by `pnpm budget` (tools/perf/budget.mjs) in CI.",
+    "Ceilings are kB (1024 bytes) on the wire, per category and for the total, the units of `pnpm transfer`:",
+    "html/js/css/svg at their brotli size, avif/webp/woff2 raw — so this table and docs/perf/wire-*.json compare directly.",
+    "Set on 2026-09-02 (#102) at the post-batch numbers plus ~5%, rounded up: desktop 1857.1 kB measured (textures 1547.1, js 248.2),",
+    "mobile 913.7 kB (textures 603.8). The AVIF path is what is budgeted; the WebP fallback path is measured in docs/perf/wire-final-webp.json.",
+    "To raise a ceiling deliberately: change the number in the same PR as the change that needs it, and say why in the PR."
+  ],
+  "desktop": { "total": 1950, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 1625, "other": 0.5 },
+  "mobile": { "total": 960, "html": 1.2, "js": 262, "css": 10, "font": 54, "texture": 635, "other": 0.5 }
+}

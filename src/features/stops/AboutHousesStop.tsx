@@ -43,7 +43,7 @@ function HouseChurchesTable({ lit }: { lit: boolean }) {
         lit={lit}
         shown={shown}
         across
-        className="w-full max-w-[300px] md:hidden"
+        className="block w-full max-w-[300px] md:hidden"
       />
       <HouseTable
         lit={lit}
@@ -77,7 +77,7 @@ function AboutSharedLife({ lit }: { lit: boolean }) {
         lit={lit}
         shown={shown}
         columns={2}
-        className="w-full max-w-[300px] md:hidden"
+        className="block w-full max-w-[300px] md:hidden"
       />
       <SharedLife
         lit={lit}

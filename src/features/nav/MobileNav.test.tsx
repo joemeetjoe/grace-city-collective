@@ -86,3 +86,19 @@ describe("MobileNav", () => {
     expect(document.querySelectorAll("[data-nav-mark]").length).toBe(1);
   });
 });
+
+describe("MobileNav class lists", () => {
+  const tokens = (el: Element) => el.className.split(/\s+/);
+
+  it("a resting link wears cream with a cream hover; the current one wears seal with no cream", () => {
+    render(<MobileNav activeId="faq" />);
+    const sheet = openSheet();
+    const rest = tokens(sheet.querySelector("nav a:not([aria-current])")!);
+    const current = tokens(sheet.querySelector("nav a[aria-current='location']")!);
+    expect(rest).toEqual(expect.arrayContaining(["text-cream/90", "hover:text-cream"]));
+    expect(rest).not.toContain("text-seal");
+    expect(current).toEqual(expect.arrayContaining(["text-seal", "hover:text-seal"]));
+    expect(current).not.toContain("text-cream/90");
+    expect(current).not.toContain("hover:text-cream");
+  });
+});

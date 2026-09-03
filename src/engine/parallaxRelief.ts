@@ -12,14 +12,14 @@ export type Cut = {
   z: number;
   isFlame: number;
   relief: number;
-  /** dedicated color texture; cuts without one sample the shared plate */
-  map?: string;
+  /** the cut's own color texture: a crop of the plate (there is no whole-plate texture, #99) */
+  map: string;
+  /** the plate rectangle `map` covers, [x, y, w, h] as fractions of the plate from its top-left */
+  mapRect: PlateRect;
   /**
-   * the plate rectangle the dedicated map covers, [x, y, w, h] as fractions
-   * of the plate from its top-left; absent = the whole plate
+   * dedicated depth texture covering the same rectangle as `map`; absent =
+   * the shared depth.webp, which is still the whole plate (see depthRect)
    */
-  mapRect?: [number, number, number, number];
-  /** dedicated depth texture covering the same rectangle as `map` */
   depthMap?: string;
   /** a flame's cut it hangs over — a figure, or the crowd */
   parent?: string;
@@ -33,6 +33,9 @@ export type Cut = {
   mask?: MaskRef;
 };
 
+/** a plate rectangle [x, y, w, h] in plate fractions, y down from the top */
+export type PlateRect = readonly [number, number, number, number];
+
 export type UvRect = [number, number, number, number];
 
 /** the whole plate, in uv terms */
@@ -42,16 +45,29 @@ export const FULL_RECT: UvRect = [0, 0, 1, 1];
  * A map rectangle in plate fractions (y down from the top) as a uv rectangle
  * (three.js flips textures, so v runs up from the bottom): [x, y, w, h].
  */
-export function rectToUv(rect?: [number, number, number, number]): UvRect {
-  if (!rect) return FULL_RECT;
+export function rectToUv(rect: PlateRect): UvRect {
   const [x, y, w, h] = rect;
   return [x, 1 - y - h, w, h];
 }
 
-type RawCut = Omit<Cut, "relief"> & { relief?: number };
+/**
+ * The uv rectangle a cut's depth is sampled over. A cut's own depth map is
+ * cut from the same window as its colour map; the shared depth.webp is the
+ * whole plate, so a cut without one keeps plate uv there even though its
+ * colour now comes from a crop.
+ */
+export function depthRect(cut: Pick<Cut, "mapRect" | "depthMap">): UvRect {
+  return cut.depthMap ? rectToUv(cut.mapRect) : FULL_RECT;
+}
 
+type RawCut = Omit<Cut, "relief" | "map" | "mapRect"> & { relief?: number; map?: string; mapRect?: PlateRect };
+
+/** the tier's cuts.json; every cut must name its map and the plate rect it covers */
 export function parseCuts(raw: unknown): Cut[] {
-  return (raw as RawCut[]).map((c) => ({ ...c, relief: c.relief ?? 0 }));
+  return (raw as RawCut[]).map((c) => {
+    if (!c.map || !c.mapRect) throw new Error(`cut ${c.name} has no map of its own`);
+    return { ...c, map: c.map, mapRect: c.mapRect, relief: c.relief ?? 0 };
+  });
 }
 
 /**

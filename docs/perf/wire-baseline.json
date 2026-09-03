@@ -1,0 +1,1612 @@
+{
+  "commit": "40d83b9",
+  "date": "2026-09-02T01:41:55.186Z",
+  "url": "http://127.0.0.1:4399/",
+  "idleMs": 1500,
+  "tiers": {
+    "desktop": {
+      "profile": {
+        "width": 1600,
+        "height": 900,
+        "dpr": 2,
+        "mobile": false
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 900,
+        "dpr": 2
+      },
+      "canvas": true,
+      "cold": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4399/",
+            "mimeType": "text/html",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1120,
+            "finishedAt": 7
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-D8yi6uRR.css",
+            "mimeType": "text/css",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 9727,
+            "finishedAt": 78
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-BKx3ofj5.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 257151,
+            "finishedAt": 1286
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 25400,
+            "finishedAt": 1321
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 77910,
+            "finishedAt": 1323
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/plate.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 388115,
+            "finishedAt": 1324
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 81794,
+            "finishedAt": 1324
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/plate-backdrop.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 575589,
+            "finishedAt": 1325
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/cuts.json",
+            "mimeType": "application/json",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1134,
+            "finishedAt": 1380
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 72670,
+            "finishedAt": 1382
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 29604,
+            "finishedAt": 1382
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 23080,
+            "finishedAt": 1382
+          },
+          {
+            "url": "http://127.0.0.1:4399/favicon.svg",
+            "mimeType": "image/svg+xml",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 576,
+            "finishedAt": 1390
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 506,
+            "finishedAt": 1405
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 29814,
+            "finishedAt": 1405
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2667,
+            "finishedAt": 1410
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2139,
+            "finishedAt": 1410
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 23766,
+            "finishedAt": 1411
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2011,
+            "finishedAt": 1411
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 23660,
+            "finishedAt": 1412
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2605,
+            "finishedAt": 1412
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 6529,
+            "finishedAt": 1417
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 70040,
+            "finishedAt": 1417
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 10680,
+            "finishedAt": 1417
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 21402,
+            "finishedAt": 1417
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-crowd.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 191663,
+            "finishedAt": 1418
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 51206,
+            "finishedAt": 1418
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 8461,
+            "finishedAt": 1420
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 41934,
+            "finishedAt": 1420
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 9747,
+            "finishedAt": 1421
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 65440,
+            "finishedAt": 1421
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 13216,
+            "finishedAt": 1422
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 74244,
+            "finishedAt": 1422
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 13914,
+            "finishedAt": 1424
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 50038,
+            "finishedAt": 1424
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 6253,
+            "finishedAt": 1424
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 11054,
+            "finishedAt": 1425
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 53046,
+            "finishedAt": 1425
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 72334,
+            "finishedAt": 1426
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 11010,
+            "finishedAt": 1427
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 15640,
+            "finishedAt": 1427
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 13614,
+            "finishedAt": 1428
+          }
+        ],
+        "introDoneAt": 4142,
+        "idleAt": 1428,
+        "gateAt": 1428,
+        "toGate": {
+          "html": {
+            "bytes": 1120,
+            "count": 1
+          },
+          "js": {
+            "bytes": 257151,
+            "count": 1
+          },
+          "css": {
+            "bytes": 9727,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 2121245,
+            "count": 36
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 2442503
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 1120,
+            "count": 1
+          },
+          "js": {
+            "bytes": 257151,
+            "count": 1
+          },
+          "css": {
+            "bytes": 9727,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 2121245,
+            "count": 36
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 2442503
+        },
+        "cached": 0
+      },
+      "warm": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4399/",
+            "mimeType": "text/html",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 1
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-D8yi6uRR.css",
+            "mimeType": "text/css",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 7
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-BKx3ofj5.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 11
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 45
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/plate.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/plate-backdrop.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 46
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 70
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 73
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/cuts.json",
+            "mimeType": "application/json",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 99
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 105
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 133
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 134
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-cut-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/masks-flame-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 141
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-crowd.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 144
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 144
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 144
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 147
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 147
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/map-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 147
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 147
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 148
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/2048/depth-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 148
+          }
+        ],
+        "introDoneAt": 459,
+        "idleAt": 148,
+        "gateAt": 148,
+        "toGate": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 1
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 36
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 1
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 36
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "cached": 41
+      }
+    },
+    "mobile": {
+      "profile": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1.5,
+        "mobile": true
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1.5
+      },
+      "canvas": true,
+      "cold": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4399/",
+            "mimeType": "text/html",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1120,
+            "finishedAt": 2
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-BKx3ofj5.js",
+            "mimeType": "text/javascript",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 257151,
+            "finishedAt": 15
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-D8yi6uRR.css",
+            "mimeType": "text/css",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 9727,
+            "finishedAt": 17
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 13138,
+            "finishedAt": 58
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/plate.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 155483,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/plate-backdrop.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 213407,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 27036,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 29576,
+            "finishedAt": 59
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/cuts.json",
+            "mimeType": "application/json",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1134,
+            "finishedAt": 117
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 29604,
+            "finishedAt": 120
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 23080,
+            "finishedAt": 120
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 33804,
+            "finishedAt": 121
+          },
+          {
+            "url": "http://127.0.0.1:4399/favicon.svg",
+            "mimeType": "image/svg+xml",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 576,
+            "finishedAt": 121
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 334,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 14098,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1172,
+            "finishedAt": 135
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1511,
+            "finishedAt": 135
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 11814,
+            "finishedAt": 135
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1126,
+            "finishedAt": 136
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 12156,
+            "finishedAt": 136
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 1475,
+            "finishedAt": 137
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 25156,
+            "finishedAt": 139
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 4559,
+            "finishedAt": 140
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-crowd.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 71948,
+            "finishedAt": 140
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 8121,
+            "finishedAt": 140
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2811,
+            "finishedAt": 140
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 17870,
+            "finishedAt": 141
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 3375,
+            "finishedAt": 141
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 15792,
+            "finishedAt": 142
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 3955,
+            "finishedAt": 142
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 24362,
+            "finishedAt": 143
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 5141,
+            "finishedAt": 143
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 5601,
+            "finishedAt": 144
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 26352,
+            "finishedAt": 144
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 17626,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 2451,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 4967,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 24582,
+            "finishedAt": 145
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 20010,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 4511,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 6311,
+            "finishedAt": 146
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": false,
+            "status": 200,
+            "bytes": 5489,
+            "finishedAt": 147
+          }
+        ],
+        "introDoneAt": 2695,
+        "idleAt": 147,
+        "gateAt": 147,
+        "toGate": {
+          "html": {
+            "bytes": 1120,
+            "count": 1
+          },
+          "js": {
+            "bytes": 257151,
+            "count": 1
+          },
+          "css": {
+            "bytes": 9727,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 818254,
+            "count": 36
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 1139512
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 1120,
+            "count": 1
+          },
+          "js": {
+            "bytes": 257151,
+            "count": 1
+          },
+          "css": {
+            "bytes": 9727,
+            "count": 1
+          },
+          "font": {
+            "bytes": 52684,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 818254,
+            "count": 36
+          },
+          "other": {
+            "bytes": 576,
+            "count": 1
+          },
+          "total": 1139512
+        },
+        "cached": 0
+      },
+      "warm": {
+        "responses": [
+          {
+            "url": "http://127.0.0.1:4399/",
+            "mimeType": "text/html",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 1
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-D8yi6uRR.css",
+            "mimeType": "text/css",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 7
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/index-BKx3ofj5.js",
+            "mimeType": "text/javascript",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 11
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/plate.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/plate-backdrop.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 44
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 45
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/cormorant-garamond-latin-400-normal-B-1hWBU7.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 67
+          },
+          {
+            "url": "http://127.0.0.1:4399/assets/geist-latin-wght-normal-BgDaEnEv.woff2",
+            "mimeType": "font/woff2",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 71
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/cuts.json",
+            "mimeType": "application/json",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 96
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 98
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 120
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 120
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 123
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 124
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 124
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 125
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-cut-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 125
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/masks-flame-1.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 127
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-crowd.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 129
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 129
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig7.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 129
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 129
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig9.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig0.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig2.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 130
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig3.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig8.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig12.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 131
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig4.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/map-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig6.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig5.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          },
+          {
+            "url": "http://127.0.0.1:4399/dore/1024/depth-fig10.webp",
+            "mimeType": "image/webp",
+            "fromCache": true,
+            "status": 200,
+            "bytes": 0,
+            "finishedAt": 132
+          }
+        ],
+        "introDoneAt": 240,
+        "idleAt": 132,
+        "gateAt": 132,
+        "toGate": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 1
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 36
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "toIdle": {
+          "html": {
+            "bytes": 0,
+            "count": 1
+          },
+          "js": {
+            "bytes": 0,
+            "count": 1
+          },
+          "css": {
+            "bytes": 0,
+            "count": 1
+          },
+          "font": {
+            "bytes": 0,
+            "count": 2
+          },
+          "texture": {
+            "bytes": 0,
+            "count": 36
+          },
+          "other": {
+            "bytes": 0,
+            "count": 0
+          },
+          "total": 0
+        },
+        "cached": 41
+      }
+    }
+  }
+}

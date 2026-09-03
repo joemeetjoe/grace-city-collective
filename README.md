@@ -15,15 +15,21 @@ pnpm dev      # Vite dev server
 pnpm test     # Vitest
 pnpm lint     # ESLint
 pnpm build    # tsc + Vite → dist/
+pnpm budget   # static byte budget over dist/ (tools/perf/budget.json)
 ```
 
-Vite 8, React 19, TypeScript, Tailwind 4, three.js, gsap.
+Vite 8, React 19, TypeScript, Tailwind 4, three.js, gsap. CI
+(`.github/workflows/ci.yml`) runs lint, test, build and the byte budget on
+every pull request and push to main.
 
 ## Base path
 
-Runtime asset URLs (`public/dore/…`) go through `assetUrl()` in
-`src/lib/assetBase.ts`, which prefixes `import.meta.env.BASE_URL`. That value
-comes from `BASE_PATH` at build time and defaults to `/`:
+Every asset URL is resolved by Vite at build time: the Doré textures are
+imported through `import.meta.glob` in `src/device/textureManifest.ts`, so
+each lands in `dist/assets/` under a content-hashed name with `base` already
+prefixed (`textureUrl(width, file)` returns the finished URL). Nothing is
+requested by a hand-built path. `base` comes from `BASE_PATH` at build time
+and defaults to `/`:
 
 ```bash
 pnpm build                                  # CloudFront / custom domain:  /
@@ -69,12 +75,13 @@ Until those exist the workflow exits early with a notice rather than failing.
 2. Assume the deploy role via OIDC (`aws-actions/configure-aws-credentials`);
    no access keys are stored anywhere.
 3. `aws s3 sync dist/assets/` with `--delete` and
-   `Cache-Control: public, max-age=31536000, immutable` — filenames are
-   content-hashed, so they can be cached forever.
-4. `aws s3 sync dist/` for everything else (`dore/` textures, icons) with
-   `max-age=86400`, excluding `assets/` and `index.html`.
+   `Cache-Control: public, max-age=31536000, immutable` — bundles, fonts and
+   the Doré textures are all content-hashed, so they can be cached forever.
+4. `aws s3 sync dist/` for the few unfingerprinted files left (favicon,
+   apple-touch-icon) with `max-age=86400`, excluding `assets/` and
+   `index.html`.
 5. `aws s3 cp dist/index.html` last, with `max-age=60, must-revalidate`.
-6. `aws cloudfront create-invalidation --paths / /index.html /dore/*`.
+6. `aws cloudfront create-invalidation --paths / /index.html`.
 
 CloudFront uses the managed `CachingOptimized` policy, which honours those
 per-object headers and serves brotli/gzip. Check in the Network panel:
@@ -96,12 +103,16 @@ service, shows the actual number after the first week.
 
 ## Recut toolchain
 
-The Doré layers in `public/dore/` are produced by the standalone
+The Doré layers in `src/assets/dore/` are produced by the standalone
 [dore-recut](https://github.com/joemeetjoe/dore-recut) project (formerly
 `tools/recut` here; SAM segmentation, depth baking, SDXL inpainting of
 occluded figures). Regenerate there and copy its `out/dore/{2048,1024}`
-into `public/dore/`. `tools/shots/cdp-shot.mjs` takes
-headless-Chrome screenshots of the scene at scroll waypoints, and
+over `src/assets/dore/{2048,1024}` — same file names, no renaming; the
+build fingerprints them. `tools/shots/cdp-shot.mjs` takes
+headless-Chrome screenshots of the scene at scroll waypoints,
+`tools/perf/transfer.mjs` (`pnpm transfer`) measures the bytes each tier
+sends over the wire on a cold and a warm load (baseline and how to read it
+in [`docs/perf/`](docs/perf/README.md)), and
 `tools/shots/mobile-check.mjs` is the standing mobile guard: it loads the
 built site at the four phone/tablet sizes (375×667, 390×844, 430×932 at
 dpr 3; 768×1024 at dpr 2) and fails if the page is ever wider than the

@@ -7,12 +7,12 @@ import { describe, expect, it } from "vitest";
 import { FRONT_CUTS_AT, STACK, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
 import { bindFlames, parseCuts } from "@/engine/parallaxRelief";
 
-const cuts = parseCuts(JSON.parse(readFileSync(resolve(__dirname, "../../public/dore/2048/cuts.json"), "utf8")));
+const cuts = parseCuts(JSON.parse(readFileSync(resolve(__dirname, "../assets/dore/2048/cuts.json"), "utf8")));
 const byName = (name: string) => cuts.find((c) => c.name === name)!;
 
 /**
  * Each cut's mask bounding box in plate fractions [u0, v0, u1, v1] — the
- * figures read off public/dore/1024/masks-cut-*.webp at a threshold of
+ * figures read off src/assets/dore/1024/masks-cut-*.webp at a threshold of
  * 64/255, the flames off the 2048 tier's masks-flame-*.webp at 16/255
  * (measured with PIL + numpy in the dore-recut venv; tools/shots/mask-bboxes.json holds
  * the same numbers). Two cuts whose boxes are disjoint share no pixels.

@@ -1,11 +1,11 @@
-import type { RefObject } from "react";
+import { lazy, Suspense, type RefObject } from "react";
 
 import CornerOrnaments, {
   FRAME_ARM,
   FRAME_INSET,
 } from "@/ui/CornerOrnaments";
 import { STACK } from "@/theme/layerSplit";
-import { PentecostParallax, StaticPoster, vignetteCss } from "@/engine";
+import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
 import Beliefs from "@/features/longform/Beliefs";
 import Devotions from "@/features/longform/Devotions";
@@ -16,6 +16,15 @@ import { IntroPendingContext, ReducedMotionContext } from "./contexts";
 import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
 import type { Tier } from "@/device/tier";
+
+/**
+ * the scene, from the engine chunk: requested the moment the page mounts (not
+ * after the splash — the scene is the hero), module-preloaded from the HTML
+ * so it downloads alongside the shell, behind the splash and the G-mark
+ * trace. Nothing renders in its place while it is in flight: the splash
+ * covers, and the poster path never asks for it (#98).
+ */
+const PentecostParallax = lazy(loadParallax);
 
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */
 const FRAME_CORNERS =
@@ -88,13 +97,15 @@ export default function HomePage({
           {fallback ? (
             <StaticPoster onReady={markReady} />
           ) : (
-            <PentecostParallax
-              layerSpread={1.25}
-              tier={tier}
-              frontCanvas={frontCanvasRef}
-              onReady={markReady}
-              onProgress={reportProgress}
-            />
+            <Suspense fallback={null}>
+              <PentecostParallax
+                layerSpread={1.25}
+                tier={tier}
+                frontCanvas={frontCanvasRef}
+                onReady={markReady}
+                onProgress={reportProgress}
+              />
+            </Suspense>
           )}
           {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}
           <div

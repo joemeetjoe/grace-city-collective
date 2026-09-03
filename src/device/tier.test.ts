@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TIERS, TIER_LOW_DPR, TIER_NARROW_WIDTH, readTierInputs, textureDir, tierFor } from "./tier";
+import { TIERS, TIER_LOW_DPR, TIER_NARROW_WIDTH, readTierInputs, tierFor, tierWidth } from "./tier";
 
 describe("tierFor", () => {
   it("a wide, sharp, unmetered viewport gets the desktop tier", () => {
@@ -26,10 +26,10 @@ describe("tierFor", () => {
 
 });
 
-describe("textureDir", () => {
+describe("tierWidth", () => {
   it("resolves each tier to its own texture set", () => {
-    expect(textureDir(TIERS.desktop)).toBe("dore/2048");
-    expect(textureDir(TIERS.mobile)).toBe("dore/1024");
+    expect(tierWidth(TIERS.desktop)).toBe(2048);
+    expect(tierWidth(TIERS.mobile)).toBe(1024);
   });
 });
 
