@@ -307,7 +307,10 @@ describe("App reduced motion, live (#132)", () => {
     flip(REDUCED_MOTION_QUERY, false);
     await waitFor(() => expect(across).toHaveClass(STATE.lit), { timeout: 3000 });
     await waitFor(() => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""), { timeout: 3000 });
-  });
+    // four 3 s waits on the ornaments' own timers and a 1.5 s wait proving
+    // nothing lights while at rest: 13.5 s at worst, past vitest's 5 s default
+    // on a slower runner even though it settles in about 3 s here.
+  }, 20_000);
 });
 
 describe("App splash headline (#107)", () => {
