@@ -1,8 +1,8 @@
 import type { JSX, SVGProps } from "react";
 
-import { COLLECTIVE_BASELINE, COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
+import { COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
 
-export { COLLECTIVE_BASELINE, COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX };
+export { COLLECTIVE_STROKE, COLLECTIVE_VIEWBOX };
 
 /**
  * "Collective" as a single hand-authored roundhand stroke. The path is drawn

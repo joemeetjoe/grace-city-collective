@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TIERS } from "./tier";
 import { injectPreloads, preloadLinks } from "./preload";
 import { textureUrl, type TextureFormat } from "./textureManifest";
+import { TIER_PRELOAD_ATTR } from "./tierPreload";
 
 const fake = (width: number, file: string, format?: TextureFormat) =>
   `/assets/${width}-${format?.avif && file.startsWith("map-") ? file.replace(/\.webp$/, ".avif") : file}`;
@@ -70,5 +71,18 @@ describe("injectPreloads", () => {
     expect(links).toHaveLength(5);
     expect(links.every((l) => l.getAttribute("href")?.endsWith(".avif") && l.getAttribute("type") === "image/avif")).toBe(true);
     expect(links[0].getAttribute("href")).toBe(textureUrl(1024, "plate-backdrop.webp", AVIF));
+  });
+
+  it("stays out of a head the build's inline script has already filled (its links carry the same mark)", () => {
+    const doc = document.implementation.createHTMLDocument();
+    const fromHead = doc.createElement("link");
+    fromHead.rel = "preload";
+    fromHead.href = "/assets/plate-backdrop-abc.avif";
+    fromHead.setAttribute(TIER_PRELOAD_ATTR, "");
+    doc.head.appendChild(fromHead);
+    injectPreloads(TIERS.desktop, AVIF, doc);
+    expect(Array.from(doc.head.querySelectorAll("link")).map((l) => l.getAttribute("href"))).toEqual([
+      "/assets/plate-backdrop-abc.avif",
+    ]);
   });
 });

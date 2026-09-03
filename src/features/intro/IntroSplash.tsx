@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import GMark from "@/marks/GMark";
 import { gsap } from "@/lib/gsap";
 import { introGateOpen } from "./gate";
 import { buildHandoff, navMark } from "./handoff";
 import { listenForSkip, markIntroPlayed } from "./introPolicy";
 import { parallaxLayers } from "./restingFade";
-import { SPLASH_MARK_SIZE } from "./splashMark";
-import { removeStaticSplash } from "./staticSplashDom";
+import { SPLASH_HEADLINE_ATTR } from "./staticSplash";
+import { adoptStaticSplash } from "./staticSplashDom";
 import { createTrace, holdClockThroughStalls, type Trace } from "./trace";
 
 
@@ -33,9 +32,13 @@ export type IntroSplashProps = {
  * or the visitor skipped), the rule closes and the mark travels into the nav
  * while the scene fades up underneath.
  *
- * The same splash stands in index.html as static markup (staticSplash.ts)
- * from the page's first paint; this one takes its place, same geometry, the
- * moment it is committed.
+ * The splash stands in index.html as static markup (staticSplash.ts) from
+ * the page's first paint, the hero headline included, set in the hero's box
+ * by the inline head style (#107). This component renders nothing of its
+ * own: it adopts that markup the moment it is committed and animates it —
+ * the headline is the page's LCP element, and an h1 re-created at mount
+ * would be a new, later candidate. At the handoff the hero's own h1, hidden
+ * while the intro is pending, takes over without a pixel moving.
  */
 export default function IntroSplash({
   ready,
@@ -45,7 +48,7 @@ export default function IntroSplash({
   build = createTrace,
   handoff = buildHandoff,
 }: IntroSplashProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
   const traceRef = useRef<Trace | null>(null);
   const handoffRef = useRef<gsap.core.Timeline | null>(null);
   const [minimumElapsed, setMinimumElapsed] = useState(false);
@@ -56,9 +59,15 @@ export default function IntroSplash({
     onDoneRef.current = onDone;
   }, [onDone]);
 
-  // before paint, so no frame shows neither splash
+  // before paint: the static splash is the splash, taken over as it stands;
+  // it goes when this unmounts, in the same commit that shows the hero's h1
   useLayoutEffect(() => {
-    removeStaticSplash();
+    const root = adoptStaticSplash();
+    rootRef.current = root;
+    return () => {
+      root.remove();
+      rootRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -124,6 +133,7 @@ export default function IntroSplash({
       root,
       mark: root.querySelector<SVGSVGElement>("[data-g-mark]"),
       rule: root.querySelector<SVGPathElement>("[data-g-mark-rule]"),
+      headline: root.querySelector<HTMLElement>(`[${SPLASH_HEADLINE_ATTR}]`),
       nav: navMark(),
       parallax: parallaxLayers(),
       onComplete: () => onDoneRef.current(),
@@ -132,14 +142,6 @@ export default function IntroSplash({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, minimumElapsed, skipped, gestured]);
 
-  return (
-    <div
-      ref={rootRef}
-      data-intro-splash=""
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink"
-      aria-hidden
-    >
-      <GMark size={SPLASH_MARK_SIZE} ruled decorative className="text-cream" />
-    </div>
-  );
+  // the splash is the adopted static markup; nothing to render here
+  return null;
 }

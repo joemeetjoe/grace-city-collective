@@ -71,9 +71,11 @@ export default function App() {
       />
 
       {/* everything that scrolls lives in the smoother's content; the wrapper
-          becomes its fixed viewport when the smoother is on (src/scroll) */}
+          becomes its fixed viewport when the smoother is on (src/scroll).
+          The content is the page's <main>: the one landmark, so every
+          section sits inside a landmark (axe region, App.a11y.test.tsx) */}
       <div id="smooth-wrapper" ref={wrapperRef}>
-        <div id="smooth-content" ref={contentRef}>
+        <main id="smooth-content" ref={contentRef}>
           <HomePage
             intro={intro}
             reducedMotion={reducedMotion}
@@ -88,7 +90,7 @@ export default function App() {
             frameRef={frameRef}
             sceneRef={sceneRef}
           />
-        </div>
+        </main>
       </div>
     </div>
   );

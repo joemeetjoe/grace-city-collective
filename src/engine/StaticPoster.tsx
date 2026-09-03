@@ -1,21 +1,50 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import poster1280 from "@/assets/dore-pentecost-dark-1280.webp";
-import poster2048 from "@/assets/dore-pentecost-dark-2048.webp";
+import avif640 from "@/assets/poster/dore-pentecost-dark-640.avif";
+import avif960 from "@/assets/poster/dore-pentecost-dark-960.avif";
+import avif1280 from "@/assets/poster/dore-pentecost-dark-1280.avif";
+import avif1600 from "@/assets/poster/dore-pentecost-dark-1600.avif";
+import avif2048 from "@/assets/poster/dore-pentecost-dark-2048.avif";
+import webp640 from "@/assets/poster/dore-pentecost-dark-640.webp";
+import webp960 from "@/assets/poster/dore-pentecost-dark-960.webp";
+import webp1280 from "@/assets/poster/dore-pentecost-dark-1280.webp";
+import webp1600 from "@/assets/poster/dore-pentecost-dark-1600.webp";
+import webp2048 from "@/assets/poster/dore-pentecost-dark-2048.webp";
+import { readSaveData } from "@/device/tier";
 import { cn } from "@/lib/utils";
+
+import { POSTER_RUNGS, type PosterFormat } from "./posterLadder";
+
+/**
+ * The ladder's files by format and rung, in POSTER_RUNGS order
+ * (tools/poster/ladder.py writes them; Vite fingerprints them).
+ */
+const LADDER: Record<PosterFormat, readonly string[]> = {
+  avif: [avif640, avif960, avif1280, avif1600, avif2048],
+  webp: [webp640, webp960, webp1280, webp1600, webp2048],
+};
+
+/** the ladder as a srcset: every rung ascending with its `w` descriptor */
+const srcSetOf = (format: PosterFormat) => LADDER[format].map((url, i) => `${url} ${POSTER_RUNGS[i]}w`).join(", ");
 
 export type StaticPosterProps = {
   /** the poster is on screen (or has failed — either way the page may open); fires once */
   onReady?: () => void;
   className?: string;
+  /** the Save-Data hint; read from `navigator.connection` at mount when not given */
+  saveData?: boolean;
 };
 
 /**
  * The still that stands in for the WebGL scene (see scene/fallback.ts): the
- * darkened Doré plate covering the scene container. The intro and the
- * reduced-motion fade wait on the same ready signal the parallax gives.
+ * darkened Doré plate covering the scene container, offered as a width
+ * ladder in AVIF then WebP (posterLadder.ts) that the browser picks from by
+ * viewport width and DPR. Under Save-Data only the smallest rung is offered,
+ * whatever the display. The intro and the reduced-motion fade wait on the
+ * same ready signal the parallax gives.
  */
-export default function StaticPoster({ onReady, className }: StaticPosterProps) {
+export default function StaticPoster({ onReady, className, saveData }: StaticPosterProps) {
+  const [reduceData] = useState(() => saveData ?? readSaveData());
   const imgRef = useRef<HTMLImageElement>(null);
   const onReadyRef = useRef(onReady);
   useEffect(() => {
@@ -36,10 +65,18 @@ export default function StaticPoster({ onReady, className }: StaticPosterProps) 
 
   return (
     <picture data-poster="" className={cn("absolute inset-0 block", className)}>
-      <source type="image/webp" srcSet={`${poster1280} 1280w, ${poster2048} 2048w`} sizes="100vw" />
+      {reduceData ? (
+        // a fixed candidate, no descriptors: nothing for the browser to upgrade to
+        <source type="image/avif" srcSet={LADDER.avif[0]} />
+      ) : (
+        <>
+          <source type="image/avif" srcSet={srcSetOf("avif")} sizes="100vw" />
+          <source type="image/webp" srcSet={srcSetOf("webp")} sizes="100vw" />
+        </>
+      )}
       <img
         ref={imgRef}
-        src={poster1280}
+        src={LADDER.webp[0]}
         alt=""
         decoding="async"
         fetchPriority="high"

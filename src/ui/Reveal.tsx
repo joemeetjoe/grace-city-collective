@@ -10,14 +10,10 @@ import {
 
 import { useInViewOnce } from "./useInViewOnce";
 
-/** how long a child takes to rise, in ms, and the wait between one child and the next */
-export const REVEAL_MS = 1100;
+/** the wait between one child and the next, in ms; the rise itself (1100ms,
+    18px), the hairline's draw (900ms) and its lead over the words (200ms) live
+    in the [data-reveal] rules of src/index.css */
 export const REVEAL_STAGGER_MS = 110;
-/** how far below its place a waiting child sits, in px */
-export const REVEAL_RISE_PX = 18;
-/** how long a child's top hairline takes to draw, and how far ahead of its words it starts */
-export const RULE_DRAW_MS = 900;
-export const RULE_LEAD_MS = 200;
 /** how much of the block must be on screen before it comes in */
 export const REVEAL_THRESHOLD = 0.2;
 

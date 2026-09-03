@@ -87,7 +87,7 @@ export default function Lockup({
       <span
         data-lockup="wordmark"
         ref={wordmarkRef}
-        className="basis-full [font-family:'Cormorant_Garamond',Georgia,serif] leading-[0.9] tracking-[-0.01em] whitespace-nowrap lg:basis-auto"
+        className="basis-full font-serif leading-[0.9] tracking-[-0.01em] whitespace-nowrap lg:basis-auto"
       >
         Grace City
       </span>

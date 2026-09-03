@@ -36,12 +36,14 @@ export function cappedThreshold(
  * from the start wherever IntersectionObserver is missing (jsdom, very old
  * engines), so nothing waits on a signal that never comes. With `enabled`
  * false the observer is never made and the hook reports true, for a caller
- * driving the state itself.
+ * driving the state itself. `rootMargin` is IntersectionObserver's: a
+ * positive bottom margin sees the element coming before it is on screen.
  */
 export function useInViewOnce(
   ref: RefObject<Element | null>,
   threshold = 0,
   enabled = true,
+  rootMargin = "0px",
 ): boolean {
   const [seen, setSeen] = useState(
     () => !enabled || typeof IntersectionObserver === "undefined",
@@ -62,10 +64,11 @@ export function useInViewOnce(
           window.innerHeight,
           el.getBoundingClientRect().height,
         ),
+        rootMargin,
       },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [ref, threshold, enabled, seen]);
+  }, [ref, threshold, enabled, seen, rootMargin]);
   return seen;
 }

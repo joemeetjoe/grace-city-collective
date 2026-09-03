@@ -1,7 +1,8 @@
 name: CI
 
-# Lint, test, build and the static byte budget (tools/perf/budget.mjs) on
-# every pull request and push to main. deploy.yml and pages.yml build again
+# Lint, test, build, the static byte budget (tools/perf/budget.mjs) and
+# Lighthouse CI (tools/perf/lighthouse.mjs) on every pull request and push
+# to main. deploy.yml and pages.yml build again
 # on their own; this is the gate.
 on:
   pull_request:
@@ -29,6 +30,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm knip
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm test:build
       - run: pnpm budget
+      # Lighthouse CI on both profiles (tools/perf/lighthouse.mjs, #112): the
+      # reports upload whether the run is green or red so a failure has a
+      # trace to read.
+      - run: pnpm lighthouse
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          if-no-files-found: warn

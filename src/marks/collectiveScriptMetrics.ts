@@ -4,10 +4,8 @@
  * (react-refresh); CollectiveScript re-exports them.
  */
 
-/** user-space box of the artwork; the lockup uses the ratio to size it */
+/** user-space box of the artwork (its baseline sits at y 204); the lockup uses the ratio to size it */
 export const COLLECTIVE_VIEWBOX = { width: 899, height: 216 } as const;
-/** baseline y in user space, so the lockup can align it under the wordmark */
-export const COLLECTIVE_BASELINE = 204;
 /** stroke width in user units — must be the same in the resting lockup and the intro so nothing jumps when drawing completes */
 export const COLLECTIVE_STROKE = 8;
 

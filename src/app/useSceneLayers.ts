@@ -11,7 +11,8 @@ export type SceneLayers = {
   frontCanvasRef: RefObject<HTMLCanvasElement | null>;
   sceneRef: RefObject<HTMLDivElement | null>;
   wrapperRef: RefObject<HTMLDivElement | null>;
-  contentRef: RefObject<HTMLDivElement | null>;
+  /** the smoother's content, the page's <main> */
+  contentRef: RefObject<HTMLElement | null>;
   held: RefObject<HTMLDivElement | null>[];
   sceneInView: boolean;
   frameHeight: number | null;
@@ -29,7 +30,7 @@ export function useSceneLayers(): SceneLayers {
   const frontCanvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLElement>(null);
   // the smoother's sticky stand-ins — every sticky layer of the scene, so the
   // front canvas and the frame ride with the back canvas; a stable list so
   // the hook runs once

@@ -12,12 +12,21 @@ type Callback = (entries: Partial<IntersectionObserverEntry>[]) => void;
 
 /** a stand-in observer the test can fire by hand */
 function stubObserver() {
-  const observers: { cb: Callback; el: Element | null; threshold: unknown }[] =
-    [];
+  const observers: {
+    cb: Callback;
+    el: Element | null;
+    threshold: unknown;
+    rootMargin: unknown;
+  }[] = [];
   class IO {
     record: (typeof observers)[number];
     constructor(cb: Callback, init?: IntersectionObserverInit) {
-      this.record = { cb, el: null, threshold: init?.threshold };
+      this.record = {
+        cb,
+        el: null,
+        threshold: init?.threshold,
+        rootMargin: init?.rootMargin,
+      };
       observers.push(this.record);
     }
     observe(el: Element) {
@@ -33,9 +42,17 @@ function stubObserver() {
   return observers;
 }
 
-function Probe({ threshold, height }: { threshold: number; height: number }) {
+function Probe({
+  threshold,
+  height,
+  rootMargin,
+}: {
+  threshold: number;
+  height: number;
+  rootMargin?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
-  const seen = useInViewOnce(ref, threshold);
+  const seen = useInViewOnce(ref, threshold, true, rootMargin);
   return (
     <div
       ref={(el) => {
@@ -100,6 +117,14 @@ describe("useInViewOnce", () => {
     vi.stubGlobal("innerHeight", 844);
     render(<Probe threshold={0.2} height={300} />);
     expect(observers[0].threshold).toBe(0.2);
+  });
+
+  it("watches the plain viewport unless given a margin, which widens (or narrows) it", () => {
+    const observers = stubObserver();
+    render(<Probe threshold={0} height={300} />);
+    expect(observers[0].rootMargin).toBe("0px");
+    render(<Probe threshold={0} height={300} rootMargin="0px 0px 200% 0px" />);
+    expect(observers[1].rootMargin).toBe("0px 0px 200% 0px");
   });
 
   it("is false until seen, then true for good", () => {

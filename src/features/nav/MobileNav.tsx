@@ -11,7 +11,7 @@ export const CLOSE_LABEL = "Close menu";
 /** the mark's height: the same G as the xl corner's, so the intro's traveller lands on one size everywhere */
 export const MARK_SIZE = 40;
 
-const serif = "[font-family:'Cormorant_Garamond',Georgia,serif]";
+const serif = "font-serif";
 const pill = `${BUTTON_CORNERS} px-[22px] py-[13px] text-[11px] uppercase tracking-[0.18em] transition-colors`;
 /** the mark's seat: the same padding in the bar and the sheet, so it never jumps when the sheet opens */
 const seat = `${BUTTON_CORNERS} inline-flex p-1.5 text-cream`;
@@ -64,7 +64,7 @@ export default function MobileNav({
           <Dialog.Content
             data-nav-sheet=""
             aria-describedby={undefined}
-            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-300"
+            className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ink font-sans text-cream outline-none data-[state=closed]:animate-sheet-out data-[state=open]:animate-sheet-in"
           >
             <Dialog.Title className="sr-only">{MENU_LABEL}</Dialog.Title>
 

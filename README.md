@@ -117,4 +117,6 @@ in [`docs/perf/`](docs/perf/README.md)), and
 built site at the four phone/tablet sizes (375×667, 390×844, 430×932 at
 dpr 3; 768×1024 at dpr 2) and fails if the page is ever wider than the
 viewport at the top or at any section's top (`node tools/shots/mobile-check.mjs
---url http://localhost:4173/`).
+--url http://localhost:4173/`). [`tools/README.md`](tools/README.md) indexes
+these scripts and the build-output tests under `tests/build/`, which read
+`dist/` after a build (`pnpm test:build`).

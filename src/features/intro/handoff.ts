@@ -1,4 +1,5 @@
 import { STACK } from "@/theme/layerSplit";
+import { HERO_SETTLE_PX } from "./heroRise";
 import { TRACE_FINISH_SECONDS } from "./trace";
 import { gsap } from "@/lib/gsap";
 
@@ -22,6 +23,8 @@ export type HandoffContext = {
   mark: SVGSVGElement | null;
   /** the mark's red rule, which closes before anything moves */
   rule: SVGPathElement | null;
+  /** the hero headline as the splash carries it (#107), lifted a hair as the ink dissolves; the hero's own settles from there */
+  headline?: HTMLElement | null;
   /** the nav's own G mark, if rendered at this breakpoint */
   nav: SVGSVGElement | null;
   /** the scene's canvases (`[data-parallax]`, `[data-parallax-front]`), whichever are rendered */
@@ -52,9 +55,11 @@ export function navMark(root: ParentNode = document): SVGSVGElement | null {
  * The handoff: the rule closes its last corner, then the big mark shrinks
  * into the nav's mark while the splash's ink fades out and the parallax
  * fades up underneath. Where the nav has no mark (below xl), the mark fades
- * in place instead.
+ * in place instead. The headline, if the splash carries it, lifts
+ * HERO_SETTLE_PX over the same beat, so the hero's lines have that much to
+ * settle when they take its place (heroRise.ts).
  */
-export function buildHandoff({ root, mark, rule, nav, parallax, onComplete }: HandoffContext): gsap.core.Timeline {
+export function buildHandoff({ root, mark, rule, headline, nav, parallax, onComplete }: HandoffContext): gsap.core.Timeline {
   const tl = gsap.timeline({ onComplete });
 
   if (rule) {
@@ -85,6 +90,9 @@ export function buildHandoff({ root, mark, rule, nav, parallax, onComplete }: Ha
     tl.to(mark, { opacity: 0, duration: HANDOFF_SECONDS / 2, ease: "power2.out" }, at);
   }
 
+  if (headline) {
+    tl.to(headline, { y: -HERO_SETTLE_PX, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, at);
+  }
   // the ink, not the root's opacity: the mark must stay solid while it travels
   tl.to(root, { backgroundColor: INK_CLEAR, duration: HANDOFF_SECONDS, ease: HANDOFF_EASE }, at);
   if (parallax && (!Array.isArray(parallax) || parallax.length)) {

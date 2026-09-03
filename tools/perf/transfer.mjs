@@ -20,9 +20,16 @@
  *        [--no-avif]          (force the AVIF probe's verdict to false before the page
  *                              runs, so the WebP fallback path is measured in the same
  *                              Chrome: src/device/avif.ts reads the preset verdict)
+ *        [--reduced-motion]   (emulate prefers-reduced-motion: reduce, so the still
+ *                              poster loads in place of the scene: the fallback path)
+ *        [--scroll-to faq]    (after idle, scroll to #faq and record what follows as a
+ *                              third phase, `late`: the long-form chunk arriving, #111)
  *
  * Desktop is 1600×900 at DPR 2, mobile 390×844 at DPR 1.5 with the mobile
- * flag, so tierFor() picks the 2048 and 1024 tiers respectively.
+ * flag, so tierFor() picks the 2048 and 1024 tiers respectively. Against a
+ * dist/ (not --url) each cold load is also read back through the Vite
+ * manifest: which tier its textures came from, and whether the first
+ * texture request went out before the shell chunk had landed (#113).
  */
 import { spawn, execSync } from "node:child_process";
 import { createServer } from "node:http";
@@ -31,7 +38,7 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { brotliCompressSync } from "node:zlib";
 
-import { formatTable, formatTimeline, summarise } from "./transferReport.mjs";
+import { PROFILES, formatTable, formatTimeline, kb, posterResponses, scrollToScript, summarise, textureStartVsShell, textureTiers } from "./transferReport.mjs";
 
 const arg = (k, d) => {
   const i = process.argv.indexOf(`--${k}`);
@@ -44,16 +51,13 @@ const idleMs = Number(arg("idle", 1500));
 const jsonOut = arg("json", "");
 const throttleKbps = Number(arg("throttle", 0));
 const timeline = process.argv.includes("--timeline");
+const reducedMotion = process.argv.includes("--reduced-motion");
+const scrollTo = arg("scroll-to", "");
 const tierNames = arg("tiers", "desktop,mobile").split(",").filter(Boolean);
 const noAvif = process.argv.includes("--no-avif");
 // the window property src/device/avif.ts keeps the verdict on (AVIF_VERDICT_KEY)
 const AVIF_VERDICT_KEY = "__gccAvif";
 const chrome = arg("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
-
-const PROFILES = {
-  desktop: { width: 1600, height: 900, dpr: 2, mobile: false },
-  mobile: { width: 390, height: 844, dpr: 1.5, mobile: true },
-};
 
 // ---- a CloudFront-shaped static server for dist/ ----------------------------
 const MIME = {
@@ -147,11 +151,15 @@ function connect(page) {
   return { ws, send, on, evaluate, open };
 }
 
-/** one navigation: every response until the network has been silent for idleMs */
-async function loadOnce({ send, on, evaluate }, url) {
+/**
+ * Every response from now on, stamped in ms from `t0` — the first request
+ * seen, unless one is given (the late phase keeps the cold load's clock) —
+ * until `stop()`. `idle()` is true once nothing is in flight and the
+ * network has been silent for idleMs.
+ */
+function watchNetwork(on, t0 = null) {
   const inflight = new Map(); // requestId → { url, mimeType, fromCache, startedAt }
   const responses = [];
-  let t0 = null;
   let last = Date.now();
   const stamp = (t) => Math.round((t - t0) * 1000);
   const handlers = {
@@ -186,7 +194,20 @@ async function loadOnce({ send, on, evaluate }, url) {
     },
   };
   const offs = Object.entries(handlers).map(([m, fn]) => on(m, fn));
+  return {
+    responses,
+    t0: () => t0,
+    idle: () => inflight.size === 0 && Date.now() - last > idleMs,
+    stop() {
+      for (const off of offs) off();
+      responses.sort((a, b) => a.finishedAt - b.finishedAt);
+    },
+  };
+}
 
+/** one navigation: every response until the network has been silent for idleMs */
+async function loadOnce({ send, evaluate, on }, url) {
+  const net = watchNetwork(on);
   await send("Page.navigate", { url });
   let introDoneAt = null;
   // the splash's G-mark trace begins when IntroSplash mounts over the static splash
@@ -202,16 +223,33 @@ async function loadOnce({ send, on, evaluate }, url) {
     await sleep(100);
     if (traceAt === null) traceAt = await traceBegun();
     if (introDoneAt === null) introDoneAt = await introDone();
-    if (inflight.size === 0 && responses.length && Date.now() - last > idleMs) break;
+    if (net.responses.length && net.idle()) break;
   }
-  for (const off of offs) off();
+  net.stop();
   // the intro outlives the network: note when its splash hands off, for the record
   for (let i = 0; introDoneAt === null && i < 75; i++) {
     await sleep(200);
     introDoneAt = await introDone();
   }
-  responses.sort((a, b) => a.finishedAt - b.finishedAt);
-  return { responses, traceAt, introDoneAt, idleAt: responses.at(-1)?.finishedAt ?? null };
+  const { responses } = net;
+  return { responses, t0: net.t0(), traceAt, introDoneAt, idleAt: responses.at(-1)?.finishedAt ?? null };
+}
+
+/**
+ * The late phase (#111): after the cold load has gone idle and the intro
+ * has handed off, scroll to `#id` and record every response that follows
+ * until the network is silent again — on the cold load's clock, so the
+ * timeline reads straight through. What a reader's scroll fetches that the
+ * first load did not: the long-form chunk.
+ */
+async function scrollOnce({ evaluate, on }, id, t0) {
+  const net = watchNetwork(on, t0);
+  const at = await evaluate(scrollToScript(id));
+  const started = Date.now();
+  while (Date.now() - started < 20_000 && !net.idle()) await sleep(100);
+  net.stop();
+  const { responses } = net;
+  return { id, at, responses, idleAt: responses.at(-1)?.finishedAt ?? null };
 }
 
 /** how many texture responses came in each encoding, and their bytes */
@@ -244,6 +282,9 @@ async function measureTier(name, url, userDataDir) {
     if (noAvif) {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: `window[${JSON.stringify(AVIF_VERDICT_KEY)}] = false;` });
     }
+    if (reducedMotion) {
+      await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    }
     if (throttleKbps) {
       await cdp.send("Network.emulateNetworkConditions", {
         offline: false, latency: 150, downloadThroughput: (throttleKbps * 1000) / 8, uploadThroughput: (throttleKbps * 1000) / 8,
@@ -253,12 +294,16 @@ async function measureTier(name, url, userDataDir) {
     const viewport = await cdp.evaluate("({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio })");
     const canvas = await cdp.evaluate('!!document.querySelector("canvas")');
     const avif = await cdp.evaluate(`Promise.resolve(window[${JSON.stringify(AVIF_VERDICT_KEY)}])`);
+    // what the scroll fetches lands in the cache too: the warm load below is warm for it as well
+    const late = scrollTo ? await scrollOnce(cdp, scrollTo, cold.t0) : null;
     await cdp.send("Page.navigate", { url: "about:blank" });
     await sleep(300);
     const warm = await loadOnce(cdp, url);
     return {
       profile, viewport, canvas, avif, formats: textureFormats(cold.responses),
-      cold: { ...cold, ...summarise(cold.responses) }, warm: { ...warm, ...summarise(warm.responses) },
+      cold: { ...cold, ...summarise(cold.responses), poster: posterResponses(cold.responses) },
+      ...(late ? { late: { ...late, ...summarise(late.responses) } } : {}),
+      warm: { ...warm, ...summarise(warm.responses), poster: posterResponses(warm.responses) },
     };
   } finally {
     cdp.ws.close();
@@ -272,8 +317,11 @@ async function measureTier(name, url, userDataDir) {
 const externalUrl = arg("url", "");
 const server = externalUrl ? null : await serveDist();
 const url = externalUrl || `http://127.0.0.1:${servePort}/`;
+// dist/.vite/manifest.json (build.manifest in vite.config.ts): the tier each hashed texture belongs to, and the shell chunk
+const manifestPath = join(dist, ".vite", "manifest.json");
+const manifest = !externalUrl && existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
 const commit = (() => { try { return execSync("git rev-parse --short HEAD").toString().trim(); } catch { return ""; } })();
-const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, noAvif, tiers: {} };
+const run = { commit, date: new Date().toISOString(), url, idleMs, throttleKbps, noAvif, reducedMotion, scrollTo: scrollTo || null, tiers: {} };
 try {
   for (const name of tierNames) {
     if (!PROFILES[name]) throw new Error(`unknown tier ${name}`);
@@ -284,14 +332,29 @@ try {
       rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
     const t = run.tiers[name];
+    if (manifest) {
+      t.cold.tiers = textureTiers(t.cold.responses, manifest);
+      t.cold.shell = textureStartVsShell(t.cold.responses, manifest["index.html"].file);
+    }
     const formats = Object.entries(t.formats).map(([ext, f]) => `${f.count} ${ext} ${(f.bytes / 1024).toFixed(1)} kB`).join(", ");
     console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, avif ${t.avif}, textures ${formats}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
-    if (timeline) console.log(`${name} cold load, ms from the first request\n${formatTimeline(t.cold.responses, { trace: t.cold.traceAt, gate: t.cold.gateAt })}\n`);
+    console.error(`${name}: dpr ${t.viewport.dpr}, canvas ${t.canvas}, trace ${t.cold.traceAt} ms, gate ${t.cold.gateAt} ms, idle ${t.cold.idleAt} ms, intro done ${t.cold.introDoneAt} ms, warm hits ${t.warm.cached}/${t.warm.responses.length}`);
+    for (const p of t.cold.poster) console.error(`${name}: poster ${p.rung}w ${p.format} ${kb(p.bytes)} kB  ${p.path}`);
+    if (t.cold.tiers) {
+      const { firstTextureAt, shellDoneAt, beforeShell } = t.cold.shell;
+      console.error(`${name}: texture tiers [${t.cold.tiers.join(", ")}], first texture request at ${firstTextureAt} ms, shell landed at ${shellDoneAt} ms: ${beforeShell ? "textures started before the shell finished" : "textures waited on the shell"}`);
+    }
+    if (t.late) console.error(`${name}: late, after scrolling to #${t.late.id} at ${t.late.at} ms: ${t.late.responses.length} responses, ${kb(t.late.toIdle.total)} kB`);
+    if (timeline) {
+      const marks = { trace: t.cold.traceAt, gate: t.cold.gateAt, ...(t.late ? { [`scroll #${t.late.id}`]: t.late.at } : {}) };
+      const responses = [...t.cold.responses, ...(t.late?.responses ?? [])];
+      console.log(`${name} cold load, ms from the first request\n${formatTimeline(responses, marks)}\n`);
+    }
   }
 } finally {
   server?.close();
 }
-console.log(`commit ${commit}  ${run.url}\n`);
+console.log(`commit ${commit}  ${run.url}${reducedMotion ? "  (prefers-reduced-motion: reduce — the poster path)" : ""}\n`);
 console.log(formatTable(run.tiers));
 if (jsonOut) {
   writeFileSync(jsonOut, JSON.stringify(run, null, 2) + "\n");

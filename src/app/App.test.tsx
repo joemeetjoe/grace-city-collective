@@ -1,9 +1,11 @@
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { gsap } from "@/lib/gsap";
 import { STACK } from "@/theme/layerSplit";
 import { sectionIds, site } from "@/content/site";
+import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
 import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
 import { BELOW_LG_QUERY } from "@/layout/breakpoint";
@@ -31,6 +33,20 @@ vi.mock("@/scroll/useSmoothScroll", async (orig) => {
     ) => {
       smoother.calls.push({ held: refs.held });
       return mod.useSmoothScroll(refs, reduced);
+    },
+  };
+});
+
+// the handoff runs for real; its timelines are kept so a test can scrub one to its end
+const handoffs = vi.hoisted(() => ({ list: [] as gsap.core.Timeline[] }));
+vi.mock("@/features/intro/handoff", async (orig) => {
+  const mod = await orig<typeof import("@/features/intro/handoff")>();
+  return {
+    ...mod,
+    buildHandoff: (ctx: Parameters<typeof mod.buildHandoff>[0]) => {
+      const tl = mod.buildHandoff(ctx);
+      handoffs.list.push(tl);
+      return tl;
     },
   };
 });
@@ -88,8 +104,19 @@ const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
 /** a phone or tablet: the viewport is below Tailwind's lg */
 const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
+/**
+ * the long-form wrapper once its chunk has filled the sections in (#111):
+ * jsdom has no IntersectionObserver, so the gate asks for it at mount and
+ * the words follow a tick later
+ */
+async function longformIn(container: HTMLElement): Promise<Element> {
+  await waitFor(() => expect(container.querySelector("[data-longform] footer")).not.toBeNull());
+  return container.querySelector("[data-longform]")!;
+}
+
 beforeEach(() => {
   engineLoads.count = 0;
+  handoffs.list.length = 0;
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
@@ -103,14 +130,14 @@ afterEach(() => {
 describe("App intro policy", () => {
   it("a fresh session renders the splash over the hero", () => {
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).not.toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).not.toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
   });
 
   it("a session that already played the intro renders no splash", () => {
     window.sessionStorage.setItem(INTRO_PLAYED_KEY, "1");
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
   });
 
@@ -124,13 +151,49 @@ describe("App intro policy", () => {
   it("reduced motion renders no splash and fades the parallax up from ink", () => {
     preferReducedMotion();
     const { container } = render(<App />);
-    expect(container.querySelector("[data-intro-splash]")).toBeNull();
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
     expect(container.querySelector("[data-hero-lockup]")).not.toBeNull();
     const parallax = container.querySelector("[data-parallax]") as HTMLElement;
     // the fade starts on ink the moment the page mounts
     expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
     // nothing played, so a later full-motion session still gets the intro
     expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+});
+
+describe("App splash headline (#107)", () => {
+  it("stands the hero headline on the splash, keeps the hero's own hidden until the handoff, then one h1 settles into place", async () => {
+    const heading = site.scene[0].heading;
+    const { container } = render(<App />);
+    const root = container.firstElementChild!;
+    // while the intro is pending index.css hides [data-hero-headline] under this attribute; the splash's h1 is the one that paints
+    expect(root.hasAttribute("data-intro-pending")).toBe(true);
+    const splashH1 = document.querySelector("[data-intro-splash] h1")!;
+    expect(splashH1.textContent).toBe(heading);
+    expect(container.querySelector("[data-hero-headline]")!.textContent).toBe(heading);
+    // a gesture skips the floor; the stub scene is ready, so the handoff builds
+    fireEvent.pointerDown(window);
+    await waitFor(() => expect(handoffs.list).toHaveLength(1));
+    act(() => {
+      handoffs.list[0].progress(1);
+    });
+    // landed: the splash is gone, its headline lifted the settle's distance on the way
+    expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(root.hasAttribute("data-intro-pending")).toBe(false);
+    // exactly one h1 carries the heading now: the hero's, shown
+    const h1s = [...document.querySelectorAll("h1")].filter((h) => h.textContent === heading);
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0].hasAttribute("data-hero-headline")).toBe(true);
+    // and its lines settle from where the splash's headline was, never from invisible
+    const lines = h1s[0].querySelectorAll(".hero-line");
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(gsap.getProperty(line, "opacity")).toBe(1);
+      const y = gsap.getProperty(line, "y") as number;
+      expect(y).toBeLessThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(-HERO_SETTLE_PX);
+    }
   });
 });
 
@@ -191,7 +254,7 @@ describe("App hero seal", () => {
     const hero = container.querySelector("[data-hero-lockup]")!;
     expect(hero.querySelector('[data-lockup="seal"]')).not.toBeNull();
     expect(hero.querySelector("button")).toBeNull();
-    expect(container.querySelector("[data-intro-splash] button")).toBeNull();
+    expect(document.querySelector("[data-intro-splash] button")).toBeNull();
   });
 });
 
@@ -238,7 +301,7 @@ describe("App static fallback", () => {
     const { container } = render(<FreshApp />);
     expect(container.querySelector("[data-parallax-stub]")).toBeNull();
     const img = container.querySelector("[data-parallax] [data-poster] img")!;
-    expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-1280/);
+    expect(img.getAttribute("src")).toMatch(/dore-pentecost-dark-640\b.*\.webp$/);
     await new Promise((r) => setTimeout(r, 20));
     expect(engineLoads.count).toBe(0);
   });
@@ -277,6 +340,71 @@ describe("App content", () => {
       const id = a.getAttribute("href")!.slice(1);
       expect(container.querySelector(`#${id}`), `#${id}`).not.toBeNull();
     }
+  });
+});
+
+describe("App nav jumps to the long-form (#111)", () => {
+  /** an observer that never fires: the in-view trigger stays quiet, so only a jump can ask for the chunk */
+  function quietObserver() {
+    class IO {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", IO);
+  }
+
+  // the gate's store remembers the page's one request: a fresh module graph
+  // per test, with the scroll driver installed on the same graph the app reads
+  const freshPage = async () => {
+    vi.resetModules();
+    const [{ default: FreshApp }, position] = await Promise.all([import("./App"), import("@/scroll/position")]);
+    return { FreshApp, installScrollDriver: position.installScrollDriver };
+  };
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a nav link to a long-form section asks for the chunk and lands once its words have mounted", async () => {
+    quietObserver();
+    const { FreshApp, installScrollDriver } = await freshPage();
+    const { container } = render(<FreshApp />);
+    const faq = container.querySelector("#faq")!;
+    expect(faq).not.toBeNull();
+    expect(faq.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("#faq dl")).toBeNull();
+    let wordsAtLanding: Element | null = null;
+    const driver: ScrollDriver = {
+      scrollTop: () => 0,
+      scrollTo: vi.fn(() => {
+        wordsAtLanding = container.querySelector("#faq dl");
+      }),
+    };
+    installScrollDriver(driver);
+    fireEvent.click(container.querySelector("nav a[href='#faq']")!);
+    // not yet: the chunk is in flight
+    expect(driver.scrollTo).not.toHaveBeenCalled();
+    await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledTimes(1));
+    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
+    expect(wordsAtLanding).not.toBeNull();
+    // the same section element, now full: nothing the nav or the watch holds went stale
+    expect(container.querySelector("#faq")).toBe(faq);
+    expect(faq.getAttribute("aria-busy")).toBeNull();
+    installScrollDriver(null);
+  });
+
+  it("a nav link to a scene stop goes at once, whatever the chunk is doing", async () => {
+    quietObserver();
+    const { FreshApp, installScrollDriver } = await freshPage();
+    const { container } = render(<FreshApp />);
+    const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    installScrollDriver(driver);
+    fireEvent.click(container.querySelector("nav a[href='#give']")!);
+    expect(driver.scrollTo).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("#faq dl")).toBeNull();
+    installScrollDriver(null);
   });
 });
 
@@ -462,7 +590,7 @@ describe("App section markers", () => {
     expect(rail.querySelector("[aria-current='location']")).not.toBeNull();
   });
 
-  it("the rail sits outside the smoother's content, and its dots jump through the driver", () => {
+  it("the rail sits outside the smoother's content, and its dots jump through the driver", async () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
     const { container } = render(<App />);
     const rail = container.querySelector("[data-dot-rail]")!;
@@ -471,7 +599,8 @@ describe("App section markers", () => {
     );
     installScrollDriver(driver);
     fireEvent.click(rail.querySelector("a[href='#faq']")!);
-    expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
+    // a long-form dot waits for the chunk (App nav jumps, below); at once once it is in
+    await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true));
   });
 });
 
@@ -491,9 +620,9 @@ describe("App page structure", () => {
     ]);
   });
 
-  it("the long-form lists reveal per item, the list itself plain (#58)", () => {
+  it("the long-form lists reveal per item, the list itself plain (#58)", async () => {
     const { container } = render(<App />);
-    const longform = container.querySelector("[data-longform]")!;
+    const longform = await longformIn(container);
     const lists = [
       ["#devotions ol", site.devotions.length],
       ["#beliefs ul", site.beliefPosture.length],
@@ -516,10 +645,9 @@ describe("App page structure", () => {
       expect(item.hasAttribute("data-reveal")).toBe(true);
   });
 
-  it("the long-form sections carry no screen label and sit after the scene", () => {
+  it("the long-form sections carry no screen label and sit after the scene", async () => {
     const { container } = render(<App />);
-    const longform = container.querySelector("[data-longform]")!;
-    expect(longform).not.toBeNull();
+    const longform = await longformIn(container);
     expect(longform.querySelector("[data-screen-label]")).toBeNull();
     for (const id of ["devotions", "beliefs", "faq", "messages"]) {
       expect(longform.querySelector(`#${id}`), `#${id}`).not.toBeNull();
@@ -550,7 +678,7 @@ describe("App page structure", () => {
     // position: fixed does not survive a transformed ancestor
     expect(wrapper.contains(container.querySelector("nav"))).toBe(false);
     expect(
-      wrapper.contains(container.querySelector("[data-intro-splash]")),
+      wrapper.contains(document.querySelector("[data-intro-splash]")),
     ).toBe(false);
   });
 });
@@ -630,8 +758,9 @@ describe("App canvas split", () => {
     expect(layers[2].querySelector("[data-scene-frame]")).not.toBeNull();
   });
 
-  it("the frame's square corners carry red brackets; each long-form section opens with a rule", () => {
+  it("the frame's square corners carry red brackets; each long-form section opens with a rule", async () => {
     const { container } = render(<App />);
+    await longformIn(container);
     const corners = container.querySelector(
       "[data-scene-frame] ~ [data-corner-ornaments]",
     )!;
