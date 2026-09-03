@@ -14,3 +14,7 @@ export { vignetteCss } from "./vignette";
 
 /** the engine chunk: three.js and PentecostParallax, loaded on demand */
 export const loadParallax = () => import("./PentecostParallax");
+
+/** the same scene under react-three-fiber (#134 spike, VITE_R3F=1): a chunk of its own, never emitted by the default build */
+export const loadParallaxFiber = () => import("./fiber/ParallaxFiber");
+export type { ParallaxFiberProps } from "./fiber/ParallaxFiber";

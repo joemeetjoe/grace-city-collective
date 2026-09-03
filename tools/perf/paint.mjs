@@ -12,6 +12,7 @@
  * Usage:
  *   pnpm build && pnpm paint [--dist dist] [--ceiling 400]
  *        [--serve-port 4441] [--port 9341] [--profiles desktop,mobile]
+ *        [--chrome <path>]   (else CHROME_PATH, else the usual installs)
  */
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
@@ -19,7 +20,7 @@ import { createReadStream, existsSync, mkdtempSync, readFileSync, rmSync, statSy
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 
-import { PAINT_PROFILES, checkPaint, formatPaintTable } from "./paintReport.mjs";
+import { PAINT_PROFILES, checkPaint, formatPaintTable, pickChrome } from "./paintReport.mjs";
 import { PROFILES } from "./transferReport.mjs";
 
 const arg = (k, d) => {
@@ -31,7 +32,7 @@ const servePort = Number(arg("serve-port", 4441));
 const cdpPort = Number(arg("port", 9341));
 const ceilings = { lcpMs: Number(arg("ceiling", 400)) };
 const names = arg("profiles", PAINT_PROFILES.join(",")).split(",").filter(Boolean);
-const chrome = arg("chrome", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome");
+const chrome = pickChrome({ flag: arg("chrome", ""), env: process.env.CHROME_PATH, exists: existsSync });
 
 const MIME = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css",
@@ -136,7 +137,15 @@ async function measure(name, url) {
     const exited = new Promise((r) => proc.once("exit", r));
     proc.kill();
     await exited;
-    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    // Chrome keeps writing its profile for a moment after it exits, and on a
+    // CI runner the directory can still be filling when this runs. The
+    // measurement is already taken, so a profile left in /tmp is not worth
+    // failing a gate over.
+    try {
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch {
+      /* the runner's tmp is swept between jobs */
+    }
   }
 }
 

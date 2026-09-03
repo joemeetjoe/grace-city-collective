@@ -37,6 +37,14 @@ const FILES: Source[] = sources(SRC).map((path) => {
 /** #124's files */
 const INTRO = /^features\/intro\//;
 
+/**
+ * The #134 react-three-fiber spike. It is measured, not shipped — the
+ * default build drops it and the recommendation is no-go — and it was
+ * written before these conventions existed. If the migration is ever taken,
+ * lift this and hold its files to the same rules as the rest.
+ */
+const FIBER = /^engine\/fiber\//;
+
 /** a line of code, not a comment */
 const isCode = (line: string) => !/^\s*(\/\/|\*|\/\*)/.test(line);
 
@@ -128,9 +136,11 @@ describe("exports in src", () => {
     expect(matches(/\bcreateContext[<(]/, (file) => !file.endsWith(".tsx"))).toEqual([]);
   });
 
-  it("carry no eslint-disable: react-refresh has nothing to say once a .tsx exports components only (the intro waits for #124)", () => {
+  it("carry no eslint-disable: react-refresh has nothing to say once a .tsx exports components only (the intro waits for #124, the spike is exempt)", () => {
     const offenders = FILES.flatMap(({ file, lines }) =>
-      INTRO.test(file) ? [] : lines.flatMap((line, i) => (/eslint-disable/.test(line) ? [`${file}:${i + 1}`] : [])),
+      INTRO.test(file) || FIBER.test(file)
+        ? []
+        : lines.flatMap((line, i) => (/eslint-disable/.test(line) ? [`${file}:${i + 1}`] : [])),
     );
     expect(offenders).toEqual([]);
   });
@@ -140,7 +150,7 @@ describe("exports in src", () => {
     const EXCEPTIONS = new Set(["state/appStore.ts"]);
     const offenders = FILES.flatMap(({ file, text }) => {
       const hooks = [...text.matchAll(/^export (?:function|const) (use[A-Z]\w*)/gm)].map((m) => m[1]);
-      if (hooks.length === 0 || EXCEPTIONS.has(file)) return [];
+      if (hooks.length === 0 || EXCEPTIONS.has(file) || FIBER.test(file)) return [];
       const name = file.replace(/^.*\//, "").replace(/\.tsx?$/, "");
       return hooks.length === 1 && hooks[0] === name ? [] : [`${file} exports ${hooks.join(", ")}`];
     });

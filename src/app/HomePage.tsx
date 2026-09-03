@@ -1,9 +1,9 @@
-import { lazy, Suspense, useMemo, useState, type RefObject } from "react";
+import { lazy, Suspense, useMemo, useState, type ComponentType, type RefObject } from "react";
 
 import CornerOrnaments from "@/ui/CornerOrnaments";
 import { FRAME_ARM, FRAME_BRACKET_INSET } from "@/ui/cornerOrnamentsMetrics";
 import { STACK } from "@/theme/classes";
-import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
+import { loadParallax, loadParallaxFiber, StaticPoster, vignetteCss, type ParallaxFiberProps } from "@/engine";
 import { useSite } from "@/content/useSite";
 import LongformGate from "@/features/longform/LongformGate";
 import HeroLockup from "@/features/stops/HeroLockup";
@@ -23,7 +23,13 @@ import SceneBoundary from "./SceneBoundary";
  * trace. Nothing renders in its place while it is in flight: the splash
  * covers, and the poster path never asks for it (#98).
  */
-const PentecostParallax = lazy(loadParallax);
+const PentecostParallax = lazy(
+  // the react-three-fiber spike (#134): under VITE_R3F=1 the same seam mounts
+  // the scene through fiber, with the same props (the front canvas included:
+  // fiber's front root is created on it). `__R3F__` is a build literal, so
+  // the default build keeps this line as it was and emits no fiber chunk
+  (__R3F__ ? loadParallaxFiber : loadParallax) as () => Promise<{ default: ComponentType<ParallaxFiberProps> }>,
+);
 
 /** the scene frame's corners: the G mark's box, rounded top-left and bottom-right only */
 const FRAME_CORNERS =

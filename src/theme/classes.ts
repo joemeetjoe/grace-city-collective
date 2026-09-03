@@ -40,9 +40,9 @@ export const gutter = "px-gutter";
 export const STACK = {
   back: "z-0",
   between: "z-10",
-  handoff: "z-[15]",
   front: "z-[25]",
   copy: "z-30",
+  handoff: "z-[35]",
   nav: "z-40",
   cover: "z-50",
 } as const;

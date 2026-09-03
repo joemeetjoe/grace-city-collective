@@ -98,11 +98,11 @@ describe("the nav's arrival", () => {
 
 describe("stacking order", () => {
   it("runs back canvas, between, handoff, front canvas, copy, nav, cover, each a class whose number the script can read", () => {
-    const steps = [STACK.back, STACK.between, STACK.handoff, STACK.front, STACK.copy, STACK.nav, STACK.cover];
+    const steps = [STACK.back, STACK.between, STACK.front, STACK.copy, STACK.handoff, STACK.nav, STACK.cover];
     const levels = steps.map(stackLevel);
     expect(levels).toEqual([...levels].sort((a, b) => a - b));
     expect(new Set(levels).size).toBe(levels.length);
-    expect(stackLevel(STACK.handoff)).toBe(15);
+    expect(stackLevel(STACK.handoff)).toBe(35);
     expect(stackLevel(STACK.cover)).toBe(50);
     expect(between).toBe(`relative ${STACK.between}`);
   });
