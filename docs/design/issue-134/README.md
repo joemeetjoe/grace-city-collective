@@ -1,5 +1,10 @@
 # #134 — react-three-fiber under the extracted engine: spike and recommendation
 
+> **Superseded in part.** [`decision.md`](decision.md) (2026-09-03) re-measured
+> this on the finished tree and reads the current docs: a deep port costs
+> **+39 kB brotli, not +84** — most of the difference is `<Canvas>` defeating
+> three.js tree-shaking. The conclusion holds; the numbers below do not.
+
 **Decision: pending human decision. Recommendation: no-go** (keep the vanilla
 engine behind `createParallaxScene()`), for the three reasons at the end.
 
