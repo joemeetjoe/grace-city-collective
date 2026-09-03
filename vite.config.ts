@@ -4,7 +4,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { STATIC_SPLASH_ATTR, staticSplashTags } from './src/features/intro/staticSplash'
-import { engineChunkHref } from './src/device/enginePreload'
+import { ENGINE_ENTRY_FIBER, engineChunkHref } from './src/device/enginePreload'
 import { tierPreloadScript, tierTextureAssets, withHeadScript } from './src/device/tierPreload'
 import { asyncCssLinks } from './src/lib/asyncCss'
 import { fontPreloadTags } from './src/lib/fontPreload'
@@ -31,6 +31,15 @@ const base = process.env.BASE_PATH || '/'
 // card reads (canonical, Open Graph, sitemap, robots): SITE_ORIGIN at build,
 // the production domain by default.
 const origin = process.env.SITE_ORIGIN || 'https://gracecitycollective.com'
+
+// The react-three-fiber spike (#134): VITE_R3F=1 builds the engine chunk from
+// src/engine/fiber/ instead of PentecostParallax.tsx, VITE_R3F_DREI=1 with
+// drei's hooks on top. Both are literals at build (`define`), so the default
+// build folds the spike's branches away and emits no fiber chunk at all.
+const r3f = process.env.VITE_R3F === '1'
+const r3fDrei = r3f && process.env.VITE_R3F_DREI === '1'
+// VITE_R3F_CANVAS=0: no <Canvas> component at all, both roots through createRoot() on plain canvases
+const r3fCanvas = r3f && process.env.VITE_R3F_CANVAS !== '0'
 
 // The intro splash as static markup in index.html, on screen from the first
 // paint rather than once the bundle has mounted (src/features/intro/staticSplash.ts).
@@ -59,7 +68,7 @@ const headPreload = (): Plugin => ({
     order: 'post',
     handler(html, ctx) {
       if (!ctx.filename.endsWith('index.html') || !ctx.bundle) return
-      const script = tierPreloadScript({ ...tierTextureAssets(ctx.bundle, base), engineHref: engineChunkHref(ctx.bundle, base) })
+      const script = tierPreloadScript({ ...tierTextureAssets(ctx.bundle, base), engineHref: engineChunkHref(ctx.bundle, base, r3f ? ENGINE_ENTRY_FIBER : undefined) })
       return { html: withHeadScript(html, script), tags: [] }
     },
   },
@@ -130,6 +139,7 @@ const fontPreload = (): Plugin => ({
 
 export default defineConfig({
   base,
+  define: { __R3F__: JSON.stringify(r3f), __R3F_DREI__: JSON.stringify(r3fDrei), __R3F_CANVAS__: JSON.stringify(r3fCanvas) },
   plugins: [react(), tailwindcss(), staticSplash(), surfaces(), headPreload(), fontPreload(), asyncCss()],
   resolve: {
     alias: {

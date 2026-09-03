@@ -45,14 +45,17 @@ export function enginePreloadScript(href: string): string {
 /** the module whose dynamic import (engine/index.ts) produces the engine chunk */
 export const ENGINE_ENTRY = "/src/engine/PentecostParallax.tsx";
 
+/** the same under the react-three-fiber spike (#134, VITE_R3F=1) */
+export const ENGINE_ENTRY_FIBER = "/src/engine/fiber/ParallaxFiber.tsx";
+
 /** what the build hands transformIndexHtml: the emitted chunks, keyed by file name */
 export type BundleLike = Record<string, { type: string; fileName: string; facadeModuleId?: string | null }>;
 
 /** the engine chunk's url under the site's base; an error if the build emitted none */
-export function engineChunkHref(bundle: BundleLike, base: string): string {
+export function engineChunkHref(bundle: BundleLike, base: string, entry: string = ENGINE_ENTRY): string {
   const chunk = Object.values(bundle).find(
-    (c) => c.type === "chunk" && c.facadeModuleId?.endsWith(ENGINE_ENTRY),
+    (c) => c.type === "chunk" && c.facadeModuleId?.endsWith(entry),
   );
-  if (!chunk) throw new Error(`no engine chunk in the build (dynamic import of ${ENGINE_ENTRY})`);
+  if (!chunk) throw new Error(`no engine chunk in the build (dynamic import of ${entry})`);
   return `${base.replace(/\/+$/, "")}/${chunk.fileName}`;
 }
