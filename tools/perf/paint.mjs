@@ -137,7 +137,15 @@ async function measure(name, url) {
     const exited = new Promise((r) => proc.once("exit", r));
     proc.kill();
     await exited;
-    rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    // Chrome keeps writing its profile for a moment after it exits, and on a
+    // CI runner the directory can still be filling when this runs. The
+    // measurement is already taken, so a profile left in /tmp is not worth
+    // failing a gate over.
+    try {
+      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch {
+      /* the runner's tmp is swept between jobs */
+    }
   }
 }
 
