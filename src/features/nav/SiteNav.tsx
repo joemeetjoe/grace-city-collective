@@ -1,12 +1,12 @@
-import { jump, jumpTo } from "@/app/jump";
-import { GHOST_BUTTON, SEAL_BUTTON } from "@/app/styles";
-import { GLASS, GLASS_CORNERS } from "@/theme/glass";
 import GMark from "@/marks/GMark";
-import { FOCUS_RING } from "@/theme/interact";
-import { STACK } from "@/theme/layerSplit";
+import { GLASS, GLASS_CORNERS, NAV_REVEAL, STACK, button, navMark } from "@/theme/classes";
+import { NAV_MARK_SIZE } from "@/theme/measures";
 import MobileNav from "./MobileNav";
+import { HOME_LABEL } from "./mobileNavLabels";
 import NavLinks from "./NavLinks";
-import { useSite } from "@/content/useSite";
+import { useNavigate } from "./useNavigate";
+import { useAppStore } from "@/state/appStore";
+import { revealRef } from "@/state/revealTargets";
 
 /**
  * The nav outlives the scene: fixed for the whole page, zero height so it
@@ -14,75 +14,60 @@ import { useSite } from "@/content/useSite";
  * ancestor would turn fixed into absolute. Over the scene the bar itself
  * carries no backdrop-filter at all (not even blur(0)): a backdrop-filter
  * makes the bar a backdrop root, and the links' frosted glass inside it
- * could then blur only the bar's own contents, never the scene
+ * could then blur only the bar's own contents, never the scene. Once the
+ * scene has scrolled away (the store's `sceneInView`) the nav sits over
+ * long-form text, so it takes an ink backdrop to stay legible.
  */
-export default function SiteNav({
-  activeId,
-  sceneInView,
-}: {
-  /** which section is under the viewport's midpoint, lighting its link */
-  activeId: string | null;
-  /** once the scene has scrolled away the nav sits over long-form text, so it
-      takes an ink backdrop to stay legible */
-  sceneInView: boolean;
-}) {
-  const site = useSite();
+export default function SiteNav() {
+  const sceneInView = useAppStore((s) => s.sceneInView);
+  const navigate = useNavigate();
   return (
     <div
       className={`pointer-events-none fixed inset-x-0 top-0 ${STACK.nav} h-0`}
     >
       <nav
-        className={`pointer-events-auto absolute inset-x-[clamp(9px,2.4vw,26px)] top-[clamp(9px,2.4vw,26px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] transition-colors duration-500 ${
+        aria-label="Primary"
+        className={`pointer-events-auto absolute inset-x-frame-inset top-frame-inset flex flex-wrap items-center justify-between gap-x-6 gap-y-3.5 rounded-[clamp(16px,2.4vw,26px)] px-[clamp(16px,3.4vw,34px)] py-[clamp(16px,2.6vw,26px)] motion-safe:transition-colors duration-500 ${
           sceneInView ? "" : "bg-ink/90 backdrop-blur-sm"
         }`}
       >
         {/* below xl: the seal mark and a Menu that opens the sheet. Nine links,
             the mark and both buttons need ~1240px for one row, so the full
             desktop nav waits for the xl breakpoint */}
-        <MobileNav
-          className="xl:hidden"
-          activeId={activeId}
-          onNavigate={jumpTo}
-        />
+        <MobileNav className="xl:hidden" />
         {/* from xl up, on the left: the two calls to action, stood in from
             the frame's rounded corner so they do not crowd the curve */}
-        <div
-          data-nav-actions=""
-          className="hidden items-center gap-3 xl:ml-[clamp(24px,3.2vw,56px)] xl:flex"
-        >
+        <div className="hidden items-center gap-3 xl:ml-[clamp(24px,3.2vw,56px)] xl:flex">
           <a
+            ref={revealRef("action")}
             href="#give"
-            data-nav-reveal=""
-            onClick={(e) => jump(e, "give")}
-            className={`${GHOST_BUTTON} px-[22px] py-[11px] text-[11px] uppercase tracking-[0.18em]`}
+            onClick={navigate("give")}
+            className={`${NAV_REVEAL} ${button({ intent: "ghost", size: "navHollow" })}`}
           >
             Give
           </a>
           <a
+            ref={revealRef("action")}
             href="#visit"
-            data-nav-reveal=""
-            onClick={(e) => jump(e, "visit")}
-            className={`${SEAL_BUTTON} px-6 py-3 text-[11px] font-bold uppercase tracking-[0.18em]`}
+            onClick={navigate("visit")}
+            className={`${NAV_REVEAL} ${button({ intent: "seal", size: "nav" })}`}
           >
             Join Sunday
           </a>
         </div>
-        {/* from xl up, on the right: the section links, then the G mark at the corner */}
+        {/* from xl up, on the right: the section links, then the G mark at the corner —
+            a link named Home (#130): the mark inside is decoration to it */}
         <div className="hidden items-center gap-[clamp(14px,1.8vw,26px)] xl:flex">
           {/* the words alone take the glass; the mark beside them stays bare */}
-          <NavLinks
-            items={site.nav}
-            activeId={activeId}
-            onNavigate={jumpTo}
-            className={`${GLASS} ${GLASS_CORNERS} px-[clamp(10px,1.2vw,18px)] py-2`}
-          />
+          <NavLinks className={`${GLASS} ${GLASS_CORNERS} px-[clamp(10px,1.2vw,18px)] py-2`} />
           <a
+            ref={revealRef("mark")}
             href="#hero"
-            data-nav-mark=""
-            onClick={(e) => jump(e, "hero")}
-            className={`inline-flex rounded-sm text-cream transition-opacity duration-300 hover:opacity-80 ${FOCUS_RING}`}
+            onClick={navigate("hero")}
+            aria-label={HOME_LABEL}
+            className={navMark({ seat: "corner" })}
           >
-            <GMark size={40} ruled />
+            <GMark size={NAV_MARK_SIZE} ruled decorative />
           </a>
         </div>
       </nav>

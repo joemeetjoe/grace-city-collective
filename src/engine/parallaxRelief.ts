@@ -149,7 +149,7 @@ export function displaceLocal(
 }
 
 /** the luminance band a flame's alpha ramps over: below is wall, above is tongue */
-export const FLAME_KEY: [number, number] = [0.16, 0.44];
+const FLAME_KEY: [number, number] = [0.16, 0.44];
 
 function smoothstep(e0: number, e1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));

@@ -1,5 +1,10 @@
+/** The resting lockup's font size on one line, lg and up — the hero's wordmark, which renders it at this default. */
+export const LOCKUP_SIZE = "clamp(30px,7.2vw,108px)";
+/** The resting lockup's font size stacked, below lg: room for the script under it, never taller than the headline. */
+export const LOCKUP_SIZE_STACKED = "clamp(34px,6.4vw,72px)";
+
 /** Below this computed height "Collective" is dropped from the resting lockup. */
-export const SCRIPT_MIN_PX = 18;
+const SCRIPT_MIN_PX = 18;
 
 /** Height of the "Collective" script line as a fraction of the wordmark's font size. */
 export const SCRIPT_EM = 0.55;
@@ -17,7 +22,7 @@ export const STACKED_SCRIPT_EM = 0.72;
 export const STACKED_SEAL_EM = 0.4;
 
 /** How far the script's box is nudged below the baseline so its pen line sits on it (Lockup's translate-y class). */
-export const SCRIPT_NUDGE_EM = 0.03;
+const SCRIPT_NUDGE_EM = 0.03;
 
 /**
  * Vertical shift (em, positive down) that puts a baseline-aligned seal's

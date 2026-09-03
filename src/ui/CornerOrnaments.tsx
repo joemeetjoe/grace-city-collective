@@ -1,9 +1,11 @@
-import type { CSSProperties } from "react";
+import { memo, useMemo, type CSSProperties, type Ref } from "react";
 
-import OrnateRule from "./OrnateRule";
+import OrnateRule, { type RuleEnds } from "./OrnateRule";
+import { BRACKET_ENTER_OFFSET, BRACKET_ENTER_SCALE, COPY_ARM } from "./cornerOrnamentsMetrics";
+import { BRACKET_STAGGER_MS, ENTER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
-export type CornerOrnamentsProps = {
+type CornerOrnamentsProps = {
   /** an arm's length */
   arm?: string;
   /** how far inside the box's edges the arms sit (negative: outside) */
@@ -14,52 +16,85 @@ export type CornerOrnamentsProps = {
    */
   shown?: boolean;
   className?: string;
+  ref?: Ref<HTMLDivElement>;
 };
 
-/** the scene frame's brackets: inside the cream line, long arms */
-export const FRAME_ARM = "clamp(72px,9vw,150px)";
-export const FRAME_INSET = "calc(clamp(9px,2.4vw,26px) + 12px)";
+/** the entrance (ENTER_MS, one arm a beat after the last: BRACKET_STAGGER_MS) on the site's ease, only where motion is welcome */
+const ENTER = "motion-safe:transition-[opacity,transform] motion-safe:ease-site";
+const ARM_CLASS = cn("absolute", ENTER);
 
-/** a copy block's brackets: at the block's padding edge, shorter arms */
-export const COPY_ARM = "clamp(44px,5.5vw,90px)";
+/** an arm, settled once: which corner it sits at, which way it runs, and its entrance */
+type Arm = {
+  /** the edge it runs along: names the arm */
+  id: "top" | "right" | "bottom" | "left";
+  ends: RuleEnds;
+  vertical: boolean;
+  /** the corner's two edges, which take the inset */
+  edges: readonly ["top" | "bottom", "left" | "right"];
+  /** the dimension that takes the arm's length */
+  span: "width" | "height";
+  /** its beat in the entrance */
+  order: number;
+  /** the transition, and where the arm grows from */
+  motion: CSSProperties;
+  /** out past its corner along both axes, shrunk towards the corner and faded */
+  waiting: CSSProperties;
+};
 
-/** how far out from its corner a waiting bracket sits, in px */
-export const ENTER_OFFSET = 56;
-/** how much of its length a waiting arm has grown */
-export const ENTER_SCALE = 0.55;
-/** the entrance, in ms, and the wait between one arm and the next */
-export const ENTER_MS = 1100;
-export const ENTER_STAGGER_MS = 140;
+/** home: in place, at full length */
+const HOME: CSSProperties = { opacity: 1, transform: "translate(0px, 0px) scale(1)" };
 
-const ENTER =
-  "motion-safe:transition-[opacity,transform] motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
-
-/**
- * An arm's resting or waiting style. Waiting, it sits out past its corner
- * along both axes, shrunk towards the corner and faded; shown, it slides
- * home and grows to full length, each arm a beat after the last, its line
- * drawing out from the corner and its lozenges tracing in as it lands
- * (OrnateRule's drawn, on the same beat).
- */
-function entrance(
-  shown: boolean,
+function arm(
+  id: Arm["id"],
+  ends: RuleEnds,
+  vertical: boolean,
+  edges: Arm["edges"],
   dx: number,
   dy: number,
   origin: string,
   order: number,
-): CSSProperties {
-  const motion = {
-    transformOrigin: origin,
-    transitionDuration: `${ENTER_MS}ms`,
-    transitionDelay: `${order * ENTER_STAGGER_MS}ms`,
+): Arm {
+  return {
+    id,
+    ends,
+    vertical,
+    edges,
+    span: vertical ? "height" : "width",
+    order,
+    motion: {
+      transformOrigin: origin,
+      transitionDuration: `${ENTER_MS}ms`,
+      transitionDelay: `${order * BRACKET_STAGGER_MS}ms`,
+    },
+    waiting: { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(${BRACKET_ENTER_SCALE})` },
   };
-  return shown
-    ? { ...motion, opacity: 1, transform: "translate(0px, 0px) scale(1)" }
-    : {
-        ...motion,
-        opacity: 0,
-        transform: `translate(${dx}px, ${dy}px) scale(${ENTER_SCALE})`,
-      };
+}
+
+const o = BRACKET_ENTER_OFFSET;
+/**
+ * The four arms in drawing order. Top-right: one running left along the
+ * top, one running down the side, both growing from the corner. Bottom-left:
+ * one running right along the bottom, one running up the side.
+ */
+const ARMS: readonly Arm[] = [
+  arm("top", "start", false, ["top", "right"], o, -o, "100% 50%", 0),
+  arm("right", "end", true, ["top", "right"], o, -o, "50% 0%", 1),
+  arm("bottom", "end", false, ["bottom", "left"], -o, o, "0% 50%", 2),
+  arm("left", "start", true, ["bottom", "left"], -o, o, "50% 100%", 3),
+];
+
+/**
+ * An arm's style at rest or waiting: at its corner, its length, then the
+ * entrance — shown, it slides home and grows to full length, each arm a
+ * beat after the last, its line drawing out from the corner and its
+ * lozenges tracing in as it lands (OrnateRule's drawn, on the same beat).
+ */
+function armStyle(a: Arm, length: string, inset: string, shown: boolean): CSSProperties {
+  const style: CSSProperties = {};
+  style[a.edges[0]] = inset;
+  style[a.edges[1]] = inset;
+  style[a.span] = length;
+  return Object.assign(style, a.motion, shown ? HOME : a.waiting);
 }
 
 /**
@@ -68,75 +103,29 @@ function entrance(
  * seal's red; the other two corners go bare, like the G mark whose shape
  * the frame follows. Absolute over its box: give the parent `relative`.
  */
-export default function CornerOrnaments({
-  arm = COPY_ARM,
-  inset = "0px",
-  shown = true,
-  className,
-}: CornerOrnamentsProps) {
-  const o = ENTER_OFFSET;
+function CornerOrnaments({ arm: length = COPY_ARM, inset = "0px", shown = true, className, ref }: CornerOrnamentsProps) {
+  const styles = useMemo(() => ARMS.map((a) => armStyle(a, length, inset, shown)), [length, inset, shown]);
   return (
     <div
       aria-hidden
       data-corner-ornaments=""
       data-shown={shown ? "true" : "false"}
-      className={cn(
-        "pointer-events-none absolute inset-0 text-seal",
-        className,
-      )}
+      className={cn("pointer-events-none absolute inset-0 text-seal", className)}
+      ref={ref}
     >
-      {/* top-right: an arm running left along the top, one running down the side; both grow from the corner */}
-      <OrnateRule
-        ends="start"
-        drawn={shown}
-        delay={0 * ENTER_STAGGER_MS}
-        className={cn("absolute", ENTER)}
-        style={{
-          top: inset,
-          right: inset,
-          width: arm,
-          ...entrance(shown, o, -o, "100% 50%", 0),
-        }}
-      />
-      <OrnateRule
-        ends="end"
-        vertical
-        drawn={shown}
-        delay={1 * ENTER_STAGGER_MS}
-        className={cn("absolute", ENTER)}
-        style={{
-          top: inset,
-          right: inset,
-          height: arm,
-          ...entrance(shown, o, -o, "50% 0%", 1),
-        }}
-      />
-      {/* bottom-left: an arm running right along the bottom, one running up the side */}
-      <OrnateRule
-        ends="end"
-        drawn={shown}
-        delay={2 * ENTER_STAGGER_MS}
-        className={cn("absolute", ENTER)}
-        style={{
-          bottom: inset,
-          left: inset,
-          width: arm,
-          ...entrance(shown, -o, o, "0% 50%", 2),
-        }}
-      />
-      <OrnateRule
-        ends="start"
-        vertical
-        drawn={shown}
-        delay={3 * ENTER_STAGGER_MS}
-        className={cn("absolute", ENTER)}
-        style={{
-          bottom: inset,
-          left: inset,
-          height: arm,
-          ...entrance(shown, -o, o, "50% 100%", 3),
-        }}
-      />
+      {ARMS.map((a, i) => (
+        <OrnateRule
+          key={a.id}
+          ends={a.ends}
+          vertical={a.vertical}
+          drawn={shown}
+          delay={a.order * BRACKET_STAGGER_MS}
+          className={ARM_CLASS}
+          style={styles[i]}
+        />
+      ))}
     </div>
   );
 }
+
+export default memo(CornerOrnaments);

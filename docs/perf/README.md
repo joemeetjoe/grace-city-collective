@@ -8,7 +8,7 @@ renders.
 
 ## Baseline
 
-The batch's before/after, per slice, is in [`wire-batch.md`](wire-batch.md)
+The Wire batch's before/after is in [`wire-batch.md`](wire-batch.md) and the Vitals batch's (Lighthouse, both profiles) in [`vitals.md`](vitals.md)
 (`wire-final.json`, `wire-final-webp.json`).
 
 
@@ -76,6 +76,23 @@ next to the page's own marks (`trace`: the splash's G-mark trace began;
 chunk (#98) starts downloading before the shell has finished, and the trace
 is animating before the engine has landed.
 
+`--scroll-to faq` (#111) scrolls to `#faq` once the cold load is idle and
+the intro has handed off, and records what follows as a third phase,
+`late` — a column in the table, `late` in the JSON (with the scroll's
+moment, `at`), and in `--timeline` the responses after a `scroll #faq`
+mark. It is how the long-form chunk is shown to stay home on a first load
+and arrive when the reader heads for it; the warm load that follows has it
+cached too.
+
+`--reduced-motion` emulates `prefers-reduced-motion: reduce`, so each tier
+loads the still poster in place of the scene (the fallback path, shared
+with no-WebGL and Save-Data): the engine chunk and the textures stay home
+and the one poster request shows up per tier on stderr and under
+`poster` in the JSON — the ladder rung and format the viewport picked
+(`src/engine/posterLadder.ts`, #109). Headless Chrome takes AVIF, so the
+desktop profile (1600 at DPR 2) takes the 2048 rung and mobile (390 at
+DPR 1.5) the 640 one; a 3x phone would take 1280.
+
 ## Static budget (Wire 7/8, #100)
 
 `pnpm budget` is the same table without a browser: it reads Vite's manifest
@@ -95,6 +112,11 @@ pnpm budget            # the table, and the exit code
 pnpm budget --files    # every file per tier with its wire kB
 pnpm budget --budget other.json   # check against another budget file
 ```
+
+The `poster` row after each tier's total is the fallback path's one image:
+the ladder rung the tier's transfer profile picks, in AVIF, against its own
+ceiling and outside the scene total, since a load takes one path or the
+other.
 
 To raise a ceiling deliberately, change the number in the same PR as the
 change that needs it and say why in the PR. #102 tightens the ceilings once

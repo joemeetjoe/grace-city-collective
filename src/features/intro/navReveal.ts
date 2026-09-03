@@ -1,19 +1,21 @@
 import { gsap } from "@/lib/gsap";
+import {
+  NAV_REVEAL_ACTIONS_AT,
+  NAV_REVEAL_DOTS_AT,
+  NAV_REVEAL_EASE,
+  NAV_REVEAL_SECONDS,
+  NAV_REVEAL_STAGGER,
+} from "@/theme/motion";
+import { rgba, tokens } from "@/theme/tokens";
+import { revealTargets } from "@/state/revealTargets";
 
-/** how long each piece of the nav takes to arrive, and the beat between one and the next */
-export const NAV_REVEAL_SECONDS = 1.1;
-export const NAV_REVEAL_STAGGER = 0.09;
-/** how far a link drops into place, and how far a dot slides in from the edge, in px */
+/** how far a link drops into place, and how far a dot slides in from the edge, in px (the timings: theme/motion.ts) */
 export const NAV_REVEAL_DROP = 8;
 export const NAV_REVEAL_SLIDE = 8;
-export const NAV_REVEAL_EASE = "power3.out";
-/** when, after the links begin, the calls to action and the dot rail start */
-export const NAV_REVEAL_ACTIONS_AT = 0.4;
-export const NAV_REVEAL_DOTS_AT = 0.25;
 
 /** the ink and cream with no alpha: what the nav's glass fades up from */
-const INK_CLEAR = "rgba(20, 16, 14, 0)";
-const CREAM_CLEAR = "rgba(249, 244, 237, 0)";
+const INK_CLEAR = rgba(tokens.ink, 0);
+const CREAM_CLEAR = rgba(tokens.cream, 0);
 
 export type NavRevealTargets = {
   /** the section links, nearest the mark first */
@@ -27,17 +29,17 @@ export type NavRevealTargets = {
 };
 
 /**
- * Everything the cascade moves, read from the page: the section links are
- * played from the mark outward, so their document order is reversed, as is
- * the calls to action's, which sit to the left of the links.
+ * Everything the cascade moves, as the nav registered it (state/revealTargets.ts):
+ * the section links are played from the mark outward, so their document
+ * order is reversed, as is the calls to action's, which sit to the left of
+ * the links.
  */
-export function collectNavReveal(root: ParentNode = document): NavRevealTargets {
-  const all = (sel: string) => Array.from(root.querySelectorAll(sel));
+export function collectNavReveal(): NavRevealTargets {
   return {
-    links: all("[data-nav-links] [data-nav-reveal]").reverse(),
-    actions: all("[data-nav-actions] [data-nav-reveal]").reverse(),
-    dots: all("[data-dot-rail] [data-nav-reveal]"),
-    glass: all("[data-nav-glass]"),
+    links: revealTargets("link").reverse(),
+    actions: revealTargets("action").reverse(),
+    dots: revealTargets("dot"),
+    glass: revealTargets("glass"),
   };
 }
 

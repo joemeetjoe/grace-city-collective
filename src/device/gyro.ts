@@ -8,8 +8,15 @@ export type GyroPermission = "granted" | "denied" | "unsupported";
 
 type OrientationEventCtor = { requestPermission?: () => Promise<"granted" | "denied"> };
 
+/** a `requestPermission` function on the constructor is iOS's prompt */
+const hasPrompt = (x: unknown): x is Required<OrientationEventCtor> =>
+  typeof x === "function" && "requestPermission" in x && typeof x.requestPermission === "function";
+
+/** `DeviceOrientationEvent` where the host has it with the prompt; undefined elsewhere (Android, desktop, jsdom) */
 function orientationCtor(): OrientationEventCtor | undefined {
-  return (globalThis as { DeviceOrientationEvent?: OrientationEventCtor }).DeviceOrientationEvent;
+  if (!("DeviceOrientationEvent" in globalThis)) return undefined;
+  const ctor: unknown = globalThis.DeviceOrientationEvent;
+  return hasPrompt(ctor) ? ctor : undefined;
 }
 
 /** call `DeviceOrientationEvent.requestPermission` where it exists; a throw reads as denied */
@@ -23,7 +30,7 @@ export async function requestGyro(ctor: OrientationEventCtor | undefined = orien
 }
 
 /** the first of these is the gesture the prompt rides on */
-export const GYRO_GESTURES = ["pointerdown", "touchend"] as const;
+const GYRO_GESTURES = ["pointerdown", "touchend"] as const;
 
 /**
  * Raise the prompt once, on the first touch. Returns the teardown; the first

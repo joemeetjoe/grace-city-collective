@@ -32,7 +32,7 @@ export function sectionProgressAt(centreY: number, rects: readonly SectionRect[]
 
 /**
  * Measure the stack. `scrollY` must be the same scroll the tick will read
- * (getScrollTop): with ScrollSmoother the rects sit where it says, not where
+ * (the page scroll's scrollTop, useSmoothScroll.ts): with ScrollSmoother the rects sit where it says, not where
  * the native scrollbar is, and `rect.top + scrollY` cancels the transform
  * back out to a document-relative top.
  */

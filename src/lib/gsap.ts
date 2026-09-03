@@ -1,11 +1,9 @@
 import { gsap } from "gsap";
-import { Observer } from "gsap/Observer";
-import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SplitText } from "gsap/SplitText";
 
-// Registered once, here. Import gsap from this module everywhere so the
-// plugins are always available and never registered twice.
-gsap.registerPlugin(Observer, ScrollTrigger, ScrollSmoother, SplitText);
-
-export { gsap, Observer, ScrollSmoother, ScrollTrigger, SplitText };
+// The core only. Each plugin is registered by the modules that use it
+// (idempotently — gsap ignores a second registration): ScrollTrigger and
+// ScrollSmoother in scroll/smoother.ts, ScrollTrigger in scroll/sectionWatch.ts
+// and scroll/refresh.ts, Observer and ScrollTrigger in scroll/attachPager.ts,
+// SplitText in features/intro/heroRise.ts. Importing this module registers
+// nothing, so a chunk that never scrolls never pays for the scroll plugins.
+export { gsap };

@@ -1,12 +1,24 @@
-import { gsap, SplitText } from "@/lib/gsap";
+import { SplitText } from "gsap/SplitText";
 
-/** how long each line takes to rise, the beat between lines, and how far a line comes up, in px */
-export const HERO_RISE_SECONDS = 1.2;
-export const HERO_RISE_STAGGER = 0.12;
+import { gsap } from "@/lib/gsap";
+import { HERO_RISE_EASE, HERO_RISE_SECONDS, HERO_RISE_STAGGER, HERO_SETTLE_SECONDS, HERO_SETTLE_STAGGER } from "@/theme/motion";
+
+// the split below; registering again elsewhere is a no-op
+gsap.registerPlugin(SplitText);
+
+/** how far a line comes up, in px (its rise and the beat between lines: theme/motion.ts) */
 export const HERO_RISE_PX = 28;
-export const HERO_RISE_EASE = "power3.out";
-/** the hero headline, marked in App.tsx */
-export const HERO_HEADLINE = "[data-hero-headline]";
+/**
+ * The settle (#107): the headline stood on the splash from the first paint,
+ * so its lines have nowhere to rise from. The handoff lifts the splash's
+ * headline this far while the ink dissolves (handoff.ts), and the hero's
+ * lines, taking its place at the same height, settle back down one after
+ * another — the same lines, never faded (their seconds and beat: theme/motion.ts).
+ */
+export const HERO_SETTLE_PX = 8;
+
+/** how the headline arrives: risen from below, faded, or settled from where the splash left it */
+export type HeroEntrance = "rise" | "settle";
 
 export type HeroRise = {
   /** the lines the headline was split into */
@@ -17,15 +29,24 @@ export type HeroRise = {
   revert: () => void;
 };
 
+/** where the lines start from, and how they move, for each entrance */
+const ENTRANCES: Record<HeroEntrance, gsap.TweenVars> = {
+  rise: { opacity: 0, y: HERO_RISE_PX, duration: HERO_RISE_SECONDS, stagger: HERO_RISE_STAGGER },
+  settle: { y: -HERO_SETTLE_PX, duration: HERO_SETTLE_SECONDS, stagger: HERO_SETTLE_STAGGER },
+};
+
 /**
  * The hero headline's arrival, once the splash has handed off: its lines rise
- * into place one after another, faded, the top line first. The split is kept
- * for the life of the page and redone as the headline rewraps (SplitText's
- * autoSplit), but only the first split is animated — a resize must not replay
- * the entrance. Only ever run after a played intro, so never under reduced
- * motion. Null where there is no headline.
+ * into place one after another, faded, the top line first — or, when the
+ * headline stood on the splash already (splashComposition.ts), settle the
+ * last few px from where the handoff lifted it, top line first, never
+ * faded. The split is kept for the life of the page and redone as the
+ * headline rewraps (SplitText's autoSplit), but only the first split is
+ * animated — a resize must not replay the entrance. Only ever run after a
+ * played intro, so never under reduced motion. Null where there is no
+ * headline (the page registers the hero's, kind "headline": state/revealTargets.ts).
  */
-export function riseHeroHeadline(headline: HTMLElement | null, delay = 0): HeroRise | null {
+export function riseHeroHeadline(headline: HTMLElement | null, delay = 0, entrance: HeroEntrance = "rise"): HeroRise | null {
   if (!headline) return null;
   let tween: gsap.core.Tween | null = null;
   let lines: Element[] = [];
@@ -37,11 +58,8 @@ export function riseHeroHeadline(headline: HTMLElement | null, delay = 0): HeroR
       lines = self.lines;
       if (tween) return;
       tween = gsap.from(self.lines, {
-        opacity: 0,
-        y: HERO_RISE_PX,
-        duration: HERO_RISE_SECONDS,
+        ...ENTRANCES[entrance],
         ease: HERO_RISE_EASE,
-        stagger: HERO_RISE_STAGGER,
         delay,
         clearProps: "opacity,transform",
       });

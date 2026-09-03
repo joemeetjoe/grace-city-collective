@@ -172,7 +172,7 @@ void main(){
   gl_FragColor = vec4(vec3(0.98, 0.90, 0.72) * b * uIntensity * uBeamMax * RAY_LIGHT, 1.0);
 }`;
 
-export type RayFrame = {
+type RayFrame = {
   intensity: number;
   glow: number;
   /** the live spread the cuts use: a plane sits at rest z × zScale */

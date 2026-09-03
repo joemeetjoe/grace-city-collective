@@ -1,11 +1,11 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
 
 import { COLLECTIVE_TAIL, COLLECTIVE_VIEWBOX } from "./collectiveScriptMetrics";
-import Lockup, { HERO_LOCKUP_SIZE, HERO_LOCKUP_STACKED_SIZE } from "./Lockup";
-import { STACKED_SCRIPT_EM, STACKED_SEAL_EM, sealPeriodShiftEm } from "./lockupMetrics";
+import Lockup from "./Lockup";
+import { LOCKUP_SIZE, LOCKUP_SIZE_STACKED, STACKED_SCRIPT_EM, STACKED_SEAL_EM, sealPeriodShiftEm } from "./lockupMetrics";
 
 function stubFontSize(px: number) {
   const real = window.getComputedStyle.bind(window);
@@ -89,11 +89,11 @@ describe("Lockup", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("is one line from lg up, at the hero's one-line size", () => {
+  it("is one line from lg up, at its one-line size", () => {
     stubFontSize(108);
     const root = render(<Lockup />).container.querySelector<HTMLElement>("[data-lockup='']")!;
     expect(root.hasAttribute("data-stacked")).toBe(false);
-    expect(root.style.fontSize.replace(/\s/g, "")).toBe(HERO_LOCKUP_SIZE);
+    expect(root.style.fontSize.replace(/\s/g, "")).toBe(LOCKUP_SIZE);
     expect(root.className).toMatch(/lg:flex-nowrap/);
   });
 });
@@ -131,12 +131,12 @@ describe("Lockup below lg", () => {
     expect(seal.parentElement!.style.transform).toBe(`translateY(${shift}em)`);
   });
 
-  it("defaults to the hero's stacked size, unless told a size", () => {
+  it("defaults to its stacked size, unless told a size", () => {
     belowLg();
     stubFontSize(34);
     expect(
       render(<Lockup />).container.querySelector<HTMLElement>("[data-lockup='']")!.style.fontSize.replace(/\s/g, ""),
-    ).toBe(HERO_LOCKUP_STACKED_SIZE);
+    ).toBe(LOCKUP_SIZE_STACKED);
     cleanup();
     expect(render(<Lockup size="20px" />).container.querySelector<HTMLElement>("[data-lockup='']")!.style.fontSize).toBe(
       "20px",

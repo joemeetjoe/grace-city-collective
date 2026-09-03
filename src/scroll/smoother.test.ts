@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { gsap } from "@/lib/gsap";
 
-import { jumpDuration, settleSmoother, SMOOTH_SECONDS, smoothDriver, smootherOptions, type SmootherLike } from "./smoother";
+import { SMOOTH_SECONDS } from "@/theme/motion";
+import { jumpDuration, settleSmoother, smoothDriver, smootherOptions, type SmootherLike } from "./smoother";
 
 describe("smootherOptions", () => {
   it("is null under reduced motion: native scroll, no smoother", () => {
@@ -101,5 +102,15 @@ describe("settleSmoother", () => {
     const { smoother, set } = fakeAt(1);
     settleSmoother(smoother);
     expect(set.mock.calls[0][0]).toBeLessThan(1);
+  });
+});
+
+describe("createSmoothScroll", () => {
+  it("registers ScrollTrigger and ScrollSmoother itself, on import", async () => {
+    const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+    const { ScrollSmoother } = await import("gsap/ScrollSmoother");
+    const globals = (gsap.core as unknown as { globals: () => Record<string, unknown> }).globals();
+    expect(globals.ScrollTrigger).toBe(ScrollTrigger);
+    expect(globals.ScrollSmoother).toBe(ScrollSmoother);
   });
 });

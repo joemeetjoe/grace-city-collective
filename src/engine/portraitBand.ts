@@ -21,7 +21,7 @@ export type Band = [number, number];
  * dove over its copy. The hero's band (0.58 tall) becomes 0.87, still under
  * the 0.95 cover-fit the solve clamps to, so nothing hits the cap.
  */
-export const PORTRAIT_BAND_FACTOR = 1.5;
+const PORTRAIT_BAND_FACTOR = 1.5;
 
 /** the factor a frame of `aspect` (width / height) widens its bands by */
 export function portraitFactor(aspect: number, factor = PORTRAIT_BAND_FACTOR): number {

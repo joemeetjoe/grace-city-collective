@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import ScriptureRefs, { splitRefs } from "./ScriptureRefs";
+import ScriptureRefs from "./ScriptureRefs";
+import { splitRefs } from "./splitRefs";
 
 describe("splitRefs", () => {
   it("splits passages on semicolons and trims them", () => {

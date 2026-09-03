@@ -1,5 +1,4 @@
 import { act, render } from "@testing-library/react";
-import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,12 +11,21 @@ type Callback = (entries: Partial<IntersectionObserverEntry>[]) => void;
 
 /** a stand-in observer the test can fire by hand */
 function stubObserver() {
-  const observers: { cb: Callback; el: Element | null; threshold: unknown }[] =
-    [];
+  const observers: {
+    cb: Callback;
+    el: Element | null;
+    threshold: unknown;
+    rootMargin: unknown;
+  }[] = [];
   class IO {
     record: (typeof observers)[number];
     constructor(cb: Callback, init?: IntersectionObserverInit) {
-      this.record = { cb, el: null, threshold: init?.threshold };
+      this.record = {
+        cb,
+        el: null,
+        threshold: init?.threshold,
+        rootMargin: init?.rootMargin,
+      };
       observers.push(this.record);
     }
     observe(el: Element) {
@@ -33,16 +41,25 @@ function stubObserver() {
   return observers;
 }
 
-function Probe({ threshold, height }: { threshold: number; height: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const seen = useInViewOnce(ref, threshold);
+function Probe({
+  threshold,
+  height,
+  rootMargin,
+  enabled = true,
+}: {
+  threshold: number;
+  height: number;
+  rootMargin?: string;
+  enabled?: boolean;
+}) {
+  const [attach, seen] = useInViewOnce<HTMLDivElement>(threshold, enabled, rootMargin);
   return (
     <div
       ref={(el) => {
-        ref.current = el;
         if (el)
           el.getBoundingClientRect = () =>
             ({ height, width: 0, top: 0, left: 0 }) as DOMRect;
+        attach(el);
       }}
       data-seen={String(seen)}
     />
@@ -84,7 +101,7 @@ describe("cappedThreshold", () => {
 });
 
 describe("useInViewOnce", () => {
-  it("watches with the capped threshold, measured from the element and the viewport", () => {
+  it("watches with the capped threshold, measured from the element and the viewport as the watch starts", () => {
     const observers = stubObserver();
     vi.stubGlobal("innerHeight", 844);
     render(<Probe threshold={0.2} height={3530} />);
@@ -93,13 +110,16 @@ describe("useInViewOnce", () => {
       cappedThreshold(0.2, 844, 3530),
       9,
     );
+    render(<Probe threshold={0.2} height={300} />);
+    expect(observers[1].threshold).toBe(0.2);
   });
 
-  it("passes a short block's threshold through untouched", () => {
+  it("watches the plain viewport unless given a margin, which widens (or narrows) it", () => {
     const observers = stubObserver();
-    vi.stubGlobal("innerHeight", 844);
-    render(<Probe threshold={0.2} height={300} />);
-    expect(observers[0].threshold).toBe(0.2);
+    render(<Probe threshold={0} height={300} />);
+    expect(observers[0].rootMargin).toBe("0px");
+    render(<Probe threshold={0} height={300} rootMargin="0px 0px 200% 0px" />);
+    expect(observers[1].rootMargin).toBe("0px 0px 200% 0px");
   });
 
   it("is false until seen, then true for good", () => {
@@ -111,5 +131,17 @@ describe("useInViewOnce", () => {
     expect(el.getAttribute("data-seen")).toBe("false");
     act(() => observers[0].cb([{ isIntersecting: true }]));
     expect(el.getAttribute("data-seen")).toBe("true");
+    act(() => observers[0].cb([{ isIntersecting: false }]));
+    expect(el.getAttribute("data-seen")).toBe("true");
+  });
+
+  it("is true from the start, watching nothing, where there is no observer or it is not enabled", () => {
+    const observers = stubObserver();
+    const { container } = render(<Probe threshold={0.2} height={300} enabled={false} />);
+    expect(observers).toHaveLength(0);
+    expect(container.firstElementChild!.getAttribute("data-seen")).toBe("true");
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const plain = render(<Probe threshold={0.2} height={300} />);
+    expect(plain.container.firstElementChild!.getAttribute("data-seen")).toBe("true");
   });
 });

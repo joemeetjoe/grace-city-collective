@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+
+import { useWatch } from "./useWatch";
+import { createWatch } from "./watch";
 
 /**
  * How many of `count` things are on, when they come on one after the next:
@@ -7,7 +10,8 @@ import { useEffect, useState } from "react";
  * together the moment `on` turns false. What lights a row of gathering
  * emblems in sequence on a phone, where a desktop lights the one under the
  * pointer. A count rather than the things themselves, so a caller's array
- * built each render cannot restart the sequence.
+ * built each render cannot restart the sequence. A watch over timers
+ * (watch.ts): any change of inputs is a fresh sequence from none.
  */
 export function useInTurn(
   on: boolean,
@@ -15,16 +19,18 @@ export function useInTurn(
   stepMs: number,
   delayMs = 0,
 ): number {
-  const [lit, setLit] = useState(0);
-  useEffect(() => {
-    if (!on) return;
-    const timers = Array.from({ length: count }, (_, i) =>
-      setTimeout(() => setLit(i + 1), delayMs + i * stepMs),
-    );
-    return () => {
-      for (const t of timers) clearTimeout(t);
-      setLit(0);
-    };
-  }, [on, count, stepMs, delayMs]);
-  return on ? lit : 0;
+  const watch = useMemo(
+    () =>
+      createWatch(0, (set) => {
+        if (!on) return () => {};
+        const timers = Array.from({ length: count }, (_, i) =>
+          setTimeout(() => set(i + 1), delayMs + i * stepMs),
+        );
+        return () => {
+          for (const t of timers) clearTimeout(t);
+        };
+      }),
+    [on, count, stepMs, delayMs],
+  );
+  return useWatch(watch);
 }

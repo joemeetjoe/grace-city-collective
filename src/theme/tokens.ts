@@ -29,7 +29,7 @@ function channel(hex: string, i: number): number {
 }
 
 /** WCAG 2.x relative luminance of a `#rrggbb` colour. */
-export function luminance(hex: string): number {
+function luminance(hex: string): number {
   return 0.2126 * channel(hex, 0) + 0.7152 * channel(hex, 1) + 0.0722 * channel(hex, 2);
 }
 
@@ -39,6 +39,12 @@ export function contrastRatio(a: string, b: string): number {
   const lb = luminance(b);
   const [hi, lo] = la > lb ? [la, lb] : [lb, la];
   return (hi + 0.05) / (lo + 0.05);
+}
+
+/** A `#rrggbb` colour with an alpha, as `rgba(r, g, b, a)`: a tween's colour endpoint (gsap reads it), e.g. the ink with no alpha for a fade from it. */
+export function rgba(hex: string, alpha: number): string {
+  const c = [0, 1, 2].map((i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16));
+  return `rgba(${c.join(", ")}, ${alpha})`;
 }
 
 /** Linear sRGB-space blend of two `#rrggbb` colours; `t` = 0 gives `a`, 1 gives `b`. */
@@ -63,3 +69,11 @@ export function glslVec3(hex: string, { normalise = false } = {}): string {
   const k = normalise ? 1 / Math.max(...c) : 1;
   return `vec3(${c.map((v) => (v * k).toFixed(3)).join(", ")})`;
 }
+
+/**
+ * The flame tips' glow in the scene's shaders (engine/shaders.ts): the seal
+ * copper warmed toward the cream, so the brightest pixels of a tongue read
+ * as fire rather than paint. Not a Tailwind colour — nothing in the DOM
+ * wears it.
+ */
+export const flameGlow = "#f2a86a";

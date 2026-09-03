@@ -20,6 +20,8 @@
  * channelVector(channel).
  */
 
+import { isColourTexture } from "./textureKinds";
+
 /** which channel of which packed texture holds a cut's mask */
 export type MaskRef = { file: string; channel: number };
 
@@ -58,13 +60,6 @@ export const TEXTURE_TABLE: TextureTable = Object.fromEntries(
 
 /** which encoding the colour textures are requested in; the lossless masks and depths are unaffected */
 export type TextureFormat = { avif: boolean };
-
-const COLOUR_TEXTURE = /^(plate-backdrop|map-[^/.]+)\.webp$/;
-
-/** the backdrop and the cut maps — the lossy textures the pack writes in both formats */
-export function isColourTexture(file: string): boolean {
-  return COLOUR_TEXTURE.test(file);
-}
 
 /**
  * Pure: a tier's file name to its url out of `table`; a file the tier lacks
@@ -105,7 +100,7 @@ export function maskRef(cut: { name: string; mask?: MaskRef }, resolve: TextureR
   return { url: resolve(`cut-${cut.name}.png`), channel: 0 };
 }
 
-export const MASK_CHANNELS = 4;
+const MASK_CHANNELS = 4;
 
 /** the vec4 that picks one channel of an rgba sample when dotted with it */
 export function channelVector(channel: number): [number, number, number, number] {

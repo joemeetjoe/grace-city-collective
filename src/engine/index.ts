@@ -5,10 +5,11 @@
  * The scene itself is behind a dynamic import (#98): three.js and the
  * parallax scene are their own chunk, requested the moment the page mounts
  * and module-preloaded from the HTML (device/enginePreload.ts), so the shell
- * becomes interactive before three arrives. The poster and the vignette are
- * plain DOM and stay in the shell.
+ * becomes interactive before three arrives. The poster, the vignette and the
+ * error report are plain DOM and stay in the shell.
  */
 export { default as StaticPoster } from "./StaticPoster";
+export { reportSceneError } from "./sceneError";
 export { vignetteCss } from "./vignette";
 
 /** the engine chunk: three.js and PentecostParallax, loaded on demand */

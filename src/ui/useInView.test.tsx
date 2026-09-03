@@ -1,5 +1,4 @@
 import { act, render } from "@testing-library/react";
-import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -42,8 +41,7 @@ function stubObserver() {
 }
 
 function Probe(options: InViewOptions) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, options);
+  const [ref, inView] = useInView<HTMLDivElement>(options);
   return <div ref={ref} data-in-view={String(inView)} />;
 }
 
@@ -95,6 +93,38 @@ describe("useInView", () => {
     expect(observers).toHaveLength(2);
     expect(observers[1].init).toEqual({ threshold: 0, rootMargin: PLAY_MARGIN });
     expect(el.getAttribute("data-in-view")).toBe("true");
+  });
+
+  it("watched `once`, lets the observer go at the first yes and holds it", () => {
+    const observers = stubObserver();
+    const { container } = render(<Probe once />);
+    const el = container.firstElementChild!;
+    act(() => observers[0].cb([{ isIntersecting: false }]));
+    expect(el.getAttribute("data-in-view")).toBe("false");
+    expect(observers[0].disconnected).toBe(false);
+    act(() => observers[0].cb([{ isIntersecting: true }]));
+    expect(el.getAttribute("data-in-view")).toBe("true");
+    expect(observers[0].disconnected).toBe(true);
+    // a late report from the let-go observer changes nothing
+    act(() => observers[0].cb([{ isIntersecting: false }]));
+    expect(el.getAttribute("data-in-view")).toBe("true");
+    expect(observers).toHaveLength(1);
+  });
+
+  it("watches nothing while not `enabled`, reporting `initial`", () => {
+    const observers = stubObserver();
+    const { container } = render(<Probe enabled={false} initial />);
+    expect(observers).toHaveLength(0);
+    expect(container.firstElementChild!.getAttribute("data-in-view")).toBe("true");
+  });
+
+  it("resolves a threshold given as a function of the element as the watch starts", () => {
+    const observers = stubObserver();
+    const threshold = vi.fn((el: Element) => (el.tagName === "DIV" ? 0.25 : 1));
+    render(<Probe threshold={threshold} />);
+    expect(threshold).toHaveBeenCalledTimes(1);
+    expect(threshold.mock.calls[0][0]).toBe(observers[0].el);
+    expect(observers[0].init?.threshold).toBe(0.25);
   });
 
   it("reports `initial` for good wherever IntersectionObserver is missing", () => {

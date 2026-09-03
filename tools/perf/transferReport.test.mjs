@@ -85,3 +85,112 @@ describe("formatTimeline", () => {
     expect(lines[4]).toMatch(/^\s+1800\s+-- gate$/);
   });
 });
+
+import { posterResponses } from "./transferReport.mjs";
+
+describe("posterResponses", () => {
+  it("picks out the poster rungs a load requested, with their width, format and bytes", () => {
+    const list = posterResponses([
+      r("http://h/", 900, 10),
+      r("http://h/assets/index-A.js", 300_000, 200),
+      r("http://h/assets/dore-pentecost-dark-2048-Xy12.avif", 310_000, 900),
+      r("http://h/assets/dore-pentecost-dark-640-Zz9a.webp", 41_000, 950),
+      r("http://h/dore/2048/plate.webp", 378_000, 1200),
+    ]);
+    expect(list).toEqual([
+      { path: "/assets/dore-pentecost-dark-2048-Xy12.avif", rung: 2048, format: "avif", bytes: 310_000 },
+      { path: "/assets/dore-pentecost-dark-640-Zz9a.webp", rung: 640, format: "webp", bytes: 41_000 },
+    ]);
+  });
+
+  it("is empty when the load took the scene path", () => {
+    expect(posterResponses([r("http://h/", 900, 10), r("http://h/dore/2048/plate.webp", 378_000, 1200)])).toEqual([]);
+  });
+});
+
+import { scrollToScript } from "./transferReport.mjs";
+
+describe("scrollToScript", () => {
+  it("is the page-side expression that scrolls an id into view, through the smoother when there is one", () => {
+    const js = scrollToScript("faq");
+    expect(js).toContain('getElementById("faq")');
+    expect(js).toContain("__gcc?.scrollTo");
+    expect(js).toContain("scrollTo(");
+    // quoted as a string literal, so an odd id cannot break out of the script
+    expect(scrollToScript('a"b')).toContain(JSON.stringify('a"b'));
+  });
+});
+
+describe("the late phase", () => {
+  const cold = summarise([r("http://h/", 900, 10), r("http://h/assets/index-A.js", 300_000, 200), r("http://h/dore/2048/plate.webp", 378_000, 900)]);
+  const warm = summarise([r("http://h/", 900, 10)]);
+  const late = { id: "faq", at: 3000, responses: [r("http://h/assets/Longform-B.js", 20_480, 3400, { startedAt: 3010 })], ...summarise([r("http://h/assets/Longform-B.js", 20_480, 3400)]) };
+
+  it("adds a late column to the table when a tier scrolled on after idle, and none otherwise", () => {
+    const text = formatTable({ desktop: { cold, warm, late } });
+    expect(text).toMatch(/gate\s+idle\s+late\s+warm/);
+    expect(text).toMatch(/js\s+293\.0\s+293\.0\s+20\.0\s+0\.0/);
+    expect(text).toMatch(/total\s+663\.0\s+663\.0\s+20\.0\s+0\.9/);
+    expect(text).toMatch(/files\s+3\s+3\s+1\s+1/);
+    expect(formatTable({ desktop: { cold, warm } })).not.toContain("late");
+  });
+
+  it("the timeline slots the scroll mark and the late responses after the cold load", () => {
+    const text = formatTimeline([...cold.responses ?? [], ...late.responses], { gate: 900, "scroll #faq": late.at });
+    const lines = text.split("\n");
+    expect(lines.at(-2)).toMatch(/^\s+3000\s+-- scroll #faq$/);
+    expect(lines.at(-1)).toMatch(/^\s+3010\s+3400\s+20\.0\s+\/assets\/Longform-B\.js$/);
+  });
+});
+
+import { textureStartVsShell, textureTiers } from "./transferReport.mjs";
+
+const manifest = {
+  "index.html": { file: "assets/index-A.js", isEntry: true },
+  "src/assets/dore/2048/map-fig5.avif": { file: "assets/map-fig5-D.avif" },
+  "src/assets/dore/2048/masks-cut-0.webp": { file: "assets/masks-cut-0-E.webp" },
+  "src/assets/dore/1024/map-fig5.avif": { file: "assets/map-fig5-M.avif" },
+  "src/assets/poster/dore-pentecost-dark-640.avif": { file: "assets/dore-pentecost-dark-640-P.avif" },
+};
+
+describe("textureTiers", () => {
+  it("names the plate widths a load's textures came from, through the manifest, posters aside", () => {
+    expect(textureTiers([r("http://h/assets/map-fig5-D.avif", 1, 10), r("http://h/assets/masks-cut-0-E.webp", 1, 20)], manifest)).toEqual(["2048"]);
+    expect(textureTiers([r("http://h/assets/map-fig5-D.avif", 1, 10), r("http://h/assets/map-fig5-M.avif", 1, 20)], manifest)).toEqual(["1024", "2048"]);
+    expect(textureTiers([r("http://h/assets/dore-pentecost-dark-640-P.avif", 1, 10), r("http://h/assets/index-A.js", 1, 5)], manifest)).toEqual([]);
+    expect(textureTiers([r("http://h/assets/stray-Z.webp", 1, 10)], manifest)).toEqual(["?"]);
+  });
+});
+
+describe("textureStartVsShell", () => {
+  it("compares the first texture request's start with the shell chunk landing", () => {
+    const early = textureStartVsShell(
+      [
+        r("http://h/", 900, 40, { startedAt: 0 }),
+        r("http://h/assets/index-A.js", 300_000, 900, { startedAt: 45 }),
+        r("http://h/assets/plate-backdrop-B.avif", 200_000, 700, { startedAt: 60 }),
+        r("http://h/assets/map-fig5-D.avif", 40_000, 1400, { startedAt: 950 }),
+      ],
+      "assets/index-A.js",
+    );
+    expect(early).toEqual({ firstTextureAt: 60, shellDoneAt: 900, beforeShell: true });
+    const late = textureStartVsShell(
+      [r("http://h/assets/index-A.js", 300_000, 900, { startedAt: 45 }), r("http://h/assets/map-fig5-D.avif", 40_000, 1400, { startedAt: 950 })],
+      "assets/index-A.js",
+    );
+    expect(late).toEqual({ firstTextureAt: 950, shellDoneAt: 900, beforeShell: false });
+  });
+
+  it("has nulls, and is not before the shell, where a load had no texture or no shell", () => {
+    expect(textureStartVsShell([r("http://h/assets/index-A.js", 1, 900, { startedAt: 45 })], "assets/index-A.js")).toEqual({
+      firstTextureAt: null,
+      shellDoneAt: 900,
+      beforeShell: false,
+    });
+    expect(textureStartVsShell([r("http://h/assets/map-fig5-D.avif", 1, 10, { startedAt: 5 })], "assets/index-A.js")).toEqual({
+      firstTextureAt: 5,
+      shellDoneAt: null,
+      beforeShell: false,
+    });
+  });
+});

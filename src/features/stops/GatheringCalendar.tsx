@@ -6,9 +6,25 @@ import {
   G_MARK_W as W,
   gMarkBox,
 } from "@/marks/gMarkGeometry";
+import { STATE } from "@/theme/classes";
+import { FONT_SERIF } from "@/theme/fonts";
 import { lozengePath } from "@/theme/lozenge";
 import type { GatheringMark } from "@/content/site";
 import { cn } from "@/lib/utils";
+import {
+  CALENDAR_BAND,
+  CALENDAR_GAP,
+  CALENDAR_GUTTER,
+  CALENDAR_HEAD,
+  CALENDAR_VIEW_H,
+  CALENDAR_VIEW_H_ACROSS,
+  CALENDAR_VIEW_W,
+  CALENDAR_VIEW_W_ACROSS,
+  DAYS,
+  WEEKS,
+} from "./gatheringCalendarMetrics";
+import Tile from "./Tile";
+import { AT_REST, enterPose, fadeStyle, stagger, tileTransition } from "./tileGeometry";
 
 export type GatheringCalendarProps = {
   /**
@@ -32,45 +48,24 @@ export type GatheringCalendarProps = {
   className?: string;
 };
 
-/** a month set on its side: four weeks across, the seven days down, Sundays on top */
-export const WEEKS = 4;
-export const DAYS = 7;
+/** the week numerals over the month */
 const NUMERALS = ["I", "II", "III", "IV"] as const;
 
-/** a day's box, in the logo's units, and the gap between neighbours */
+/** the month across: the head row over the days is the gutter's height (gatheringCalendarMetrics.ts) */
+const CALENDAR_HEAD_ACROSS = CALENDAR_GUTTER;
+
+/** a day's box, in the logo's units */
 const TILE = gMarkBox(0, CORNER);
-const GAP = Math.round(H * 0.22);
-/** the week numerals' row above the month, and their size */
-const HEAD = Math.round(H * 0.8);
+const TILE_TO_CENTRE = `translate(${-W / 2} ${-H / 2})`;
+/** the week numerals' size */
 const NUMERAL = Math.round(H * 0.42);
-/** the band between the Sundays and the week, with the rule through it */
-const BAND = Math.round(H * 0.7);
 /** the rule's lozenge finials */
 const FINIAL_W = Math.round(H * 0.22);
-/** the gutter on the left for the S at each end of the week, and its size */
-const GUTTER = Math.round(H * 0.9);
+/** the size of the S at each end of the week */
 const S_SIZE = Math.round(H * 0.62);
 
-/** how far out along the diagonal a waiting day sits, in its own heights */
-const ENTER_OUT = 0.6;
-export const ENTER_SCALE = 0.55;
-/** the cascade: one diagonal of days after the next, in ms */
-export const ENTER_STAGGER_MS = 50;
-
-/** the month's extent, in the logo's units */
-export const VIEW_W = GUTTER + WEEKS * W + (WEEKS - 1) * GAP;
-export const VIEW_H = HEAD + DAYS * H + (DAYS - 1) * GAP + BAND;
-/**
- * the month across: the head row over the days holds the S at each end of
- * the week, the gutter at the left the week numerals, and the band with the
- * rule stands between the Sundays' column and the six weekdays
- */
-const HEAD_ACROSS = GUTTER;
-export const VIEW_W_ACROSS = GUTTER + DAYS * W + (DAYS - 1) * GAP + BAND;
-export const VIEW_H_ACROSS = HEAD_ACROSS + WEEKS * H + (WEEKS - 1) * GAP;
-
-const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
+/** the days keep their stroke colour whatever their state, so it is left out of the transition */
+const TRANSITION = tileTransition(["fill", "fill-opacity", "stroke-opacity", "opacity", "transform"]);
 
 /** whether a day is lit for the gathering: the first Sunday, or the other Sundays */
 function isLit(lit: GatheringMark | null, week: number, day: number): boolean {
@@ -84,20 +79,16 @@ function isLit(lit: GatheringMark | null, week: number, day: number): boolean {
  * a day's centre, in the logo's units: the Sundays sit above the band — or,
  * across, to its left
  */
-function centre(
-  week: number,
-  day: number,
-  across = false,
-): { cx: number; cy: number } {
+function centre(week: number, day: number, across: boolean): { cx: number; cy: number } {
   if (across) {
     return {
-      cx: GUTTER + day * (W + GAP) + W / 2 + (day > 0 ? BAND : 0),
-      cy: HEAD_ACROSS + week * (H + GAP) + H / 2,
+      cx: CALENDAR_GUTTER + day * (W + CALENDAR_GAP) + W / 2 + (day > 0 ? CALENDAR_BAND : 0),
+      cy: CALENDAR_HEAD_ACROSS + week * (H + CALENDAR_GAP) + H / 2,
     };
   }
   return {
-    cx: GUTTER + week * (W + GAP) + W / 2,
-    cy: HEAD + day * (H + GAP) + H / 2 + (day > 0 ? BAND : 0),
+    cx: CALENDAR_GUTTER + week * (W + CALENDAR_GAP) + W / 2,
+    cy: CALENDAR_HEAD + day * (H + CALENDAR_GAP) + H / 2 + (day > 0 ? CALENDAR_BAND : 0),
   };
 }
 
@@ -107,64 +98,86 @@ type Spot = { x: number; y: number };
 type Rule = {
   from: Spot;
   to: Spot;
-  finials: Array<Spot & { w: number; h: number }>;
+  finials: Array<Spot & { w: number; h: number; d: string }>;
 };
+/** a day of the month: its centre either way up, and its turn in the cascade */
+type Day = { week: number; day: number; sunday: boolean; cx: number; cy: number; delay: string };
 
-/** the month's furniture for either way up: its extent, the numerals' places, the S marks', and the rule */
-function furniture(across: boolean): {
+/** the month's furniture for either way up: its extent, the numerals' places, the S marks', the rule, and the days */
+type Furniture = {
   viewW: number;
   viewH: number;
-  numeral: (week: number) => Spot;
-  mark: (day: number) => Spot;
+  numerals: Spot[];
+  marks: Spot[];
   rule: Rule;
-} {
+  days: Day[];
+};
+
+function furnish(across: boolean): Furniture {
+  const finialAt = (x: number, y: number, w: number, h: number) => ({ x, y, w, h, d: lozengePath(x, y, w, h) });
+  const days: Day[] = [];
+  for (let day = 0; day < DAYS; day++) {
+    for (let week = 0; week < WEEKS; week++) {
+      days.push({ week, day, sunday: day === 0, ...centre(week, day, across), delay: stagger(week + day) });
+    }
+  }
+  const weeks = Array.from({ length: WEEKS }, (_, week) => week);
+  const ends = [0, DAYS - 1];
   if (across) {
     // the numerals run down the gutter at each week's row, the S marks stand
     // over the Sunday and Saturday columns, and the rule stands between the
     // Sundays' column and the week, its finials turned tall with it
-    const x = GUTTER + W + GAP + BAND / 2;
-    const finial = { w: FINIAL_W / 2, h: FINIAL_W };
+    const x = CALENDAR_GUTTER + W + CALENDAR_GAP + CALENDAR_BAND / 2;
     return {
-      viewW: VIEW_W_ACROSS,
-      viewH: VIEW_H_ACROSS,
-      numeral: (week) => ({ x: GUTTER / 2, y: centre(week, 0, true).cy }),
-      mark: (day) => ({ x: centre(0, day, true).cx, y: HEAD_ACROSS / 2 }),
+      viewW: CALENDAR_VIEW_W_ACROSS,
+      viewH: CALENDAR_VIEW_H_ACROSS,
+      numerals: weeks.map((week) => ({ x: CALENDAR_GUTTER / 2, y: centre(week, 0, true).cy })),
+      marks: ends.map((day) => ({ x: centre(0, day, true).cx, y: CALENDAR_HEAD_ACROSS / 2 })),
       rule: {
-        from: { x, y: HEAD_ACROSS + FINIAL_W * 1.5 },
-        to: { x, y: VIEW_H_ACROSS - FINIAL_W * 1.5 },
+        from: { x, y: CALENDAR_HEAD_ACROSS + FINIAL_W * 1.5 },
+        to: { x, y: CALENDAR_VIEW_H_ACROSS - FINIAL_W * 1.5 },
         finials: [
-          { x, y: HEAD_ACROSS + FINIAL_W / 2, ...finial },
-          { x, y: VIEW_H_ACROSS - FINIAL_W / 2, ...finial },
+          finialAt(x, CALENDAR_HEAD_ACROSS + FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
+          finialAt(x, CALENDAR_VIEW_H_ACROSS - FINIAL_W / 2, FINIAL_W / 2, FINIAL_W),
         ],
       },
+      days,
     };
   }
-  const y = HEAD + H + GAP + BAND / 2;
-  const finial = { w: FINIAL_W, h: FINIAL_W / 2 };
+  const y = CALENDAR_HEAD + H + CALENDAR_GAP + CALENDAR_BAND / 2;
   return {
-    viewW: VIEW_W,
-    viewH: VIEW_H,
-    numeral: (week) => ({ x: centre(week, 0).cx, y: NUMERAL }),
-    mark: (day) => ({ x: GUTTER / 2 - FINIAL_W / 2, y: centre(0, day).cy }),
+    viewW: CALENDAR_VIEW_W,
+    viewH: CALENDAR_VIEW_H,
+    numerals: weeks.map((week) => ({ x: centre(week, 0, false).cx, y: NUMERAL })),
+    marks: ends.map((day) => ({ x: CALENDAR_GUTTER / 2 - FINIAL_W / 2, y: centre(0, day, false).cy })),
     rule: {
-      from: { x: GUTTER + FINIAL_W * 1.5, y },
-      to: { x: VIEW_W - FINIAL_W * 1.5, y },
+      from: { x: CALENDAR_GUTTER + FINIAL_W * 1.5, y },
+      to: { x: CALENDAR_VIEW_W - FINIAL_W * 1.5, y },
       finials: [
-        { x: GUTTER + FINIAL_W / 2, y, ...finial },
-        { x: VIEW_W - FINIAL_W / 2, y, ...finial },
+        finialAt(CALENDAR_GUTTER + FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
+        finialAt(CALENDAR_VIEW_W - FINIAL_W / 2, y, FINIAL_W, FINIAL_W / 2),
       ],
     },
+    days,
   };
 }
 
-/** a day's transform about its own centre, in the logo's units */
-function pose(shown: boolean): string {
-  if (!shown) {
-    const out = -ENTER_OUT * H;
-    return `translate(${out}px, ${out}px) scale(${ENTER_SCALE})`;
-  }
-  return "translate(0px, 0px) scale(1)";
-}
+/** the month furnished both ways up, once */
+const UPRIGHT = furnish(false);
+const ACROSS = furnish(true);
+
+/** the S at each end of the week: Sunday bright, Saturday quiet */
+const MARK_OPACITY = [0.7, 0.35];
+
+/** the furniture's fades, by its turn in the cascade (the numerals by week, the rule after them, the S marks by day), shown and waiting */
+const FADES: Array<{ shown: CSSProperties; waiting: CSSProperties }> = Array.from(
+  { length: DAYS },
+  (_, order) => ({ shown: fadeStyle(true, stagger(order)), waiting: fadeStyle(false, stagger(order)) }),
+);
+const fade = (order: number, shown: boolean) => (shown ? FADES[order].shown : FADES[order].waiting);
+
+/** a waiting day's pose: back along the mark's diagonal, and small */
+const WAITING = enterPose(-1, -1, H);
 
 /**
  * A month of Sundays, drawn as a calendar of the G mark's box — rounded
@@ -193,45 +206,34 @@ export default function GatheringCalendar({
   across = false,
   className,
 }: GatheringCalendarProps) {
-  const days: Array<{ week: number; day: number }> = [];
-  for (let day = 0; day < DAYS; day++) {
-    for (let week = 0; week < WEEKS; week++) days.push({ week, day });
-  }
-  const { viewW, viewH, numeral, mark, rule } = furniture(across);
-  const fade = (order: number): CSSProperties => ({
-    opacity: shown ? 1 : 0,
-    transitionDelay: `${order * ENTER_STAGGER_MS}ms`,
-  });
+  const { viewW, viewH, numerals, marks, rule, days } = across ? ACROSS : UPRIGHT;
   return (
     <svg
       aria-hidden
-      data-gathering-calendar=""
-      data-lit={lit ?? undefined}
-      data-across={across ? "" : undefined}
       viewBox={`0 0 ${viewW} ${viewH}`}
       preserveAspectRatio="xMidYMin meet"
-      className={cn("block text-cream", className)}
+      className={cn("block text-cream", className, lit && STATE.lit)}
     >
       {NUMERALS.map((n, week) => (
         <text
           key={n}
-          x={numeral(week).x}
-          y={numeral(week).y}
+          x={numerals[week].x}
+          y={numerals[week].y}
           textAnchor="middle"
           dominantBaseline={across ? "central" : undefined}
           fontSize={NUMERAL}
-          fontFamily="'Cormorant Garamond', Georgia, serif"
+          fontFamily={FONT_SERIF}
           letterSpacing={NUMERAL * 0.12}
           fill="currentColor"
           fillOpacity={0.45}
           className={TRANSITION}
-          style={fade(week)}
+          style={fade(week, shown)}
         >
           {n}
         </text>
       ))}
       {/* the rule under the Sundays (across, beside them), with a lozenge finial at each end in the seal's red */}
-      <g data-sunday-rule="" className={TRANSITION} style={fade(WEEKS)}>
+      <g className={TRANSITION} style={fade(WEEKS, shown)}>
         <line
           x1={rule.from.x}
           x2={rule.to.x}
@@ -242,10 +244,10 @@ export default function GatheringCalendar({
           strokeWidth={1}
           vectorEffect="non-scaling-stroke"
         />
-        {rule.finials.map(({ x, y, w, h }) => (
+        {rule.finials.map(({ x, y, d }) => (
           <path
             key={`${x}-${y}`}
-            d={lozengePath(x, y, w, h)}
+            d={d}
             fill="none"
             stroke="var(--color-seal)"
             strokeWidth={1}
@@ -254,62 +256,42 @@ export default function GatheringCalendar({
         ))}
       </g>
       {/* the S at each end of the week: Sunday over the rule, Saturday at the foot (across, over the first and last columns) */}
-      {[
-        { day: 0, name: "sunday", opacity: 0.7 },
-        { day: DAYS - 1, name: "saturday", opacity: 0.35 },
-      ].map(({ day, name, opacity }) => (
+      {marks.map((mark, end) => (
         <text
-          key={name}
-          data-day-mark={name}
-          x={mark(day).x}
-          y={mark(day).y}
+          key={end}
+          x={mark.x}
+          y={mark.y}
           textAnchor="middle"
           dominantBaseline="central"
           fontSize={S_SIZE}
-          fontFamily="'Cormorant Garamond', Georgia, serif"
+          fontFamily={FONT_SERIF}
           fill="currentColor"
-          fillOpacity={opacity}
+          fillOpacity={MARK_OPACITY[end]}
           className={TRANSITION}
-          style={fade(day)}
+          style={fade(end === 0 ? 0 : DAYS - 1, shown)}
         >
           S
         </text>
       ))}
-      {days.map(({ week, day }) => {
-        const on = isLit(lit, week, day);
-        const sunday = day === 0;
-        const { cx, cy } = centre(week, day, across);
-        const delay = `${(week + day) * ENTER_STAGGER_MS}ms`;
-        // the pose moves the day's own group, so the path keeps its centring
-        const style: CSSProperties = {
-          transform: pose(shown),
-          transformOrigin: "center",
-          transformBox: "fill-box",
-          transitionDelay: delay,
-          opacity: shown ? 1 : 0,
-        };
+      {days.map((d) => {
+        const on = isLit(lit, d.week, d.day);
         return (
-          <g key={`${week}-${day}`} transform={`translate(${cx} ${cy})`}>
-            <g
-              data-day=""
-              data-on={on ? "" : undefined}
-              className={TRANSITION}
-              style={style}
-            >
-              <path
-                transform={`translate(${-W / 2} ${-H / 2})`}
-                d={TILE}
-                fill={lit === "feast" ? "var(--color-seal)" : "currentColor"}
-                fillOpacity={on ? 1 : 0}
-                stroke="currentColor"
-                strokeOpacity={on ? 0.9 : lit ? 0.14 : sunday ? 0.5 : 0.28}
-                strokeWidth={1}
-                vectorEffect="non-scaling-stroke"
-                className={TRANSITION}
-                style={{ transitionDelay: delay }}
-              />
-            </g>
-          </g>
+          <Tile
+            key={`${d.week}-${d.day}`}
+            cx={d.cx}
+            cy={d.cy}
+            d={TILE}
+            pathTransform={TILE_TO_CENTRE}
+            transform={shown ? AT_REST : WAITING}
+            delay={d.delay}
+            shown={shown}
+            fill={lit === "feast" ? "var(--color-seal)" : "currentColor"}
+            fillOpacity={on ? 1 : 0}
+            stroke="currentColor"
+            strokeOpacity={on ? 0.9 : lit ? 0.14 : d.sunday ? 0.5 : 0.28}
+            transition={TRANSITION}
+            className={on ? STATE.on : undefined}
+          />
         );
       })}
     </svg>

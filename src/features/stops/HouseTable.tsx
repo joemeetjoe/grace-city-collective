@@ -1,12 +1,21 @@
 import type { CSSProperties } from "react";
 
-import {
-  G_MARK_CORNER as CORNER,
-  G_MARK_H as H,
-  G_MARK_W as W,
-  markBox,
-} from "@/marks/gMarkGeometry";
+import { G_MARK_CORNER as CORNER, markBox } from "@/marks/gMarkGeometry";
+import { STATE } from "@/theme/classes";
 import { cn } from "@/lib/utils";
+import {
+  SEAT_CORNER,
+  SEAT_H,
+  SEAT_W,
+  SIDE_SEATS,
+  TABLE_GAP,
+  TABLE_H,
+  TABLE_VIEW_H,
+  TABLE_VIEW_W,
+  TABLE_W,
+} from "./houseTableMetrics";
+import Tile from "./Tile";
+import { AT_REST, TILE_ENTER_SCALE, TILE_TRANSITION, enterPose, pose, stagger } from "./tileGeometry";
 
 export type HouseTableProps = {
   /** whether the reader is over the house churches: the seats draw in and fill, and the table fills */
@@ -25,75 +34,56 @@ export type HouseTableProps = {
   className?: string;
 };
 
-/** seats down each long side of the table; with the head and the foot, a house church's dozen */
-export const SIDE_SEATS = 5;
-export const SEATS = SIDE_SEATS * 2 + 2;
-
-/** a seat: the G mark's box, at this scale of the mark */
-const SEAT = 0.45;
-const SEAT_W = Math.round(W * SEAT);
-const SEAT_H = Math.round(H * SEAT);
-const SEAT_CORNER = Math.round(CORNER * SEAT);
-/** the gap between a seat and the table, and between neighbours down a side */
-const GAP = Math.round(H * 0.2);
-/** the table: the mark's box drawn long, with the mark's own corners, sized to seat a side */
-const TABLE_W = W;
-const TABLE_H = SIDE_SEATS * SEAT_H + (SIDE_SEATS + 1) * GAP;
-
-/** how far back from the table a waiting seat sits, in its own heights */
-const ENTER_OUT = 0.6;
-export const ENTER_SCALE = 0.55;
-/** the seats come in one after the next, round the table from the head, in ms */
-export const ENTER_STAGGER_MS = 50;
-/** how far a seat draws in toward the table when lit, in its own heights */
+/** the seats come in one after the next, round the table from the head (TILE_STAGGER_MS); lit, each draws in toward the table this far, in its own heights */
 const DRAW_IN = 0.16;
-
-/** the drawing's extent, in the logo's units */
-export const VIEW_W = TABLE_W + 2 * (GAP + SEAT_W);
-export const VIEW_H = TABLE_H + 2 * (GAP + SEAT_H);
-
-const TRANSITION =
-  "motion-safe:[transition:fill_.5s_ease,fill-opacity_.5s_ease,stroke_.5s_ease,stroke-opacity_.5s_ease,opacity_.9s_cubic-bezier(0.16,1,0.3,1),transform_.9s_cubic-bezier(0.16,1,0.3,1)]";
 
 const TABLE = markBox(-TABLE_W / 2, -TABLE_H / 2, TABLE_W, TABLE_H, CORNER);
 const CHAIR = markBox(-SEAT_W / 2, -SEAT_H / 2, SEAT_W, SEAT_H, SEAT_CORNER);
 
-/** a seat's place: its centre, in the logo's units, and the way it faces out from the table */
-type Seat = { cx: number; cy: number; dx: number; dy: number; name: string };
+/** a seat's place: its centre, in the logo's units, the way it faces out from the table, and its turn round it */
+type Seat = { cx: number; cy: number; dx: number; dy: number; head: boolean; delay: string };
 
 /** the seats in order round the table: the head, down the right, the foot, up the left */
-function seats(): Seat[] {
-  const mid = VIEW_W / 2;
-  const top = SEAT_H + GAP;
-  const row = (i: number) => top + GAP + i * (SEAT_H + GAP) + SEAT_H / 2;
-  const out: Seat[] = [
-    { cx: mid, cy: SEAT_H / 2, dx: 0, dy: -1, name: "head" },
+function placeSeats(): Seat[] {
+  const mid = TABLE_VIEW_W / 2;
+  const top = SEAT_H + TABLE_GAP;
+  const row = (i: number) => top + TABLE_GAP + i * (SEAT_H + TABLE_GAP) + SEAT_H / 2;
+  const places: Array<Omit<Seat, "delay">> = [
+    { cx: mid, cy: SEAT_H / 2, dx: 0, dy: -1, head: true },
   ];
   for (let i = 0; i < SIDE_SEATS; i++) {
-    out.push({
-      cx: VIEW_W - SEAT_W / 2,
-      cy: row(i),
-      dx: 1,
-      dy: 0,
-      name: `right-${i}`,
-    });
+    places.push({ cx: TABLE_VIEW_W - SEAT_W / 2, cy: row(i), dx: 1, dy: 0, head: false });
   }
-  out.push({ cx: mid, cy: VIEW_H - SEAT_H / 2, dx: 0, dy: 1, name: "foot" });
+  places.push({ cx: mid, cy: TABLE_VIEW_H - SEAT_H / 2, dx: 0, dy: 1, head: false });
   for (let i = SIDE_SEATS - 1; i >= 0; i--) {
-    out.push({ cx: SEAT_W / 2, cy: row(i), dx: -1, dy: 0, name: `left-${i}` });
+    places.push({ cx: SEAT_W / 2, cy: row(i), dx: -1, dy: 0, head: false });
   }
-  return out;
+  return places.map((seat, order) => ({ ...seat, delay: stagger(order + 1) }));
 }
 
-/** a seat's transform about its own centre, in the logo's units */
-function pose(seat: Seat, shown: boolean, lit: boolean): string {
-  if (!shown) {
-    const out = ENTER_OUT * SEAT_H;
-    return `translate(${out * seat.dx}px, ${out * seat.dy}px) scale(${ENTER_SCALE})`;
-  }
-  const step = lit ? -DRAW_IN * SEAT_H : 0;
-  return `translate(${step * seat.dx}px, ${step * seat.dy}px) scale(1)`;
+/** the dozen seats, placed once */
+const SEAT_PLACES = placeSeats();
+
+/** a seat's pose: waiting, back from the table; lit, drawn in toward it */
+function seatPose(seat: Seat, shown: boolean, lit: boolean): string {
+  if (!shown) return enterPose(seat.dx, seat.dy, SEAT_H);
+  if (!lit) return AT_REST;
+  const step = -DRAW_IN * SEAT_H;
+  return pose(step * seat.dx, step * seat.dy, 1);
 }
+
+/** the table's own style, shown and waiting */
+const TABLE_SHOWN: CSSProperties = {
+  transform: "scale(1)",
+  transformOrigin: "center",
+  transformBox: "fill-box",
+  opacity: 1,
+};
+const TABLE_WAITING: CSSProperties = {
+  ...TABLE_SHOWN,
+  transform: `scale(${TILE_ENTER_SCALE})`,
+  opacity: 0,
+};
 
 /**
  * A house church at table, drawn in the G mark's box — rounded top-left and
@@ -114,29 +104,18 @@ export default function HouseTable({
   across = false,
   className,
 }: HouseTableProps) {
-  const table: CSSProperties = {
-    transform: shown ? "scale(1)" : `scale(${ENTER_SCALE})`,
-    transformOrigin: "center",
-    transformBox: "fill-box",
-    opacity: shown ? 1 : 0,
-  };
   return (
     <svg
       aria-hidden
-      data-house-table=""
-      data-lit={lit ? "" : undefined}
-      data-across={across ? "" : undefined}
-      viewBox={across ? `0 0 ${VIEW_H} ${VIEW_W}` : `0 0 ${VIEW_W} ${VIEW_H}`}
+      viewBox={across ? `0 0 ${TABLE_VIEW_H} ${TABLE_VIEW_W}` : `0 0 ${TABLE_VIEW_W} ${TABLE_VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
-      className={cn("text-cream", className)}
+      className={cn("text-cream", className, lit && STATE.lit)}
     >
       {/* on its side the whole drawing turns a quarter anticlockwise about the
           box, so the head comes to the left; the seats' own poses turn with it */}
-      <g transform={across ? `translate(0 ${VIEW_W}) rotate(-90)` : undefined}>
-      <g transform={`translate(${VIEW_W / 2} ${VIEW_H / 2})`}>
+      <g transform={across ? `translate(0 ${TABLE_VIEW_W}) rotate(-90)` : undefined}>
+      <g transform={`translate(${TABLE_VIEW_W / 2} ${TABLE_VIEW_H / 2})`}>
         <path
-          data-table=""
-          data-on={lit ? "" : undefined}
           d={TABLE}
           fill="var(--color-seal)"
           fillOpacity={lit ? 1 : 0}
@@ -144,44 +123,26 @@ export default function HouseTable({
           strokeOpacity={lit ? 1 : 0.5}
           strokeWidth={1}
           vectorEffect="non-scaling-stroke"
-          className={TRANSITION}
-          style={table}
+          className={cn(TILE_TRANSITION, lit && STATE.on)}
+          style={shown ? TABLE_SHOWN : TABLE_WAITING}
         />
       </g>
-      {seats().map((seat, order) => {
-        const head = seat.name === "head";
-        const delay = `${(order + 1) * ENTER_STAGGER_MS}ms`;
-        // the pose moves the seat's own group, so the path keeps its centring
-        const style: CSSProperties = {
-          transform: pose(seat, shown, lit),
-          transformOrigin: "center",
-          transformBox: "fill-box",
-          transitionDelay: delay,
-          opacity: shown ? 1 : 0,
-        };
-        return (
-          <g key={seat.name} transform={`translate(${seat.cx} ${seat.cy})`}>
-            <g
-              data-seat={seat.name}
-              data-on={lit ? "" : undefined}
-              className={TRANSITION}
-              style={style}
-            >
-              <path
-                d={CHAIR}
-                fill="currentColor"
-                fillOpacity={lit ? 1 : 0}
-                stroke="currentColor"
-                strokeOpacity={lit ? 0.9 : head ? 0.5 : 0.28}
-                strokeWidth={1}
-                vectorEffect="non-scaling-stroke"
-                className={TRANSITION}
-                style={{ transitionDelay: delay }}
-              />
-            </g>
-          </g>
-        );
-      })}
+      {SEAT_PLACES.map((seat, order) => (
+        <Tile
+          key={order}
+          cx={seat.cx}
+          cy={seat.cy}
+          d={CHAIR}
+          transform={seatPose(seat, shown, lit)}
+          delay={seat.delay}
+          shown={shown}
+          fill="currentColor"
+          fillOpacity={lit ? 1 : 0}
+          stroke="currentColor"
+          strokeOpacity={lit ? 0.9 : seat.head ? 0.5 : 0.28}
+          className={lit ? STATE.on : undefined}
+        />
+      ))}
       </g>
     </svg>
   );

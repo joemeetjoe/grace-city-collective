@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 
-import { FRONT_CUTS_AT, STACK, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
+import { FRONT_CUTS_AT, assignLayer, canvasFor, frontCutsAt, layerMask, renderPasses, stopAt } from "./layerSplit";
 import { bindFlames, parseCuts } from "@/engine/parallaxRelief";
 
 const cuts = parseCuts(JSON.parse(readFileSync(resolve(__dirname, "../assets/dore/2048/cuts.json"), "utf8")));
@@ -181,17 +181,5 @@ describe("renderPasses", () => {
       { side: "back", renderer: { render: (_s, c) => void (drawn += back.layers.test(c.layers) ? 1 : 0) } },
     ]);
     expect(drawn).toBe(1);
-  });
-});
-
-describe("STACK", () => {
-  const z = (cls: string) => Number(/z-\[?(\d+)\]?/.exec(cls)![1]);
-
-  it("orders the page: back canvas, headline and rules, handoff, front canvas, copy, nav", () => {
-    expect(z(STACK.back)).toBeLessThan(z(STACK.between));
-    expect(z(STACK.between)).toBeLessThan(STACK.handoff);
-    expect(STACK.handoff).toBeLessThan(z(STACK.front));
-    expect(z(STACK.front)).toBeLessThan(z(STACK.copy));
-    expect(z(STACK.copy)).toBeLessThan(z(STACK.nav));
   });
 });

@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 import OrnateRule from "@/ui/OrnateRule";
 import { useInViewOnce } from "@/ui/useInViewOnce";
 
@@ -12,7 +10,6 @@ const RULE_DRAW_THRESHOLD = 0.5;
 
 /** the ornamented rule that opens a long-form section, drawn the first time it is seen */
 export default function SectionRule() {
-  const ref = useRef<HTMLSpanElement>(null);
-  const drawn = useInViewOnce(ref, RULE_DRAW_THRESHOLD);
+  const [ref, drawn] = useInViewOnce<HTMLSpanElement>(RULE_DRAW_THRESHOLD);
   return <OrnateRule ref={ref} drawn={drawn} className={SEPARATOR} />;
 }

@@ -32,3 +32,6 @@ __pycache__/
 
 # local Claude Code permissions
 .claude/settings.local.json
+
+# Lighthouse CI reports (pnpm lighthouse)
+.lighthouseci

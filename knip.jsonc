@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // src/main.tsx is found through index.html by knip's vite plugin; the shots
+  // and perf scripts under tools/ are run by hand or from package.json and
+  // import nothing from src, so they are entries of their own. The Lighthouse
+  // CI configs are loaded by `lhci --config` (tools/perf/lighthouse.mjs) and
+  // reach lighthouseProfiles.cjs through their own require.
+  "entry": ["tools/**/*.mjs", "tools/perf/lighthouserc.*.cjs"],
+  // An export only its own module uses is reported too, since #128 dropped
+  // the keyword from every such export outside features/intro; the eight
+  // left there (handoff.ts, introPolicy.ts, restingFade.ts, splashComposition.ts,
+  // splashMark.ts) wait for #124's rewrite. Set this false to see them, and
+  // remove it once they are gone.
+  "ignoreExportsUsedInFile": true,
+  // @fontsource-variable/geist ships no latin-only css to @import, so
+  // src/index.css names its latin file in a url() (#105), which knip does
+  // not follow.
+  "ignoreDependencies": ["@fontsource-variable/geist"]
+}
