@@ -35,6 +35,7 @@ jobs:
       - run: pnpm build
       - run: pnpm test:build
       - run: pnpm budget
+      - run: pnpm paint
       # Lighthouse CI on both profiles (tools/perf/lighthouse.mjs, #112): the
       # reports upload whether the run is green or red so a failure has a
       # trace to read.

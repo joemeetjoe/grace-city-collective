@@ -1,22 +1,21 @@
-import { gsap, SplitText } from "@/lib/gsap";
+import { SplitText } from "gsap/SplitText";
 
-/** how long each line takes to rise, the beat between lines, and how far a line comes up, in px */
-export const HERO_RISE_SECONDS = 1.2;
-export const HERO_RISE_STAGGER = 0.12;
+import { gsap } from "@/lib/gsap";
+import { HERO_RISE_EASE, HERO_RISE_SECONDS, HERO_RISE_STAGGER, HERO_SETTLE_SECONDS, HERO_SETTLE_STAGGER } from "@/theme/motion";
+
+// the split below; registering again elsewhere is a no-op
+gsap.registerPlugin(SplitText);
+
+/** how far a line comes up, in px (its rise and the beat between lines: theme/motion.ts) */
 export const HERO_RISE_PX = 28;
-export const HERO_RISE_EASE = "power3.out";
 /**
  * The settle (#107): the headline stood on the splash from the first paint,
  * so its lines have nowhere to rise from. The handoff lifts the splash's
  * headline this far while the ink dissolves (handoff.ts), and the hero's
  * lines, taking its place at the same height, settle back down one after
- * another — the same lines, never faded.
+ * another — the same lines, never faded (their seconds and beat: theme/motion.ts).
  */
 export const HERO_SETTLE_PX = 8;
-export const HERO_SETTLE_SECONDS = 1.0;
-export const HERO_SETTLE_STAGGER = 0.08;
-/** the hero headline, marked in HeroStop.tsx */
-export const HERO_HEADLINE = "[data-hero-headline]";
 
 /** how the headline arrives: risen from below, faded, or settled from where the splash left it */
 export type HeroEntrance = "rise" | "settle";
@@ -45,7 +44,7 @@ const ENTRANCES: Record<HeroEntrance, gsap.TweenVars> = {
  * headline rewraps (SplitText's autoSplit), but only the first split is
  * animated — a resize must not replay the entrance. Only ever run after a
  * played intro, so never under reduced motion. Null where there is no
- * headline.
+ * headline (the page registers the hero's, kind "headline": state/revealTargets.ts).
  */
 export function riseHeroHeadline(headline: HTMLElement | null, delay = 0, entrance: HeroEntrance = "rise"): HeroRise | null {
   if (!headline) return null;

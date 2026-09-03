@@ -31,7 +31,7 @@ import { HERO_TEXTURES, textureKind } from "./textureKinds";
 export const TIER_PRELOAD_ATTR = "data-tier-preload";
 
 /** the plate widths, as the script keys them: TIERS[..].textures */
-export type TierWidthKey = (typeof TIER_TEXTURES)[keyof typeof TIER_TEXTURES];
+type TierWidthKey = (typeof TIER_TEXTURES)[keyof typeof TIER_TEXTURES];
 
 /** one of a tier's textures: its logical name (cuts.json's) and its hashed file names */
 export type TierTexture = {

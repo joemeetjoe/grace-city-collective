@@ -104,16 +104,17 @@ export function formatTable(tiers) {
 
 /**
  * The expression that scrolls the page to `#id` at once, through the
- * smoother's instant scroll when one is running (the same way the shots
- * reach a stop, tools/shots/cdp-shot.mjs), and reports the page's own
- * clock at that moment: the mark the late phase (#111) starts from.
+ * smoother's instant scroll on the page's seam (`window.__gcc.scrollTo`,
+ * src/state/seam.ts) when one is running — the same way the shots reach a
+ * stop, tools/shots/cdp-shot.mjs — and reports the page's own clock at that
+ * moment: the mark the late phase (#111) starts from.
  */
 export function scrollToScript(id) {
   return `(() => {
     const s = document.getElementById(${JSON.stringify(id)});
     if (!s) throw new Error("no element #" + ${JSON.stringify(id)});
     const top = s.getBoundingClientRect().top + window.scrollY;
-    if (window.__gccScrollTo) window.__gccScrollTo(top); else window.scrollTo({ top, behavior: "instant" });
+    if (window.__gcc?.scrollTo) window.__gcc.scrollTo(top); else window.scrollTo({ top, behavior: "instant" });
     return Math.round(performance.now());
   })()`;
 }

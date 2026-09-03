@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import GatheringMark, { HOUSE_CALL_STAGGER_MS, TRACE_STAGGER_MS } from "./GatheringMark";
+import { HOUSE_CALL_STAGGER_MS, MARK_TRACE_STAGGER_MS } from "@/theme/motion";
+import GatheringMark from "./GatheringMark";
 
 function paths(container: HTMLElement): SVGPathElement[] {
   return [
@@ -52,7 +53,7 @@ describe("GatheringMark", () => {
       shown.every((p) => p.getAttribute("stroke-dashoffset") === "0"),
     ).toBe(true);
     expect(shown.map((p) => parseFloat(p.style.transitionDelay))).toEqual(
-      [0, 1, 2, 3, 4, 5].map((i) => i * TRACE_STAGGER_MS),
+      [0, 1, 2, 3, 4, 5].map((i) => i * MARK_TRACE_STAGGER_MS),
     );
   });
 

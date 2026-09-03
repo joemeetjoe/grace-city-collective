@@ -100,7 +100,7 @@ export function maskRef(cut: { name: string; mask?: MaskRef }, resolve: TextureR
   return { url: resolve(`cut-${cut.name}.png`), channel: 0 };
 }
 
-export const MASK_CHANNELS = 4;
+const MASK_CHANNELS = 4;
 
 /** the vec4 that picks one channel of an rgba sample when dotted with it */
 export function channelVector(channel: number): [number, number, number, number] {

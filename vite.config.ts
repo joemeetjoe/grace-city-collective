@@ -157,7 +157,7 @@ export default defineConfig({
           name: 'unit',
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
-          include: ['src/**/*.test.{ts,tsx}', 'tools/perf/*.test.mjs'],
+          include: ['src/**/*.test.{ts,tsx}', 'tests/engine/**/*.test.ts', 'tools/perf/*.test.mjs'],
           exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
         },
       },

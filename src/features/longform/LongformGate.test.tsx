@@ -2,6 +2,7 @@ import { act, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { site } from "@/content/site";
+import { createSectionRegistry } from "@/scroll/sections";
 
 // the gate re-measures the ScrollTriggers as the words land; count the calls
 vi.mock("@/scroll/refresh", () => ({ refreshScrollPositions: vi.fn() }));
@@ -53,7 +54,7 @@ describe("LongformGate", () => {
   it("before the trigger fires, the four sections stand with their ids, busy, a viewport tall each, and no words", async () => {
     const observers = stubObserver();
     const { LongformGate } = await fresh();
-    const { container } = render(<LongformGate />);
+    const { container } = render(<LongformGate sections={createSectionRegistry([])} />);
     const sections = Array.from(container.querySelectorAll("[data-longform] section"));
     expect(sections.map((s) => s.id)).toEqual(ids);
     for (const s of sections) {
@@ -71,7 +72,7 @@ describe("LongformGate", () => {
   it("once the reader nears, the chunk fills the same sections in and the footer follows", async () => {
     const observers = stubObserver();
     const { LongformGate } = await fresh();
-    const { container } = render(<LongformGate />);
+    const { container } = render(<LongformGate sections={createSectionRegistry([])} />);
     const before = Array.from(container.querySelectorAll("[data-longform] section"));
     act(() => observers[0].cb([{ isIntersecting: true }]));
     await waitFor(() => expect(container.querySelector("footer")).not.toBeNull());
@@ -88,7 +89,7 @@ describe("LongformGate", () => {
   it("a request through the store fills the sections in too, and resolves once they are, their ScrollTriggers re-measured", async () => {
     stubObserver();
     const { LongformGate, store, refresh } = await fresh();
-    const { container } = render(<LongformGate />);
+    const { container } = render(<LongformGate sections={createSectionRegistry([])} />);
     expect(container.querySelector("#faq dl")).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
     let dlAtLanding: Element | null | undefined;
@@ -111,7 +112,7 @@ describe("LongformGate", () => {
 
   it("without IntersectionObserver (jsdom, old engines) nothing waits: the words come at once", async () => {
     const { LongformGate } = await fresh();
-    const { container } = render(<LongformGate />);
+    const { container } = render(<LongformGate sections={createSectionRegistry([])} />);
     await waitFor(() => expect(container.querySelector("#faq dl")).not.toBeNull());
   });
 });

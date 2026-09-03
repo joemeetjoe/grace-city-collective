@@ -9,7 +9,7 @@
  * tsconfig) injects the tags and emits the files (the gcc:surfaces plugin).
  * Strings in, strings out.
  */
-import type { SiteContent } from "./site";
+import type { SceneId, SiteContent } from "./site";
 import { tokens } from "../theme/tokens";
 
 /** where the site is served from: the deployment origin and Vite's base path */
@@ -32,16 +32,16 @@ export type SurfaceTag = {
 export const SHARE_IMAGE = { file: "share.jpg", width: 1200, height: 630 } as const;
 
 /** the site's one URL, with a trailing slash: origin + base */
-export function siteUrl({ origin, base }: SurfaceOptions): string {
+function siteUrl({ origin, base }: SurfaceOptions): string {
   return new URL(base, origin).href;
 }
 
 /** a file at the site root, absolute */
-export function siteFile(opts: SurfaceOptions, file: string): string {
+function siteFile(opts: SurfaceOptions, file: string): string {
   return new URL(file, siteUrl(opts)).href;
 }
 
-const scene = (site: SiteContent, id: string) => site.scene.find((s) => s.id === id);
+const scene = (site: SiteContent, id: SceneId) => site.scene.find((s) => s.id === id);
 
 /** the hero's kicker, "A house church collective · West Georgia", as a phrase: "a house church collective in West Georgia" */
 function whatAndWhere(site: SiteContent): string {
@@ -63,7 +63,7 @@ export function description(site: SiteContent): string {
 }
 
 /** the share card's title: the collective, then its headline */
-export function shareTitle(site: SiteContent): string {
+function shareTitle(site: SiteContent): string {
   const hero = scene(site, "hero")?.heading;
   return hero ? `${site.name} — ${hero}` : site.name;
 }
@@ -125,7 +125,7 @@ export function sitemapXml(opts: SurfaceOptions): string {
 }
 
 /** `&`, `<`, `>` and the quotes as entities, for XML and HTML text and attributes alike */
-export function escapeXml(text: string): string {
+function escapeXml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -136,15 +136,15 @@ export function escapeXml(text: string): string {
 
 // ---- JSON-LD -------------------------------------------------------------
 
-export type PostalAddress = {
+type PostalAddress = {
   "@type": "PostalAddress";
   streetAddress: string;
   addressLocality?: string;
   addressRegion?: string;
   postalCode?: string;
 };
-export type Place = { "@type": "Place"; name: string; address: PostalAddress };
-export type Schedule = {
+type Place = { "@type": "Place"; name: string; address: PostalAddress };
+type Schedule = {
   "@type": "Schedule";
   byDay?: string;
   byMonthWeek?: number;
@@ -175,7 +175,7 @@ export type EventNode = {
 export type JsonLd = { "@context": "https://schema.org"; "@graph": (ChurchNode | EventNode)[] };
 
 /** "Temple, GA 30179" split into locality, region and postcode; anything else stays the locality */
-export function postalAddress(address: SiteContent["contact"]["address"]): PostalAddress {
+function postalAddress(address: SiteContent["contact"]["address"]): PostalAddress {
   const streetAddress = [address.street, address.suite].filter(Boolean).join(" ");
   const parts = /^(.+?),\s*([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/.exec(address.city);
   if (!parts) return { "@type": "PostalAddress", streetAddress, addressLocality: address.city };
@@ -197,7 +197,7 @@ const WEEK_ORDINALS = ["first", "second", "third", "fourth", "fifth"];
  * in the words is not in the schedule either: no clock time in the line,
  * no startTime.
  */
-export function schedule(when: string): Schedule {
+function schedule(when: string): Schedule {
   const out: Schedule = { "@type": "Schedule" };
   const day = DAYS.find((d) => new RegExp(`\\b${d}\\b`, "i").test(when));
   if (day) out.byDay = `https://schema.org/${day}`;
@@ -217,7 +217,7 @@ export function schedule(when: string): Schedule {
 }
 
 /** the part of a `when` line that names somewhere ("five homes across West Georgia"), if any */
-export function placeName(when: string): string | undefined {
+function placeName(when: string): string | undefined {
   return when.split(" · ").find((part) => /\b(across|in|at|near)\s+[A-Z]/.test(part));
 }
 
@@ -309,15 +309,15 @@ export function llmsTxt(site: SiteContent, opts: SurfaceOptions): string {
 }
 
 /** the link from llms.txt to llms-full.txt (framing copy; not in site.ts) */
-export const WHOLE_SITE_LABEL = "The whole site, in plain words";
+const WHOLE_SITE_LABEL = "The whole site, in plain words";
 
 // ---- the whole site: one outline, rendered as Markdown and as HTML --------
 
 /** a run of text: linked when `href` is set, bold when `strong` */
-export type Run = { text: string; href?: string; strong?: boolean };
+type Run = { text: string; href?: string; strong?: boolean };
 
 /** a block of the outline; the same list renders as Markdown (llms-full.txt) and as HTML (the noscript block) */
-export type Block =
+type Block =
   | { kind: "heading"; level: 1 | 2 | 3 | 4; text: string }
   | { kind: "para"; runs: Run[] }
   /** an aside in italics: a time, a scripture reference */
@@ -326,10 +326,10 @@ export type Block =
   | { kind: "list"; ordered: boolean; items: Run[][] };
 
 /** framing copy that is not in site.ts: the line under the title, and the heading over the way in */
-export const WHOLE_SITE_INTRO =
+const WHOLE_SITE_INTRO =
   "The whole site in plain words: who we are, where and when we meet, what we believe, and the way in.";
-export const WAY_IN_HEADING = "The way in";
-export const LEAD_PASTOR_LABEL = "Lead pastor";
+const WAY_IN_HEADING = "The way in";
+const LEAD_PASTOR_LABEL = "Lead pastor";
 
 const h = (level: 1 | 2 | 3 | 4, text: string): Block => ({ kind: "heading", level, text });
 const p = (...runs: (Run | string)[]): Block => ({
@@ -341,7 +341,7 @@ const link = (text: string, href: string): Run => ({ text, href });
 const mail = (email: string): Run => link(email, `mailto:${email}`);
 
 /** the site as an outline, in page order: the stops, the long-form, the footer */
-export function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
+function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
   const hero = scene(site, "hero");
   const blocks: Block[] = [h(1, site.name)];
   if (hero) blocks.push(p(hero.heading), ...(hero.kicker ? [note(hero.kicker)] : []));
@@ -367,6 +367,7 @@ export function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
       const { address, email, pastor } = site.contact;
       blocks.push(
         p(addressLine(address)),
+        p(`${site.footer.gathering} · ${site.contact.sunday}`),
         p(mail(email)),
         p(`${LEAD_PASTOR_LABEL}: ${pastor.name} — `, mail(pastor.email)),
       );
@@ -378,7 +379,6 @@ export function outline(site: SiteContent, opts: SurfaceOptions): Block[] {
     if (section.intro) blocks.push(p(section.intro));
     switch (section.id) {
       case "devotions":
-        blocks.push(p(site.devotionsIntro));
         for (const d of site.devotions) blocks.push(h(4, d.title), note(d.refs), p(d.body));
         break;
       case "beliefs":
@@ -416,7 +416,7 @@ const mdRun = (r: Run): string => {
 const mdRuns = (runs: Run[]): string => runs.map(mdRun).join("");
 
 /** the outline as Markdown */
-export function renderMarkdown(blocks: Block[]): string {
+function renderMarkdown(blocks: Block[]): string {
   const out = blocks.map((b) => {
     switch (b.kind) {
       case "heading":
@@ -441,7 +441,7 @@ const htmlRun = (r: Run): string => {
 const htmlRuns = (runs: Run[]): string => runs.map(htmlRun).join("");
 
 /** the outline as plain HTML, escaped, with no classes or ids */
-export function renderHtml(blocks: Block[]): string {
+function renderHtml(blocks: Block[]): string {
   return blocks
     .map((b) => {
       switch (b.kind) {

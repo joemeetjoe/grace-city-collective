@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import OrnateRule, { DRAW_MS, LOZENGE_AT_MS, LOZENGE_STAGGER_MS } from "./OrnateRule";
+import { LINE_MS, LOZENGE_AT_MS, LOZENGE_STAGGER_MS } from "@/theme/motion";
+import OrnateRule from "./OrnateRule";
 
 const lozenges = (root: HTMLElement) => root.querySelectorAll("[data-lozenge]");
 
@@ -46,7 +47,7 @@ describe("OrnateRule drawing", () => {
     const l = line(container);
     expect(l.className).toMatch(/motion-safe:scale-x-0/);
     expect(l.style.transformOrigin).toBe("50% 50%");
-    expect(l.style.transitionDuration).toBe(`${DRAW_MS}ms`);
+    expect(l.style.transitionDuration).toBe(`${LINE_MS}ms`);
     for (const p of paths(container)) {
       expect(p.className.baseVal).toMatch(/motion-safe:\[stroke-dashoffset:var\(--len\)\]/);
       const len = Number(p.style.getPropertyValue("--len"));

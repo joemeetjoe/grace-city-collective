@@ -1,22 +1,47 @@
-import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { gsap } from "@/lib/gsap";
-import { STACK } from "@/theme/layerSplit";
-import { sectionIds, site } from "@/content/site";
+import { NAV_GLASS, STACK, STATE } from "@/theme/classes";
+import { sectionIds, site, wayInWords } from "@/content/site";
+import * as calendar from "@/features/stops/gatheringCalendarMetrics";
+import * as table from "@/features/stops/houseTableMetrics";
+import * as life from "@/features/stops/sharedLifeMetrics";
 import { HERO_SETTLE_PX } from "@/features/intro/heroRise";
-import { INTRO_PLAYED_KEY, REDUCED_MOTION_QUERY } from "@/features/intro/introPolicy";
+import { REDUCED_MOTION_QUERY } from "@/device/reducedMotion";
+import { INTRO_PLAYED_KEY } from "@/features/intro/introPolicy";
 import { STATIC_SPLASH_ATTR, staticSplashMarkup } from "@/features/intro/staticSplash";
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
-import { installScrollDriver, type ScrollDriver } from "@/scroll/position";
+import { SCENE_ERROR_PREFIX } from "@/engine/sceneError";
+import { MENU_LABEL } from "@/features/nav/mobileNavLabels";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
+import type { ScrollDriver } from "@/scroll/position";
+import { revealTargets } from "@/state/revealTargets";
+import { useAppStore } from "@/state/appStore";
+import { TRACE_MIN_SECONDS } from "@/theme/motion";
 
-// jsdom cannot probe for WebGL; each test says whether it is there
-const seams = vi.hoisted(() => ({ webgl: true }));
+// jsdom cannot probe for WebGL; each test says whether it is there — and
+// what the scene's stand-in does once mounted (#131): report ready, fail
+// while loading, or throw out of its render
+const seams = vi.hoisted(() => ({ webgl: true, scene: "ready" as "ready" | "fail" | "throw" }));
 vi.mock("@/device/fallback", async (orig) => ({
   ...(await orig<typeof import("@/device/fallback")>()),
   detectWebgl: () => seams.webgl,
 }));
+
+// the smoother runs for real unless a test stands a driver in for it: then
+// the handle the app gets carries that driver, and the nav's jumps go through it
+const smoothers = vi.hoisted(() => ({ driver: null as ScrollDriver | null }));
+vi.mock("@/scroll/smoother", async (orig) => {
+  const mod = await orig<typeof import("@/scroll/smoother")>();
+  return {
+    ...mod,
+    createSmoothScroll: (...args: Parameters<typeof mod.createSmoothScroll>) => {
+      if (!smoothers.driver) return mod.createSmoothScroll(...args);
+      return { driver: smoothers.driver, transforms: false, settle() {}, interrupt() {}, dispose() {} };
+    },
+  };
+});
 
 // the smoother runs for real; the hook's arguments are recorded so a test can
 // see which layers it was asked to hold
@@ -27,12 +52,9 @@ vi.mock("@/scroll/useSmoothScroll", async (orig) => {
   const mod = await orig<typeof import("@/scroll/useSmoothScroll")>();
   return {
     ...mod,
-    useSmoothScroll: (
-      refs: Parameters<typeof mod.useSmoothScroll>[0],
-      reduced: boolean,
-    ) => {
+    useSmoothScroll: (refs: Parameters<typeof mod.useSmoothScroll>[0]) => {
       smoother.calls.push({ held: refs.held });
-      return mod.useSmoothScroll(refs, reduced);
+      return mod.useSmoothScroll(refs);
     },
   };
 });
@@ -51,12 +73,22 @@ vi.mock("@/features/intro/handoff", async (orig) => {
   };
 });
 
-// WebGL does not exist in jsdom: stand in for the scene and report ready at once
+// WebGL does not exist in jsdom: stand in for the scene and report ready at
+// once — or fail the way the wrapper does when a texture fails, or throw
+// out of the render as a broken chunk would
 vi.mock("@/engine/PentecostParallax", async () => {
   const { useEffect } = await import("react");
-  function ParallaxStub({ onReady }: { onReady?: () => void }) {
-    useEffect(() => onReady?.(), [onReady]);
-    return <div data-parallax-stub="" />;
+  const { useAppStore } = await import("@/state/appStore");
+  const { reportSceneError } = await import("@/engine/sceneError");
+  function BrokenScene(): never {
+    throw new Error("engine chunk broke");
+  }
+  function ParallaxStub() {
+    useEffect(() => {
+      if (seams.scene === "fail") reportSceneError(new Error("texture failed: /assets/map-fig5.avif"));
+      else useAppStore.getState().markReady();
+    }, []);
+    return seams.scene === "throw" ? <BrokenScene /> : <div data-parallax-stub="" />;
   }
   return { default: ParallaxStub };
 });
@@ -101,6 +133,33 @@ function matchOnly(...matching: string[]) {
 }
 
 const preferReducedMotion = () => matchOnly(REDUCED_MOTION_QUERY);
+
+/**
+ * matchMedia whose queries the test flips live, firing their change
+ * listeners — the preference toggled mid-session (#132, state/syncReducedMotion.ts)
+ */
+function matchLive(...matching: string[]) {
+  const on = new Set(matching);
+  const listeners = new Map<string, Set<() => void>>();
+  vi.spyOn(window, "matchMedia").mockImplementation((query: string) => {
+    const fns = listeners.get(query) ?? new Set<() => void>();
+    listeners.set(query, fns);
+    return {
+      get matches() {
+        return on.has(query);
+      },
+      media: query,
+      addEventListener: (_: string, fn: () => void) => fns.add(fn),
+      removeEventListener: (_: string, fn: () => void) => fns.delete(fn),
+    } as unknown as MediaQueryList;
+  });
+  return (query: string, matches: boolean) =>
+    act(() => {
+      if (matches) on.add(query);
+      else on.delete(query);
+      for (const fn of [...(listeners.get(query) ?? [])]) fn();
+    });
+}
 /** a phone or tablet: the viewport is below Tailwind's lg */
 const belowLg = () => matchOnly(BELOW_LG_QUERY);
 
@@ -117,14 +176,15 @@ async function longformIn(container: HTMLElement): Promise<Element> {
 beforeEach(() => {
   engineLoads.count = 0;
   handoffs.list.length = 0;
+  smoothers.driver = null;
   window.sessionStorage.clear();
   stubFontSize(120);
   seams.webgl = true;
+  seams.scene = "ready";
 });
 afterEach(() => {
   vi.restoreAllMocks();
   window.sessionStorage.clear();
-  installScrollDriver(null);
 });
 
 describe("App intro policy", () => {
@@ -161,13 +221,102 @@ describe("App intro policy", () => {
   });
 });
 
+describe("App reduced motion, live (#132)", () => {
+  // a static splash a failed test left behind must not be the next test's
+  afterEach(() => document.querySelector(`[${STATIC_SPLASH_ATTR}]`)?.remove());
+
+  it("a flip during the trace brings the splash down: the static splash leaves once, the page opens from ink, nothing counts as played", () => {
+    const flip = matchLive();
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    const staticRoot = document.querySelector<HTMLElement>(`[${STATIC_SPLASH_ATTR}]`)!;
+    const removed = vi.spyOn(staticRoot, "remove");
+    const { container } = render(<App />);
+    expect(document.querySelector("[data-intro-splash]")).toBe(staticRoot);
+    const parallax = container.querySelector("[data-parallax]") as HTMLElement;
+
+    flip(REDUCED_MOTION_QUERY, true);
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: false, fallback: false });
+    expect(handoffs.list).toHaveLength(0);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(removed).toHaveBeenCalledTimes(1);
+    expect(container.firstElementChild!.classList.contains("intro-pending")).toBe(false);
+    expect(container.querySelector("[data-poster]")).toBeNull();
+    expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
+    // nothing played: a later full-motion session still gets the intro
+    expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBeNull();
+  });
+
+  it("a flip mid-handoff brings the splash down: the handoff lands, callbacks aside, the static splash leaves once, the page opens from ink", async () => {
+    const flip = matchLive();
+    document.body.insertAdjacentHTML("afterbegin", staticSplashMarkup());
+    const staticRoot = document.querySelector<HTMLElement>(`[${STATIC_SPLASH_ATTR}]`)!;
+    const removed = vi.spyOn(staticRoot, "remove");
+    const { container } = render(<App />);
+    const root = container.firstElementChild!;
+    // the live splash is the static one, adopted
+    expect(document.querySelector("[data-intro-splash]")).toBe(staticRoot);
+    // a gesture skips the floor; the stub scene is ready, so the handoff builds and is in flight
+    fireEvent.pointerDown(window);
+    await waitFor(() => expect(handoffs.list).toHaveLength(1));
+    expect(handoffs.list[0].progress()).toBeLessThan(1);
+    const splashH1 = staticRoot.querySelector("h1")!;
+
+    flip(REDUCED_MOTION_QUERY, true);
+    // the splash is gone, its controller disposed: the handoff jumped to its
+    // end without landing (no reveal plays after), the static root removed once
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: true, intro: false, introPlayed: false, fallback: false });
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(removed).toHaveBeenCalledTimes(1);
+    expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
+    expect(root.classList.contains("intro-pending")).toBe(false);
+    // the scene stays: no poster mid-session, that is the mount's decision
+    expect(container.querySelector("[data-poster]")).toBeNull();
+    // and the page opens from ink as a reduced-motion session does
+    const parallax = container.querySelector("[data-parallax]") as HTMLElement;
+    expect(parseFloat(parallax.style.opacity)).toBeLessThan(1);
+    // the gate had opened: the intro counts as played for the session, as it did before the flip
+    expect(window.sessionStorage.getItem(INTRO_PLAYED_KEY)).toBe("1");
+
+    // flipped back mid-fade: the fade lands, the scene stands with its opacity CSS's again, and no splash returns
+    flip(REDUCED_MOTION_QUERY, false);
+    expect(useAppStore.getState()).toMatchObject({ reducedMotion: false, intro: false });
+    expect(parallax.style.opacity).toBe("");
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+  });
+
+  it("past the intro a flip rests the ornaments where they play, and a flip back plays them again", async () => {
+    const flip = matchLive(BELOW_LG_QUERY);
+    const { container } = render(<App />);
+    const panel = container.querySelector("#house-churches [data-copy-panel]")!;
+    const across = drawing(container, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
+    const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), { timeout: 3000 });
+    await waitFor(() => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""), { timeout: 3000 });
+
+    flip(REDUCED_MOTION_QUERY, true);
+    // at rest at once, the panels shown, the pointer notwithstanding, and nothing lights on a timer
+    expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
+    expect(across).not.toHaveClass(STATE.lit);
+    expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
+    for (const mark of marks) expect(mark.getAttribute("data-lit")).toBeNull();
+    fireEvent.mouseEnter(panel);
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(across).not.toHaveClass(STATE.lit);
+    expect(marks[0].getAttribute("data-lit")).toBeNull();
+
+    flip(REDUCED_MOTION_QUERY, false);
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), { timeout: 3000 });
+    await waitFor(() => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""), { timeout: 3000 });
+  });
+});
+
 describe("App splash headline (#107)", () => {
   it("stands the hero headline on the splash, keeps the hero's own hidden until the handoff, then one h1 settles into place", async () => {
     const heading = site.scene[0].heading;
     const { container } = render(<App />);
     const root = container.firstElementChild!;
-    // while the intro is pending index.css hides [data-hero-headline] under this attribute; the splash's h1 is the one that paints
-    expect(root.hasAttribute("data-intro-pending")).toBe(true);
+    // while the intro is pending index.css hides [data-hero-headline] under this class; the splash's h1 is the one that paints
+    expect(root.classList.contains("intro-pending")).toBe(true);
     const splashH1 = document.querySelector("[data-intro-splash] h1")!;
     expect(splashH1.textContent).toBe(heading);
     expect(container.querySelector("[data-hero-headline]")!.textContent).toBe(heading);
@@ -180,7 +329,7 @@ describe("App splash headline (#107)", () => {
     // landed: the splash is gone, its headline lifted the settle's distance on the way
     expect(gsap.getProperty(splashH1, "y")).toBe(-HERO_SETTLE_PX);
     expect(document.querySelector("[data-intro-splash]")).toBeNull();
-    expect(root.hasAttribute("data-intro-pending")).toBe(false);
+    expect(root.classList.contains("intro-pending")).toBe(false);
     // exactly one h1 carries the heading now: the hero's, shown
     const h1s = [...document.querySelectorAll("h1")].filter((h) => h.textContent === heading);
     expect(h1s).toHaveLength(1);
@@ -261,17 +410,18 @@ describe("App hero seal", () => {
 describe("App nav", () => {
   it("the nav carries the G mark at both breakpoints, linked to the top, and no seal", () => {
     const { container } = render(<App />);
-    const marks = Array.from(container.querySelectorAll("nav [data-nav-mark] [data-g-mark]"));
+    const marks = Array.from(container.querySelectorAll("nav a[href='#hero'] [data-g-mark]"));
     expect(marks.length).toBe(2);
-    expect(marks.filter((m) => m.closest("[data-mobile-nav]")).length).toBe(1);
-    for (const mark of marks) expect(mark.closest("a")?.getAttribute("href")).toBe("#hero");
+    // one beside the Menu button, the other at the xl corner; both the traveller's landing (handoff picks the laid-out one)
+    const bar = screen.getByRole("button", { name: MENU_LABEL }).parentElement!;
+    expect(marks.filter((m) => bar.contains(m)).length).toBe(1);
+    expect(revealTargets("mark")).toEqual(marks.map((m) => m.closest("a")));
     expect(container.querySelector("nav [data-seal]")).toBeNull();
   });
 
   it("the mobile nav sits in the same sticky nav as the desktop links", () => {
     const { container } = render(<App />);
-    const mobile = container.querySelector("nav [data-mobile-nav]")!;
-    expect(mobile).not.toBeNull();
+    expect(container.querySelector("nav")!.contains(screen.getByRole("button", { name: MENU_LABEL }))).toBe(true);
   });
 });
 
@@ -316,17 +466,76 @@ describe("App static fallback", () => {
   });
 });
 
+describe("App scene boundary (#131)", () => {
+  const store = () => useAppStore.getState();
+  const fakeClock = () =>
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "requestAnimationFrame", "cancelAnimationFrame"] });
+  /** console.error calls under the scene's prefix */
+  const logged = (errors: ReturnType<typeof vi.spyOn>) => errors.mock.calls.filter(([first]: unknown[]) => first === SCENE_ERROR_PREFIX);
+  /**
+   * the splash's floor, a frame at a time: the fake clock fires the frames
+   * the trace starts on, but gsap keeps its own clock (a Date.now it took at
+   * load, out of the fake's reach), so its root timeline is stepped by hand
+   * alongside — the manual ticking gsap.updateRoot is there for
+   */
+  const runFloor = () =>
+    act(() => {
+      const from = gsap.ticker.time;
+      for (let i = 1; i <= Math.ceil((TRACE_MIN_SECONDS * 1000) / 16) + 8; i++) {
+        vi.advanceTimersByTime(16);
+        gsap.updateRoot(from + i * 0.016);
+      }
+    });
+  afterEach(() => vi.useRealTimers());
+
+  it("a scene that fails while loading gives way to the poster, and the splash opens once the floor has run", async () => {
+    seams.scene = "fail";
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakeClock();
+    const { container } = render(<App />);
+    // the engine chunk lands, the stand-in mounts and fails
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    expect(container.querySelector("[data-parallax] [data-poster] img")).not.toBeNull();
+    expect(container.querySelector("[data-parallax-front]")).toBeNull();
+    expect(store()).toMatchObject({ sceneError: "texture failed: /assets/map-fig5.avif", ready: true, fallback: false, intro: true });
+    // ready, but the floor has not run: the splash holds
+    expect(handoffs.list).toHaveLength(0);
+    runFloor();
+    expect(handoffs.list).toHaveLength(1);
+    act(() => {
+      handoffs.list[0].progress(1);
+    });
+    expect(store().intro).toBe(false);
+    expect(document.querySelector("[data-intro-splash]")).toBeNull();
+    expect(logged(errors)).toHaveLength(1);
+  });
+
+  it("a throw out of the engine chunk is caught at the scene's boundary: the poster stands in, the page stays up, one line is logged", async () => {
+    seams.scene = "throw";
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    fakeClock();
+    const { container } = render(<App />);
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    expect(container.querySelector("[data-parallax-stub]")).toBeNull();
+    expect(container.querySelector("[data-parallax] [data-poster] img")).not.toBeNull();
+    expect(container.querySelector("[data-parallax-front]")).toBeNull();
+    expect(store()).toMatchObject({ sceneError: "engine chunk broke", ready: true, intro: true });
+    expect(container.querySelectorAll("section[data-screen-label]")).toHaveLength(site.scene.length);
+    expect(logged(errors)).toHaveLength(1);
+  });
+});
+
 describe("App content", () => {
   it("renders no personal gmail", () => {
     const { container } = render(<App />);
     expect(container.textContent).not.toContain("gmail.com");
   });
 
-  it("nav links jump through the scroll driver when one is installed", () => {
+  it("nav links jump through the smoother's driver while one runs", () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    smoothers.driver = driver;
     const { container } = render(<App />);
-    // after the mount: the app installs its own smoother on mount, and the last one in wins
-    installScrollDriver(driver);
     fireEvent.click(container.querySelector("nav a[href='#give']")!);
     expect(driver.scrollTo).toHaveBeenCalledTimes(1);
     expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true);
@@ -358,31 +567,32 @@ describe("App nav jumps to the long-form (#111)", () => {
   }
 
   // the gate's store remembers the page's one request: a fresh module graph
-  // per test, with the scroll driver installed on the same graph the app reads
+  // per test (the smoother mock, and the driver it stands in, carry over)
   const freshPage = async () => {
     vi.resetModules();
-    const [{ default: FreshApp }, position] = await Promise.all([import("./App"), import("@/scroll/position")]);
-    return { FreshApp, installScrollDriver: position.installScrollDriver };
+    const { default: FreshApp } = await import("./App");
+    return { FreshApp };
   };
 
   afterEach(() => vi.unstubAllGlobals());
 
   it("a nav link to a long-form section asks for the chunk and lands once its words have mounted", async () => {
     quietObserver();
-    const { FreshApp, installScrollDriver } = await freshPage();
-    const { container } = render(<FreshApp />);
-    const faq = container.querySelector("#faq")!;
-    expect(faq).not.toBeNull();
-    expect(faq.getAttribute("aria-busy")).toBe("true");
-    expect(container.querySelector("#faq dl")).toBeNull();
+    const { FreshApp } = await freshPage();
+    let container: HTMLElement | null = null;
     let wordsAtLanding: Element | null = null;
     const driver: ScrollDriver = {
       scrollTop: () => 0,
       scrollTo: vi.fn(() => {
-        wordsAtLanding = container.querySelector("#faq dl");
+        wordsAtLanding = container!.querySelector("#faq dl");
       }),
     };
-    installScrollDriver(driver);
+    smoothers.driver = driver;
+    container = render(<FreshApp />).container;
+    const faq = container.querySelector("#faq")!;
+    expect(faq).not.toBeNull();
+    expect(faq.getAttribute("aria-busy")).toBe("true");
+    expect(container.querySelector("#faq dl")).toBeNull();
     fireEvent.click(container.querySelector("nav a[href='#faq']")!);
     // not yet: the chunk is in flight
     expect(driver.scrollTo).not.toHaveBeenCalled();
@@ -392,45 +602,53 @@ describe("App nav jumps to the long-form (#111)", () => {
     // the same section element, now full: nothing the nav or the watch holds went stale
     expect(container.querySelector("#faq")).toBe(faq);
     expect(faq.getAttribute("aria-busy")).toBeNull();
-    installScrollDriver(null);
   });
 
   it("a nav link to a scene stop goes at once, whatever the chunk is doing", async () => {
     quietObserver();
-    const { FreshApp, installScrollDriver } = await freshPage();
-    const { container } = render(<FreshApp />);
+    const { FreshApp } = await freshPage();
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
-    installScrollDriver(driver);
+    smoothers.driver = driver;
+    const { container } = render(<FreshApp />);
     fireEvent.click(container.querySelector("nav a[href='#give']")!);
     expect(driver.scrollTo).toHaveBeenCalledTimes(1);
     expect(container.querySelector("#faq dl")).toBeNull();
-    installScrollDriver(null);
   });
 });
+
+/** an ornament's svg by the extent it draws in, the one thing that tells one layout of a drawing from another */
+function drawing(root: Element, w: number, h: number): SVGSVGElement {
+  const svg = Array.from(root.querySelectorAll("svg")).find((s) => s.getAttribute("viewBox") === `0 0 ${w} ${h}`);
+  if (!svg) throw new Error(`no drawing ${w}×${h}`);
+  return svg;
+}
 
 describe("App gatherings calendar", () => {
   it("the calendar sits in the gatherings panel and lights for the gathering under the pointer", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#gatherings [data-copy-panel]")!;
-    const grid = panel.querySelector("[data-gathering-calendar]")!;
-    expect(grid.getAttribute("data-lit")).toBeNull();
+    const grid = drawing(panel, calendar.CALENDAR_VIEW_W, calendar.CALENDAR_VIEW_H);
+    expect(grid).not.toHaveClass(STATE.lit);
     const homes = panel.querySelector("[data-gathering=homes]")!;
     const feast = panel.querySelector("[data-gathering=feast]")!;
+    // the other three Sundays light cream for the homes; the first, red, for the feast
+    const litSundays = () =>
+      Array.from(grid.querySelectorAll(`.${STATE.on} path`), (p) => p.getAttribute("fill"));
     fireEvent.mouseEnter(homes);
-    expect(grid.getAttribute("data-lit")).toBe("homes");
+    expect(grid).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(["currentColor", "currentColor", "currentColor"]);
     fireEvent.mouseLeave(homes);
-    expect(grid.getAttribute("data-lit")).toBeNull();
+    expect(grid).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(feast);
-    expect(grid.getAttribute("data-lit")).toBe("feast");
+    expect(grid).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(["var(--color-seal)"]);
     // leaving one after entering the other does not put the lit one out
     fireEvent.mouseLeave(homes);
-    expect(grid.getAttribute("data-lit")).toBe("feast");
+    expect(litSundays()).toEqual(["var(--color-seal)"]);
     // two drawings, one per layout: the desktop's column first, then the
     // phone's month across, under the headline and before the gatherings
-    const drawings = panel.querySelectorAll("[data-gathering-calendar]");
-    expect(drawings).toHaveLength(2);
-    expect(drawings[0].getAttribute("data-across")).toBeNull();
-    expect(drawings[1].getAttribute("data-across")).toBe("");
+    const drawings = [grid, drawing(panel, calendar.CALENDAR_VIEW_W_ACROSS, calendar.CALENDAR_VIEW_H_ACROSS)];
+    expect(drawings[0].compareDocumentPosition(drawings[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const heading = panel.querySelector("h2")!;
     expect(
       heading.compareDocumentPosition(drawings[1]) &
@@ -441,7 +659,8 @@ describe("App gatherings calendar", () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // on desktop the pointer lights the phone's month too, the same way
-    expect(drawings[1].getAttribute("data-lit")).toBe("feast");
+    expect(drawings[1]).toHaveClass(STATE.lit);
+    expect(drawings[1].querySelectorAll(`.${STATE.on}`)).toHaveLength(1);
   });
 });
 
@@ -449,18 +668,18 @@ describe("App house churches table", () => {
   it("the table sits in the house churches panel and lights while the pointer is over the panel", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const column = panel.querySelector("[data-house-churches-table]")!;
-    const table = column.querySelector("[data-house-table]")!;
-    expect(table.getAttribute("data-lit")).toBeNull();
+    const standing = drawing(panel, table.TABLE_VIEW_W, table.TABLE_VIEW_H);
+    expect(standing).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(table.getAttribute("data-lit")).toBe("");
+    expect(standing).toHaveClass(STATE.lit);
     fireEvent.mouseLeave(panel);
-    expect(table.getAttribute("data-lit")).toBeNull();
-    // the words come first, the table after them, past the divider
+    expect(standing).not.toHaveClass(STATE.lit);
+    // the words come first, the table after them, past the divider; on a
+    // phone it lies across, under the words
     const kicker = panel.querySelector("p")!;
-    expect(
-      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const across = drawing(panel, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
+    expect(kicker.compareDocumentPosition(across) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(across.compareDocumentPosition(standing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
@@ -468,23 +687,19 @@ describe("App shared life", () => {
   it("the program sits in the who-we-are panel and huddles while the pointer is over the panel", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#about [data-copy-panel]")!;
-    const column = panel.querySelector("[data-about-shared-life]")!;
-    const life = column.querySelector("[data-shared-life]")!;
-    expect(life.getAttribute("data-lit")).toBeNull();
+    // two drawings, one per layout: the phone's two columns and the desktop's one
+    const twoColumns = drawing(panel, life.LIFE_VIEW_W_2, life.LIFE_VIEW_H_2);
+    const oneColumn = drawing(panel, life.LIFE_VIEW_W, life.LIFE_VIEW_H);
+    expect(oneColumn).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(life.getAttribute("data-lit")).toBe("");
+    expect(oneColumn).toHaveClass(STATE.lit);
+    expect(twoColumns).toHaveClass(STATE.lit);
     fireEvent.mouseLeave(panel);
-    expect(life.getAttribute("data-lit")).toBeNull();
+    expect(oneColumn).not.toHaveClass(STATE.lit);
     // the words come first, the program after them, past the divider
     const kicker = panel.querySelector("p")!;
-    expect(
-      kicker.compareDocumentPosition(column) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // two drawings, one per layout: the phone's two columns and the desktop's one
-    const drawings = container.querySelectorAll("[data-shared-life]");
-    expect(drawings).toHaveLength(2);
-    expect(drawings[0].getAttribute("data-columns")).toBe("2");
-    expect(drawings[1].getAttribute("data-columns")).toBe("1");
+    expect(kicker.compareDocumentPosition(twoColumns) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(twoColumns.compareDocumentPosition(oneColumn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });
 
@@ -509,56 +724,59 @@ describe("App stops below lg (#56)", () => {
     belowLg();
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
-    const table = container.querySelector("[data-house-table]")!;
-    const life = container.querySelector("[data-shared-life]")!;
+    const across = drawing(container, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
+    const program = drawing(container, life.LIFE_VIEW_W_2, life.LIFE_VIEW_H_2);
     const field = container.querySelector("[data-sowing-mark]")!;
     const marks = container.querySelectorAll("#gatherings [data-gathering-mark]");
     expect(marks.length).toBeGreaterThan(1);
     // the panel is shown, its ornament in place and at rest first
     expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
-    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(across).not.toHaveClass(STATE.lit);
     fireEvent.mouseEnter(panel);
-    expect(table.getAttribute("data-lit")).toBeNull();
-    await waitFor(() => expect(table.getAttribute("data-lit")).toBe(""), {
+    expect(across).not.toHaveClass(STATE.lit);
+    await waitFor(() => expect(across).toHaveClass(STATE.lit), {
       timeout: 3000,
     });
-    expect(life.getAttribute("data-lit")).toBe("");
+    expect(program).toHaveClass(STATE.lit);
     expect(field.getAttribute("data-lit")).toBe("");
     // the emblems light in turn, the first with the rest of the ornaments,
-    // and the month across lights for whichever lit last
-    const month = container.querySelector(
-      "#gatherings [data-gathering-calendar][data-across]",
-    )!;
+    // and the month across lights for whichever lit last: the homes' three
+    // Sundays cream, the feast's first Sunday red
+    const month = drawing(container.querySelector("#gatherings")!, calendar.CALENDAR_VIEW_W_ACROSS, calendar.CALENDAR_VIEW_H_ACROSS);
+    const litSundays = () =>
+      Array.from(month.querySelectorAll(`.${STATE.on} path`), (p) => p.getAttribute("fill"));
+    const sundaysFor = (mark: string | null) =>
+      mark === "feast" ? ["var(--color-seal)"] : ["currentColor", "currentColor", "currentColor"];
     expect(marks[0].getAttribute("data-lit")).toBe("");
     expect(marks[marks.length - 1].getAttribute("data-lit")).toBeNull();
-    expect(month.getAttribute("data-lit")).toBe(marks[0].getAttribute("data-gathering-mark"));
+    expect(month).toHaveClass(STATE.lit);
+    expect(litSundays()).toEqual(sundaysFor(marks[0].getAttribute("data-gathering-mark")));
     await waitFor(
       () => expect(marks[marks.length - 1].getAttribute("data-lit")).toBe(""),
       { timeout: 3000 },
     );
-    expect(month.getAttribute("data-lit")).toBe(
-      marks[marks.length - 1].getAttribute("data-gathering-mark"),
-    );
+    expect(litSundays()).toEqual(sundaysFor(marks[marks.length - 1].getAttribute("data-gathering-mark")));
     fireEvent.mouseLeave(panel);
-    expect(table.getAttribute("data-lit")).toBe("");
+    expect(across).toHaveClass(STATE.lit);
   });
 
   it("the visit stop's way in shows one step at a time (from lg up the whole rail)", () => {
     belowLg();
     const { container } = render(<App />);
-    const way = container.querySelector("#visit [data-way-in]")!;
-    expect(way.hasAttribute("data-single")).toBe(true);
-    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
-    expect(container.querySelector("#visit [data-way-traveller]")).toBeNull();
-    fireEvent.click(container.querySelector<HTMLButtonElement>("#visit [data-way-arrow='next']")!);
-    expect(way.getAttribute("data-step")).toBe("1");
-    expect(way.getAttribute("data-way-dir")).toBe("next");
-    expect(container.querySelectorAll("#visit [data-way-step]").length).toBe(1);
+    const words = wayInWords(site);
+    const steps = (root: HTMLElement) => root.querySelectorAll("#visit ol li");
+    expect(steps(container).length).toBe(1);
+    // alone, no traveller stands on the list
+    expect(container.querySelector("#visit ol > span")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: words.next.label }));
+    expect(steps(container).length).toBe(1);
+    expect(steps(container)[0]).toHaveAttribute("id", "way-in-step-1");
+    expect(steps(container)[0]).toHaveClass("way-in-slide-next");
     cleanup();
     vi.restoreAllMocks();
     const { container: desktop } = render(<App />);
-    expect(desktop.querySelectorAll("#visit [data-way-step]").length).toBe(5);
-    expect(desktop.querySelector("#visit [data-way-in]")!.hasAttribute("data-single")).toBe(false);
+    expect(steps(desktop).length).toBe(5);
+    expect(desktop.querySelector("#visit ol > span")).not.toBeNull();
   });
 
   it("under reduced motion the panels are shown and the ornaments rest", async () => {
@@ -566,10 +784,10 @@ describe("App stops below lg (#56)", () => {
     const { container } = render(<App />);
     const panel = container.querySelector("#house-churches [data-copy-panel]")!;
     expect(panel.querySelector("[data-reveal]")!.getAttribute("data-reveal")).toBe("true");
-    const table = container.querySelector("[data-house-table]")!;
-    expect(table.getAttribute("data-lit")).toBeNull();
+    const across = drawing(container, table.TABLE_VIEW_H, table.TABLE_VIEW_W);
+    expect(across).not.toHaveClass(STATE.lit);
     await new Promise((r) => setTimeout(r, 1500));
-    expect(table.getAttribute("data-lit")).toBeNull();
+    expect(across).not.toHaveClass(STATE.lit);
     expect(container.querySelector("[data-sowing-mark]")!.getAttribute("data-lit")).toBeNull();
     expect(container.querySelector("#gatherings [data-gathering-mark]")!.getAttribute("data-lit")).toBeNull();
   });
@@ -578,7 +796,7 @@ describe("App stops below lg (#56)", () => {
 describe("App section markers", () => {
   it("the nav link and the rail dot agree on the current section", () => {
     const { container } = render(<App />);
-    const rail = container.querySelector("[data-dot-rail]")!;
+    const rail = screen.getByRole("navigation", { name: "Sections" });
     expect(rail.querySelectorAll("a").length).toBe(sectionIds(site).length);
     const current = Array.from(
       container.querySelectorAll("[aria-current='location']"),
@@ -592,12 +810,12 @@ describe("App section markers", () => {
 
   it("the rail sits outside the smoother's content, and its dots jump through the driver", async () => {
     const driver: ScrollDriver = { scrollTop: () => 0, scrollTo: vi.fn() };
+    smoothers.driver = driver;
     const { container } = render(<App />);
-    const rail = container.querySelector("[data-dot-rail]")!;
+    const rail = screen.getByRole("navigation", { name: "Sections" });
     expect(container.querySelector("#smooth-wrapper")!.contains(rail)).toBe(
       false,
     );
-    installScrollDriver(driver);
     fireEvent.click(rail.querySelector("a[href='#faq']")!);
     // a long-form dot waits for the chunk (App nav jumps, below); at once once it is in
     await waitFor(() => expect(driver.scrollTo).toHaveBeenCalledWith(expect.any(Number), true));
@@ -802,13 +1020,12 @@ describe("App canvas split", () => {
     const { container } = render(<App />);
     const nav = container.querySelector("nav")!;
     expect(nav.className).not.toMatch(/backdrop-blur-md/);
-    const links = container.querySelector("nav [data-nav-links]")!;
+    const links = container.querySelector(`nav .${NAV_GLASS}`)!;
     expect(links.className).toMatch(/backdrop-blur/);
     expect(links.className).toMatch(/bg-ink\/\d+/);
     // the dot rail's column of dots wears it too
-    expect(
-      container.querySelector("[data-dot-rail] [data-dot-glass]")!.className,
-    ).toMatch(/backdrop-blur/);
+    const rail = screen.getByRole("navigation", { name: "Sections" });
+    expect(rail.querySelector(`.${NAV_GLASS}`)!.className).toMatch(/backdrop-blur/);
   });
 
   it("the nav, the dot rail and the frame border stay above the front canvas", () => {
@@ -816,9 +1033,7 @@ describe("App canvas split", () => {
     expect(
       container.querySelector("nav")!.closest(`.${STACK.nav}`),
     ).not.toBeNull();
-    expect(has(container.querySelector("[data-dot-rail]"), STACK.nav)).toBe(
-      true,
-    );
+    expect(has(screen.getByRole("navigation", { name: "Sections" }), STACK.nav)).toBe(true);
     expect(
       container.querySelector("[data-scene-frame]")!.closest(`.${STACK.copy}`),
     ).not.toBeNull();

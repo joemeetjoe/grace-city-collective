@@ -114,7 +114,7 @@ describe("scrollToScript", () => {
   it("is the page-side expression that scrolls an id into view, through the smoother when there is one", () => {
     const js = scrollToScript("faq");
     expect(js).toContain('getElementById("faq")');
-    expect(js).toContain("__gccScrollTo");
+    expect(js).toContain("__gcc?.scrollTo");
     expect(js).toContain("scrollTo(");
     // quoted as a string literal, so an odd id cannot break out of the script
     expect(scrollToScript('a"b')).toContain(JSON.stringify('a"b'));

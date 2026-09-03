@@ -1,17 +1,20 @@
-import { lazy, Suspense, type RefObject } from "react";
+import { lazy, Suspense, useMemo, useState, type RefObject } from "react";
 
-import CornerOrnaments, {
-  FRAME_ARM,
-  FRAME_INSET,
-} from "@/ui/CornerOrnaments";
-import { STACK } from "@/theme/layerSplit";
+import CornerOrnaments from "@/ui/CornerOrnaments";
+import { FRAME_ARM, FRAME_BRACKET_INSET } from "@/ui/cornerOrnamentsMetrics";
+import { STACK } from "@/theme/classes";
 import { loadParallax, StaticPoster, vignetteCss } from "@/engine";
 import { useSite } from "@/content/useSite";
 import LongformGate from "@/features/longform/LongformGate";
-import { IntroPendingContext, ReducedMotionContext } from "./contexts";
 import HeroLockup from "@/features/stops/HeroLockup";
 import Scene from "@/features/stops/Scene";
-import type { Tier } from "@/device/tier";
+import { useBelowLg } from "@/layout/useBelowLg";
+import { useViewportHeight } from "@/layout/useViewportHeight";
+import type { SectionRegistry } from "@/scroll/sections";
+import type { PageScroll } from "@/scroll/useSmoothScroll";
+import { useAppStore } from "@/state/appStore";
+import { revealRefWith } from "@/state/revealTargets";
+import SceneBoundary from "./SceneBoundary";
 
 /**
  * the scene, from the engine chunk: requested the moment the page mounts (not
@@ -26,19 +29,17 @@ const PentecostParallax = lazy(loadParallax);
 const FRAME_CORNERS =
   "rounded-tl-[clamp(48px,7vw,110px)] rounded-br-[clamp(48px,7vw,110px)]";
 
+/** the scene's DOM handles (useSceneLayers) and the page's scroll (useSmoothScroll), and nothing else: every fact comes off the store */
 export type HomePageProps = {
-  intro: boolean;
-  reducedMotion: boolean;
-  fallback: boolean;
-  tier: Tier;
-  frameHeight: number | null;
-  markReady: () => void;
-  reportProgress: (loaded: number, total: number) => void;
   parallaxRef: RefObject<HTMLDivElement | null>;
   frontRef: RefObject<HTMLDivElement | null>;
   frontCanvasRef: RefObject<HTMLCanvasElement | null>;
   frameRef: RefObject<HTMLDivElement | null>;
   sceneRef: RefObject<HTMLDivElement | null>;
+  /** every section mounts with its ref from here (scroll/sections.ts) */
+  sections: SectionRegistry;
+  /** the scroll position the camera reads, whichever is driving */
+  scroll: PageScroll;
 };
 
 /**
@@ -47,20 +48,37 @@ export type HomePageProps = {
  * the splash, and the smoother wiring.
  */
 export default function HomePage({
-  intro,
-  reducedMotion,
-  fallback,
-  tier,
-  frameHeight,
-  markReady,
-  reportProgress,
   parallaxRef,
   frontRef,
   frontCanvasRef,
   frameRef,
   sceneRef,
+  sections,
+  scroll,
 }: HomePageProps) {
   const site = useSite();
+  const intro = useAppStore((s) => s.intro);
+  const fallback = useAppStore((s) => s.fallback);
+  const sceneError = useAppStore((s) => s.sceneError);
+  // the poster stands in where the mount decided against the scene, and
+  // where the scene has since given up (#131: engine/sceneError.ts)
+  const poster = fallback || sceneError !== null;
+  const tier = useAppStore((s) => s.tier);
+  // the tier the scene mounts with, held for the mount: its textures are cut
+  // for this one and never reload, so the store's live tier (state/syncTier.ts)
+  // moving mid-session stays a fact and changes nothing here
+  const [engineTier] = useState(tier);
+  const markReady = useAppStore((s) => s.markReady);
+  // below lg the frame's dvh steps as the URL bar moves; a measured px
+  // height lets the layer's transition glide between the steps instead
+  const frameHeight = useViewportHeight(useBelowLg());
+  // the camera paces itself against the scene's sections alone — the
+  // long-form below scrolls past a scene at rest — read off the page's
+  // registry by their ids when the scene builds (createParallaxScene.ts)
+  const sceneSections = useMemo(() => {
+    const ids = new Set<string>(site.scene.map((s) => s.id));
+    return () => sections.sections().flatMap(({ id, el }) => (ids.has(id) ? [el] : []));
+  }, [site, sections]);
 
   return (
     <>
@@ -75,7 +93,9 @@ export default function HomePage({
       smoother transforms the content the sticky is inert and
       useSmoothScroll holds the sticky layers with a scrubbed translate.
       A held layer is transformed, so it is a stacking context of its
-      own: each carries one step of STACK (layerSplit.ts). */}
+      own: each carries one step of STACK (theme/classes.ts). Both
+      canvases register as the intro's parallax targets, held on ink
+      until the handoff fades them up (state/revealTargets.ts). */}
       <div ref={sceneRef} data-scene="" className="relative grid grid-cols-[minmax(0,1fr)]">
         {/* sticky, not fixed: it stays put while the sections scroll over it.
         lvh, not svh: on a phone the URL bar retracts as the reader scrolls
@@ -84,24 +104,26 @@ export default function HomePage({
         card rolling up through it. lvh always covers; the overdraw hides
         under the bar while it is shown. Not dvh: that resizes the canvas
         all the way through the bar's transition, and onResize rebuilds
-        every layer's geometry (PentecostParallax.tsx) */}
+        every layer's geometry (engine/createParallaxScene.ts) */}
         <div
-          ref={parallaxRef}
+          ref={revealRefWith("parallax", parallaxRef)}
           data-parallax=""
           className={`sticky top-0 ${STACK.back} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
         >
-          {fallback ? (
+          {poster ? (
             <StaticPoster onReady={markReady} />
           ) : (
-            <Suspense fallback={null}>
-              <PentecostParallax
-                layerSpread={1.25}
-                tier={tier}
-                frontCanvas={frontCanvasRef}
-                onReady={markReady}
-                onProgress={reportProgress}
-              />
-            </Suspense>
+            <SceneBoundary>
+              <Suspense fallback={null}>
+                <PentecostParallax
+                  layerSpread={1.25}
+                  tier={engineTier}
+                  frontCanvas={frontCanvasRef}
+                  sections={sceneSections}
+                  scrollTop={scroll.scrollTop}
+                />
+              </Suspense>
+            </SceneBoundary>
           )}
           {/* the front canvas wears the same vignette in its shaders (vignette.ts) */}
           <div
@@ -114,9 +136,9 @@ export default function HomePage({
         {/* the front canvas: the floor, the two nearest apostles on the left
         and the embers, drawn from the same scene over the hero headline
         (layerSplit.ts). Transparent, and no pointer events */}
-        {!fallback && (
+        {!poster && (
           <div
-            ref={frontRef}
+            ref={revealRefWith("parallax", frontRef)}
             data-parallax-front=""
             className={`pointer-events-none sticky top-0 ${STACK.front} col-start-1 row-start-1 h-[100lvh] self-start overflow-hidden`}
           >
@@ -139,7 +161,7 @@ export default function HomePage({
         (a border and the lockup, no canvas geometry), and on desktop
         dvh and lvh agree. Browsers step dvh in coarse jumps while the
         bar animates, so below lg the height is measured in px instead
-        (layout/viewportHeight.ts) and the transition glides between the
+        (layout/useViewportHeight.ts) and the transition glides between the
         steps — dvh stands as the no-measure fallback */}
         <div
           ref={frameRef}
@@ -150,12 +172,12 @@ export default function HomePage({
           <div
             aria-hidden
             data-scene-frame=""
-            className={`absolute inset-[clamp(9px,2.4vw,26px)] border border-cream/35 ${FRAME_CORNERS}`}
+            className={`absolute inset-frame-inset border border-cream/35 ${FRAME_CORNERS}`}
           />
           {/* not on a phone, where the lockup sits right in the bottom-left corner */}
           <CornerOrnaments
             arm={FRAME_ARM}
-            inset={FRAME_INSET}
+            inset={FRAME_BRACKET_INSET}
             shown={!intro}
             className="hidden md:block"
           />
@@ -166,20 +188,16 @@ export default function HomePage({
         minmax(0,1fr) column: a section's min-content can never widen the
         cell, and the sticky layers with it, past the viewport (#51) */}
         <div className="relative col-start-1 row-start-1 min-w-0">
-          <IntroPendingContext.Provider value={intro}>
-            <ReducedMotionContext.Provider value={reducedMotion}>
-              {site.scene.map((s) => (
-                <Scene key={s.id} section={s} />
-              ))}
-            </ReducedMotionContext.Provider>
-          </IntroPendingContext.Provider>
+          {site.scene.map((s) => (
+            <Scene key={s.id} section={s} ref={sections.ref(s.id)} />
+          ))}
         </div>
       </div>
 
       {/* long-form: ordinary scrolling on ink, no waypoints. Its words come
       in their own chunk once the reader nears (#111); the sections stand
       from the first render */}
-      <LongformGate />
+      <LongformGate sections={sections} />
     </>
   );
 }

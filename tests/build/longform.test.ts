@@ -14,10 +14,10 @@ const LONGFORM_ENTRY = "src/features/longform/Longform.tsx";
  * Markup only the long-form components carry. Not a heading or a question:
  * src/content/site.ts stays in the shell (the nav, the stops, the noscript
  * surfaces read it), so its words prove nothing about which chunk the
- * components went to. The ScriptureRefs divider's attribute and the Messages
- * heading's "Current series" label live in the components alone.
+ * components went to. The ScriptureRefs divider's attribute and the Devotions
+ * grid's column rule live in the components alone.
  */
-const LONGFORM_ONLY = ['data-ref-lozenge', "Current series"];
+const LONGFORM_ONLY = ["data-ref-lozenge", "minmax(280px,1fr)"];
 
 type Chunk = { file: string; isEntry?: boolean; isDynamicEntry?: boolean; dynamicImports?: string[] };
 const manifest = JSON.parse(readDist(".vite/manifest.json")) as Record<string, Chunk>;

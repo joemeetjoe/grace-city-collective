@@ -1,10 +1,8 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import CornerOrnaments, {
-  ENTER_MS,
-  ENTER_STAGGER_MS,
-} from "./CornerOrnaments";
+import { BRACKET_STAGGER_MS, ENTER_MS } from "@/theme/motion";
+import CornerOrnaments from "./CornerOrnaments";
 
 const arms = (root: HTMLElement) => [
   ...root.querySelectorAll<HTMLElement>("[data-ornate-rule]"),
@@ -43,7 +41,7 @@ describe("CornerOrnaments", () => {
     expect(topA.style.transitionDuration).toBe(`${ENTER_MS}ms`);
     expect(
       [topA, topB, bottomA, bottomB].map((a) => a.style.transitionDelay),
-    ).toEqual([0, 1, 2, 3].map((i) => `${i * ENTER_STAGGER_MS}ms`));
+    ).toEqual([0, 1, 2, 3].map((i) => `${i * BRACKET_STAGGER_MS}ms`));
     rerender(<CornerOrnaments shown />);
     expect(topA.style.opacity).toBe("1");
     expect(topA.style.transform).toBe("translate(0px, 0px) scale(1)");
@@ -57,6 +55,6 @@ describe("CornerOrnaments drawing", () => {
     expect(all.map((a) => a.getAttribute("data-drawn"))).toEqual(["false", "false", "false", "false"]);
     expect(
       all.map((a) => a.querySelector<HTMLElement>("[data-rule-line]")!.style.transitionDelay),
-    ).toEqual([0, 1, 2, 3].map((i) => `${i * ENTER_STAGGER_MS}ms`));
+    ).toEqual([0, 1, 2, 3].map((i) => `${i * BRACKET_STAGGER_MS}ms`));
   });
 });

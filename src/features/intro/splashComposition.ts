@@ -4,7 +4,7 @@
  * hero's own box, from the first paint. The headline is the page's largest
  * text and so its LCP element; on the splash it paints with the page's
  * first frame instead of after the gate, and the handoff has nothing to
- * move — the hero's h1 takes its place (useIntroGate.ts) and settles.
+ * move — the hero's h1 takes its place (useIntroReveals.ts) and settles.
  *
  * SPLASH_COMPOSITION picks one. The three with the headline are the
  * options shot for the design pass (docs/design/issue-107/README.md);
@@ -18,6 +18,7 @@
  * DOM-free, with relative imports: the static splash is built under the
  * node tsconfig (vite.config.ts).
  */
+import { FRAME_INSET, LOCKUP_FOOT, vwClamp } from "../../theme/measures";
 import { HERO_GUTTER, HERO_GUTTER_BELOW_LG } from "../stops/heroMetrics";
 
 export type SplashComposition = {
@@ -38,10 +39,10 @@ export type SplashComposition = {
 /** the mark on either splash root, for a rule of its own */
 const MARK = "[data-intro-static]>svg,[data-intro-splash]>svg";
 
-/** the lockup's bottom offset from the frame's foot (HeroLockup, HeroStop's pb) */
-const FOOT = "clamp(22px,4.2vw,52px)";
-/** the nav bar's inset from the viewport edge (SiteNav) */
-const NAV_INSET = "clamp(9px,2.4vw,26px)";
+/** the lockup's bottom offset from the frame's foot (HeroLockup, HeroStop's pb: --spacing-lockup-foot) */
+const FOOT = vwClamp(LOCKUP_FOOT);
+/** the nav bar's inset from the viewport edge (SiteNav: --spacing-frame-inset) */
+const NAV_INSET = vwClamp(FRAME_INSET);
 
 export const SPLASH_COMPOSITIONS = {
   /** the splash before #107: the mark alone, centred, as tall as the viewport allows */

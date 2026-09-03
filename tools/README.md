@@ -19,6 +19,23 @@ project; none is part of the bundle.
   runs recorded, compared label by label: line count, and the largest
   vertical and horizontal shift of any line edge, in CSS px.
 
+### The `window.__gcc` seam
+
+The one global the app writes (`src/state/seam.ts`), for these scripts:
+
+- `__gcc.store` — the app store's `getState()` / `subscribe()`
+  (`src/state/appStore.ts`): `intro`, `ready`, `progress`, `activeId`,
+  `sceneInView` and the rest. `transfer.mjs` reads `intro === false` for
+  the intro-done mark.
+- `__gcc.scrollTo(top)` — instant scroll through the smoother while one
+  runs (`src/scroll/smoother.ts`); every script scrolls with it and falls
+  back to `window.scrollTo` (native scroll: below lg, reduced motion).
+- `__gcc.scene` — `{ layers, scene, camera }`, a debug build only
+  (`VITE_SCENE_DEBUG=1 pnpm build`); what `cdp-rects.mjs` measures.
+
+The store and `scrollTo` are in the production build, since the shots and
+the transfer trace run against it; nothing under `src/` reads the seam.
+
 ### Fonts blocked (`--block-fonts`)
 
 `cdp-shot.mjs --block-fonts` blocks every `*.woff2` and `*.woff` request
@@ -202,6 +219,16 @@ two font preloads the `gcc:font-preload` plugin writes into the head
 (`src/lib/fontPreload.ts`) and the fallback faces in the inline head style. Later Vitals slices add their config and
 headless-Chrome timeline checks here; in CI the order is `test`, `build`,
 `test:build`, `budget`.
+
+## Paint (`tools/perf/`)
+
+`pnpm paint` loads the built site in hardware headless Chrome at both
+profiles and reads the browser's own `largest-contentful-paint` entries: the
+largest paint must be the splash headline and must land inside 400 ms
+(`--ceiling`). It exists because Lighthouse's simulated mobile LCP is
+bimodal on this page and cannot gate it — the measurements are in
+[`docs/perf/vitals.md`](../docs/perf/vitals.md). CI runs it after
+`pnpm budget`; the pure half (`paintReport.mjs`) is unit-tested.
 
 ## Lighthouse CI (`tools/perf/`)
 

@@ -1,0 +1,56 @@
+
+=== mobile  390×844 @3× (mobile) ===
+1. the splash (sampled 900 ms after navigate; intro up: true)
+  page under it inert            → true (holds the nav: true)
+  status line read out          → "Press any key to skip the intro."
+  tabbables outside the splash  → 0
+  Tab                            → «body»                                         :focus-visible=no   NONE
+  Enter skips the intro         → page no longer inert: true
+2. Tab through the chrome
+  Tab 1                          → Menu (button)                                  :focus-visible=yes  theme ring
+  Tab 2                          → Home (a)                                       :focus-visible=yes  theme ring
+  Tab 3                          → Share the life (button)                        :focus-visible=yes  theme ring
+  Tab 4                          → Seat the table (button)                        :focus-visible=yes  theme ring
+  Tab 5                          → Light the Sundays: House Churches (button)     :focus-visible=yes  theme ring
+3. the menu sheet
+  focus Menu                     → Menu (button)                                  :focus-visible=yes  theme ring
+  · shot mobile-01-menu-button.png  (174×133 css @3×)
+  Enter → focus lands in         → Close menu (button)                            :focus-visible=yes  theme ring  in the dialog: true
+  · shot mobile-02-sheet-close.png  (177×131 css @3×)
+    Tab 1                        → Home (a)                                       :focus-visible=yes  theme ring
+    Tab 2                        → About (a)                                      :focus-visible=yes  theme ring
+  · shot mobile-03-sheet-link.png  (390×140 css @3×)
+    Tab 3                        → House churches (a)                             :focus-visible=yes  theme ring
+    Tab 4                        → Gatherings (a)                                 :focus-visible=yes  theme ring
+  the dialog is named           → "Menu"
+  and described                 → "The page's sections, and where to give or join us on a Sunday."
+  Escape → closed, focus         → Menu (button)                                  :focus-visible=yes  theme ring  dialog gone: true
+4. the way in (Visit)
+  open the sheet for Visit       → Menu (button)                                  :focus-visible=yes  theme ring
+  focus the Visit link           → Visit (a)                                      :focus-visible=yes  theme ring
+  Enter jumps to #visit         → its top is 0 px from the viewport's, the sheet closed: true
+  the live region             → aria-atomic=true  "Say hello.Write to us and tell us a little about yourself — "
+  focus Next step                → Next step (button)                             :focus-visible=yes  theme ring
+  · shot mobile-04-way-in-next.png  (177×197 css @3×)
+    Enter 1                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-1  live region is the same node: true
+    Enter 2                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-2  live region is the same node: true
+    Enter 3                      → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-3  live region is the same node: true
+    Enter 4                      → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-4  live region is the same node: true
+    Enter 5                      → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-3  live region is the same node: true
+  · shot mobile-05-way-in-back.png  (196×197 css @3×)
+    Enter back 1                 → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-2
+    Enter back 2                 → Back a step (button)                           :focus-visible=yes  theme ring  way-in-step-1
+    Enter back 3                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-0
+    Enter back 4                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-1
+    Enter back 5                 → Next step (button)                             :focus-visible=yes  theme ring  way-in-step-2
+5. an ornament's switch (House churches)
+  open the sheet for House churches → Menu (button)                                  :focus-visible=yes  theme ring
+  focus the House churches link  → House churches (a)                             :focus-visible=yes  theme ring
+  Enter jumps to #house-churches→ its top is 0 px from the viewport's, the sheet closed: true
+  focus the switch               → Seat the table (button)                        :focus-visible=yes  theme ring  named "Seat the table"
+  · shot mobile-06-ornament-switch.png  (328×172 css @3×)
+  Space                          → Seat the table (button)                        :focus-visible=yes  theme ring  aria-pressed=true  drawing lit: true → true
+  · shot mobile-07-ornament-lit.png  (328×172 css @3×)
+  Space again unlights it       → lit: true
+6. axe-core in the browser
+  color-contrast (serious) ×4: .mb-\[22px\] > .text-balance.tracking-\[0\.28em\].z-10 | .lg\:pl-panel-pad > .md\:pr-\[clamp\(24px\,2\.4vw\,40px\)\].md\:gap-\[26px\].min-w-0 > .gap-3.flex-col > .text-balance.tracking-\[0\.28em\].z-10 | .gap-3.items-center.flex-col > .text-balance.tracking-\[0\.28em\].z-10

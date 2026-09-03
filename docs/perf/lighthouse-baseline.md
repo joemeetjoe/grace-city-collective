@@ -52,7 +52,7 @@ Error assertions that are red on this run, each an issue of its own:
 
 - `color-contrast` (accessibility, mobile only, score 0.96) — *Background
   and foreground colors do not have a sufficient contrast ratio.* The
-  kicker labels (`kickerCls` in `src/app/styles.ts`: 11 px uppercase,
+  kicker labels (`kicker` in `src/theme/classes.ts`: 11 px uppercase,
   `text-seal` #9e1f2e on ink #14100e) measure 2.42:1 against the 4.5:1
   WCAG AA needs for text that size. Four nodes: the kickers of the
   house-churches, gatherings, give and visit panels. On desktop the same

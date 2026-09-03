@@ -1,11 +1,13 @@
-import type { CSSProperties, Ref } from "react";
+import { memo, type CSSProperties, type Ref } from "react";
 
+import { cssVars } from "@/theme/cssVars";
 import { lozengeLength, lozengePath } from "@/theme/lozenge";
+import { LINE_MS, LOZENGE_AT_MS, LOZENGE_MS, LOZENGE_STAGGER_MS } from "@/theme/motion";
 import { cn } from "@/lib/utils";
 
 export type RuleEnds = "both" | "start" | "end";
 
-export type OrnateRuleProps = {
+type OrnateRuleProps = {
   /** which ends carry the lozenges; a corner arm carries one at its free end only */
   ends?: RuleEnds;
   /** run top to bottom instead of left to right */
@@ -23,49 +25,46 @@ export type OrnateRuleProps = {
   ref?: Ref<HTMLSpanElement>;
 };
 
-/** the two lozenges of a finial, in px: the outer one small, the inner one larger */
-const SMALL = { w: 10, h: 5 };
-const LARGE = { w: 14, h: 7 };
 const GAP = 3;
 
-/** how long the line takes to draw, in ms */
-export const DRAW_MS = 1000;
-/** how long a lozenge takes to trace, when the large ones start, and how long after them the small */
-export const LOZENGE_MS = 500;
-export const LOZENGE_AT_MS = 750;
-export const LOZENGE_STAGGER_MS = 300;
+/** the line (LINE_MS) and the lozenges (LOZENGE_MS) draw on the site's ease, only where motion is welcome */
+const DRAW_EASE = "motion-safe:ease-site";
+const LINE_DURATION = `${LINE_MS}ms`;
+const LOZENGE_DURATION = `${LOZENGE_MS}ms`;
 
-const DRAW_EASE = "motion-safe:ease-[cubic-bezier(0.16,1,0.3,1)]";
+/** a finial lozenge as drawn: its box, and its hollow diamond, hairline, on half-pixels so the stroke stays crisp */
+type LozengeArt = {
+  width: number;
+  height: number;
+  viewBox: string;
+  d: string;
+  /** its perimeter: the whole of it is one dash, offset out of sight until drawn */
+  len: number;
+};
 
-function Lozenge({
-  w,
-  h,
-  vertical,
-  drawn,
-  delay,
-}: {
-  w: number;
-  h: number;
-  vertical: boolean;
-  drawn: boolean;
-  delay: number;
-}) {
-  // a hollow diamond, hairline; drawn on half-pixels so the stroke stays crisp
-  const d = lozengePath(w / 2, h / 2, w, h);
-  const dv = lozengePath(h / 2, w / 2, h, w);
-  // traced by its dash: the whole perimeter is one dash, offset out of sight until drawn
-  const len = lozengeLength(w, h);
+function lozengeArt(w: number, h: number, vertical: boolean): LozengeArt {
+  const width = vertical ? h : w;
+  const height = vertical ? w : h;
+  return {
+    width,
+    height,
+    viewBox: `0 0 ${width} ${height}`,
+    d: lozengePath(width / 2, height / 2, width, height),
+    len: lozengeLength(w, h),
+  };
+}
+
+/** the two lozenges of a finial, in px — the outer one small, the inner one larger — either way up, settled once */
+const ART = {
+  across: { small: lozengeArt(10, 5, false), large: lozengeArt(14, 7, false) },
+  down: { small: lozengeArt(10, 5, true), large: lozengeArt(14, 7, true) },
+};
+
+function Lozenge({ art, drawn, delay }: { art: LozengeArt; drawn: boolean; delay: number }) {
   return (
-    <svg
-      aria-hidden
-      data-lozenge=""
-      width={vertical ? h : w}
-      height={vertical ? w : h}
-      viewBox={vertical ? `0 0 ${h} ${w}` : `0 0 ${w} ${h}`}
-      className="shrink-0"
-    >
+    <svg aria-hidden data-lozenge="" width={art.width} height={art.height} viewBox={art.viewBox} className="shrink-0">
       <path
-        d={vertical ? dv : d}
+        d={art.d}
         fill="none"
         stroke="currentColor"
         strokeWidth="1"
@@ -74,14 +73,12 @@ function Lozenge({
           DRAW_EASE,
           !drawn && "motion-safe:[stroke-dashoffset:var(--len)]",
         )}
-        style={
-          {
-            strokeDasharray: len,
-            "--len": len,
-            transitionDuration: `${LOZENGE_MS}ms`,
-            transitionDelay: `${delay}ms`,
-          } as CSSProperties
-        }
+        style={cssVars({
+          strokeDasharray: art.len,
+          "--len": art.len,
+          transitionDuration: LOZENGE_DURATION,
+          transitionDelay: `${delay}ms`,
+        })}
       />
     </svg>
   );
@@ -102,7 +99,7 @@ function lineOrigin(ends: RuleEnds, vertical: boolean): string {
  * grows from its middle (or from a corner arm's corner), then the large
  * lozenges trace themselves, then the small — only where motion is welcome.
  */
-export default function OrnateRule({
+function OrnateRule({
   ends = "both",
   vertical = false,
   drawn = true,
@@ -115,7 +112,7 @@ export default function OrnateRule({
   const end = ends !== "start";
   const large = delay + LOZENGE_AT_MS;
   const small = large + LOZENGE_STAGGER_MS;
-  const lozenge = { vertical, drawn };
+  const art = vertical ? ART.down : ART.across;
   return (
     <span
       ref={ref}
@@ -125,8 +122,8 @@ export default function OrnateRule({
       className={cn("flex items-center", vertical ? "flex-col" : "flex-row", className)}
       style={{ gap: GAP, ...style }}
     >
-      {start && <Lozenge {...SMALL} {...lozenge} delay={small} />}
-      {start && <Lozenge {...LARGE} {...lozenge} delay={large} />}
+      {start && <Lozenge art={art.small} drawn={drawn} delay={small} />}
+      {start && <Lozenge art={art.large} drawn={drawn} delay={large} />}
       <span
         data-rule-line=""
         className={cn(
@@ -137,12 +134,14 @@ export default function OrnateRule({
         )}
         style={{
           transformOrigin: lineOrigin(ends, vertical),
-          transitionDuration: `${DRAW_MS}ms`,
+          transitionDuration: LINE_DURATION,
           transitionDelay: `${delay}ms`,
         }}
       />
-      {end && <Lozenge {...LARGE} {...lozenge} delay={large} />}
-      {end && <Lozenge {...SMALL} {...lozenge} delay={small} />}
+      {end && <Lozenge art={art.large} drawn={drawn} delay={large} />}
+      {end && <Lozenge art={art.small} drawn={drawn} delay={small} />}
     </span>
   );
 }
+
+export default memo(OrnateRule);

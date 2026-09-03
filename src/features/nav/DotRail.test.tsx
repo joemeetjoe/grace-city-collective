@@ -1,53 +1,82 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { JumpProvider } from "@/app/JumpProvider";
 import { site } from "@/content/site";
 import { sectionMarkers } from "@/scroll/markers";
+import { REST_STATE, useAppStore } from "@/state/appStore";
+import { revealTargets } from "@/state/revealTargets";
+import { NAV_GLASS, NAV_REVEAL } from "@/theme/classes";
 
 import DotRail from "./DotRail";
 
 const markers = sectionMarkers(site);
 
+afterEach(() => {
+  useAppStore.setState(REST_STATE);
+  document.body.innerHTML = "";
+});
+
+/** the label beside a dot, and the dot itself */
+const label = (a: Element) => a.querySelector("span:first-of-type")!;
+const dot = (a: Element) => a.querySelector("span:last-of-type")!;
+
 describe("DotRail", () => {
-  it("is a landmark with one link per section, each named after its section", () => {
-    render(<DotRail markers={markers} activeId={null} />);
+  it("is a landmark with one link per section, each named by the label written out beside its dot", () => {
+    render(<DotRail markers={markers} />);
     const rail = screen.getByRole("navigation", { name: "Sections" });
     const links = Array.from(rail.querySelectorAll("a"));
     expect(links.map((a) => a.getAttribute("href"))).toEqual(
       markers.map((m) => `#${m.id}`),
     );
-    expect(links.map((a) => a.getAttribute("aria-label"))).toEqual(
-      markers.map((m) => m.label),
-    );
-    // the label is also written out, to be revealed beside the dot
-    for (const m of markers) expect(rail.textContent).toContain(m.label);
+    // the visible label is the accessible name (#130): no aria-label to drift from it
+    for (const m of markers) {
+      const link = screen.getByRole("link", { name: m.label });
+      expect(link.getAttribute("href")).toBe(`#${m.id}`);
+      expect(link.hasAttribute("aria-label")).toBe(false);
+      expect(label(link).hasAttribute("aria-hidden")).toBe(false);
+      expect(dot(link).getAttribute("aria-hidden")).toBe("true");
+    }
   });
 
-  it("fills the active dot crimson and marks its link current", () => {
-    const { container } = render(<DotRail markers={markers} activeId="give" />);
+  it("fills the store's active dot crimson and marks its link current", () => {
+    useAppStore.setState({ activeId: "give" });
+    const { container } = render(<DotRail markers={markers} />);
     const active = container.querySelector("a[href='#give']")!;
     expect(active.getAttribute("aria-current")).toBe("location");
-    expect(active.querySelector("[data-dot]")!.className).toContain("bg-seal");
+    expect(dot(active).className).toContain("bg-seal");
     const rest = Array.from(
       container.querySelectorAll("a:not([href='#give'])"),
     );
     expect(rest.length).toBe(markers.length - 1);
     for (const a of rest) {
       expect(a.getAttribute("aria-current")).toBeNull();
-      expect(a.querySelector("[data-dot]")!.className).not.toContain("bg-seal");
+      expect(dot(a).className).not.toContain("bg-seal");
     }
   });
 
-  it("a click hands the id to onNavigate instead of following the hash", () => {
-    const onNavigate = vi.fn();
+  it("a click jumps to the section through the provided jump instead of following the hash", () => {
+    const jump = vi.fn();
     const { container } = render(
-      <DotRail markers={markers} activeId={null} onNavigate={onNavigate} />,
+      <JumpProvider jump={jump}>
+        <DotRail markers={markers} />
+      </JumpProvider>,
     );
-    const followed = fireEvent.click(
-      container.querySelector("a[href='#devotions']")!,
-    );
-    expect(onNavigate).toHaveBeenCalledWith("devotions");
+    const followed = fireEvent.click(container.querySelector("a[href='#give']")!);
     expect(followed).toBe(false);
+    expect(jump).toHaveBeenCalledTimes(1);
+    expect(jump).toHaveBeenCalledWith("give");
+  });
+
+  it("registers every dot, top to bottom, and its glass strip for the intro's cascade, and forgets them on unmount", () => {
+    const { container, unmount } = render(<DotRail markers={markers} />);
+    const links = Array.from(container.querySelectorAll("a"));
+    expect(revealTargets("dot")).toEqual(links);
+    expect(revealTargets("glass")).toEqual([container.querySelector(`.${NAV_GLASS}`)]);
+    for (const a of links) expect(a.className.split(/\s+/)).toContain(NAV_REVEAL);
+    unmount();
+    expect(revealTargets("dot")).toEqual([]);
+    expect(revealTargets("glass")).toEqual([]);
   });
 });
 
@@ -55,18 +84,19 @@ describe("DotRail class lists", () => {
   const tokens = (el: Element) => el.className.split(/\s+/);
 
   it("stacks where its caller puts it: no z-order of its own", () => {
-    const { container } = render(<DotRail markers={markers} activeId={null} className="z-40" />);
+    const { container } = render(<DotRail markers={markers} className="z-40" />);
     expect(tokens(container.querySelector("nav")!).filter((c) => /^z-/.test(c))).toEqual(["z-40"]);
   });
 
   it("a resting dot and label wear cream; the active ones wear seal and no cream", () => {
-    const { container } = render(<DotRail markers={markers} activeId="give" />);
+    useAppStore.setState({ activeId: "give" });
+    const { container } = render(<DotRail markers={markers} />);
     const rest = container.querySelector("a:not([aria-current])")!;
     const active = container.querySelector("a[aria-current='location']")!;
-    const restDot = tokens(rest.querySelector("[data-dot]")!);
-    const restLabel = tokens(rest.querySelector("[data-dot-label]")!);
-    const activeDot = tokens(active.querySelector("[data-dot]")!);
-    const activeLabel = tokens(active.querySelector("[data-dot-label]")!);
+    const restDot = tokens(dot(rest));
+    const restLabel = tokens(label(rest));
+    const activeDot = tokens(dot(active));
+    const activeLabel = tokens(label(active));
     expect(restDot).toEqual(expect.arrayContaining(["border-cream/55", "group-hover:border-cream"]));
     expect(restDot).not.toContain("border-seal");
     expect(restLabel).toContain("text-cream/80");

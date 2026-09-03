@@ -160,7 +160,7 @@ try {
       await evaluate(`(() => {
         const s = ${JSON.stringify(wp)} === "top" ? null : document.getElementById(${JSON.stringify(wp)});
         const top = s ? s.getBoundingClientRect().top + window.scrollY : 0;
-        if (window.__gccScrollTo) window.__gccScrollTo(top); else window.scrollTo({ top, behavior: "instant" });
+        if (window.__gcc?.scrollTo) window.__gcc.scrollTo(top); else window.scrollTo({ top, behavior: "instant" });
       })()`);
       await sleep(settle);
       const m = await evaluate(MEASURE);

@@ -15,9 +15,9 @@ export type Tier = {
   name: TierName;
   /** width of the plate texture set, in px */
   textures: "1024" | "2048";
-  /** ember particle count, consumed by #38 */
+  /** ember particle count (engine/embers.ts) */
   embers: number;
-  /** ray planes in the light beam, consumed by #37 */
+  /** ray planes in the light beam (engine/rayPlanes.ts) */
   rays: number;
   /** devicePixelRatio ceiling for the renderers (#62): a phone rasterises at 1.5 */
   dprCap: number;
@@ -61,11 +61,9 @@ export function tierWidth(tier: Tier): TierWidth {
   return tier.textures === "1024" ? 1024 : 2048;
 }
 
-type NavigatorWithConnection = Navigator & { connection?: { saveData?: boolean } };
-
-/** the Save-Data hint, false wherever the Network Information API is missing */
+/** the Save-Data hint, false wherever the Network Information API is missing (types/globals.d.ts declares it) */
 export function readSaveData(nav: Navigator = navigator): boolean {
-  return (nav as NavigatorWithConnection).connection?.saveData === true;
+  return nav.connection?.saveData === true;
 }
 
 /** gather the tier inputs from the browser (both seams injectable for tests) */

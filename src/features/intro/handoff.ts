@@ -1,20 +1,25 @@
-import { STACK } from "@/theme/layerSplit";
-import { HERO_SETTLE_PX } from "./heroRise";
-import { TRACE_FINISH_SECONDS } from "./trace";
+import { STACK, stackLevel } from "@/theme/classes";
+import {
+  FADE_EASE,
+  HANDOFF_EASE,
+  HANDOFF_SECONDS,
+  TRACE_FINISH_EASE,
+  TRACE_FINISH_SECONDS,
+} from "@/theme/motion";
+import { rgba, tokens } from "@/theme/tokens";
 import { gsap } from "@/lib/gsap";
-
-export const HANDOFF_SECONDS = 0.8;
-export const HANDOFF_EASE = "power3.inOut";
+import { revealTargets } from "@/state/revealTargets";
+import { HERO_SETTLE_PX } from "./heroRise";
 
 /**
  * Where the splash sits once it starts to hand off: over the hero headline
  * (which fades up with the parallax) and under the nav, whose own mark the
- * travelling one lands on (see STACK in layerSplit.ts).
+ * travelling one lands on (STACK, theme/classes.ts), as the number gsap sets.
  */
-export const HANDOFF_Z_INDEX: number = STACK.handoff;
+export const HANDOFF_Z_INDEX: number = stackLevel(STACK.handoff);
 
 /** the ink, fully transparent, for the splash's fade */
-const INK_CLEAR = "rgba(20, 16, 14, 0)";
+const INK_CLEAR = rgba(tokens.ink, 0);
 
 export type HandoffContext = {
   /** the splash root; its ink fades to transparent */
@@ -32,8 +37,8 @@ export type HandoffContext = {
   onComplete: () => void;
 };
 
-/** the nav's G mark, the traveller's destination */
-export const NAV_MARK = "[data-nav-mark] [data-g-mark]";
+/** the G mark's svg inside a nav mark link (marks/GMark.tsx) */
+const G_MARK = "[data-g-mark]";
 
 /** whether an element takes up room on screen (not display: none) */
 function laidOut(el: Element | null): el is SVGSVGElement {
@@ -44,11 +49,14 @@ function laidOut(el: Element | null): el is SVGSVGElement {
 
 /**
  * The nav's mark at this breakpoint: the phone bar's and the xl corner's are
- * both in the DOM, one of them display: none, so the laid-out one is the one
- * the traveller can land on; null where neither is (the mark fades in place).
+ * both registered (state/revealTargets.ts), one of them display: none, so the
+ * laid-out one is the one the traveller can land on; null where neither is
+ * (the mark fades in place).
  */
-export function navMark(root: ParentNode = document): SVGSVGElement | null {
-  return Array.from(root.querySelectorAll<SVGSVGElement>(NAV_MARK)).find(laidOut) ?? null;
+export function navMark(): SVGSVGElement | null {
+  return revealTargets("mark")
+    .map((link) => link.querySelector<SVGSVGElement>(G_MARK))
+    .find(laidOut) ?? null;
 }
 
 /**
@@ -63,7 +71,7 @@ export function buildHandoff({ root, mark, rule, headline, nav, parallax, onComp
   const tl = gsap.timeline({ onComplete });
 
   if (rule) {
-    tl.to(rule, { attr: { "stroke-dashoffset": 0 }, duration: TRACE_FINISH_SECONDS, ease: "power2.inOut" }, 0);
+    tl.to(rule, { attr: { "stroke-dashoffset": 0 }, duration: TRACE_FINISH_SECONDS, ease: TRACE_FINISH_EASE }, 0);
   }
   const at = TRACE_FINISH_SECONDS;
 
@@ -87,7 +95,7 @@ export function buildHandoff({ root, mark, rule, headline, nav, parallax, onComp
     );
     tl.set(nav, { clearProps: "opacity" }, at + HANDOFF_SECONDS);
   } else if (mark) {
-    tl.to(mark, { opacity: 0, duration: HANDOFF_SECONDS / 2, ease: "power2.out" }, at);
+    tl.to(mark, { opacity: 0, duration: HANDOFF_SECONDS / 2, ease: FADE_EASE }, at);
   }
 
   if (headline) {

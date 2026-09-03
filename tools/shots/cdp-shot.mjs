@@ -241,7 +241,7 @@ try {
     await evaluate(`(() => {
       const s = document.querySelectorAll("section[data-screen-label]")[${i}];
       const top = s.getBoundingClientRect().top + window.scrollY + s.offsetHeight * ${scroll};
-      if (window.__gccScrollTo) window.__gccScrollTo(top); else window.scrollTo({ top, behavior: "instant" });
+      if (window.__gcc?.scrollTo) window.__gcc.scrollTo(top); else window.scrollTo({ top, behavior: "instant" });
     })()`);
     await sleep(settle);
     await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: px * W, y: py * H });
@@ -268,12 +268,13 @@ try {
   if (menu) {
     await evaluate(`window.scrollTo({ top: 0, behavior: "instant" })`);
     await sleep(400);
-    await evaluate(`document.querySelector("[data-mobile-nav] button")?.click()`);
+    // the Menu button is the sheet's radix Dialog trigger (src/features/nav/MobileNav.tsx)
+    await evaluate(`document.querySelector("nav button[aria-haspopup='dialog']")?.click()`);
     await sleep(700);
     const shot = await send("Page.captureScreenshot", { format: "png" });
     const file = join(out, "menu.png");
     writeFileSync(file, Buffer.from(shot.data, "base64"));
-    state.push({ label: "menu", file, open: await evaluate(`!!document.querySelector("[data-nav-sheet]")`) });
+    state.push({ label: "menu", file, open: await evaluate(`!!document.querySelector("[role='dialog']")`) });
     console.log("wrote", file);
     await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
     await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });

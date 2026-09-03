@@ -1,9 +1,12 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { Observer } from "gsap/Observer";
+import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { BELOW_LG_QUERY } from "@/layout/breakpoint";
-import { Observer, ScrollSmoother, ScrollTrigger } from "@/lib/gsap";
-import { installScrollDriver } from "./position";
+import { BELOW_LG_QUERY } from "@/theme/breakpoints";
+import { REST_STATE, useAppStore } from "@/state/appStore";
+import { createSectionRegistry } from "./sections";
 import { SMOOTH_SCROLL_ATTR } from "./smoother";
 
 import { scrollMode, useSmoothScroll } from "./useSmoothScroll";
@@ -23,21 +26,32 @@ describe("scrollMode", () => {
   });
 });
 
-/** the smoother's wrapper and content around a scene of labelled sections, on the page */
+const SCENE = ["hero", "about"] as const;
+const LONGFORM = ["faq"] as const;
+
+/** the smoother's wrapper and content around a scene of sections and a long-form one, on the page, registered by ref */
 function mountPage() {
   const wrapper = document.createElement("div");
   const content = document.createElement("div");
   const scene = document.createElement("div");
-  for (const label of ["Hero", "About"]) {
+  const sections = createSectionRegistry([...SCENE, ...LONGFORM]);
+  for (const id of SCENE) {
     const section = document.createElement("section");
-    section.dataset.screenLabel = label;
+    section.id = id;
     scene.appendChild(section);
+    sections.ref(id)(section);
   }
   content.appendChild(scene);
+  for (const id of LONGFORM) {
+    const section = document.createElement("section");
+    section.id = id;
+    content.appendChild(section);
+    sections.ref(id)(section);
+  }
   wrapper.appendChild(content);
   document.body.appendChild(wrapper);
   return {
-    refs: { wrapper: { current: wrapper }, content: { current: content }, scene: { current: scene }, held: [] },
+    refs: { wrapper: { current: wrapper }, content: { current: content }, scene: { current: scene }, held: [], sections },
     unmount: () => wrapper.remove(),
   };
 }
@@ -55,6 +69,8 @@ function viewportBelowLg(below: boolean) {
   );
 }
 
+const sectionTriggers = () => ScrollTrigger.getAll().filter((t) => (t.trigger as HTMLElement).tagName === "SECTION");
+
 describe("useSmoothScroll", () => {
   let page: ReturnType<typeof mountPage>;
   beforeEach(() => {
@@ -62,46 +78,115 @@ describe("useSmoothScroll", () => {
   });
   afterEach(() => {
     page.unmount();
-    installScrollDriver(null);
+    ScrollTrigger.killAll();
+    useAppStore.setState(REST_STATE);
     vi.restoreAllMocks();
   });
 
-  it("below lg builds nothing: no smoother, no observer, no settle trigger — the window scrolls", () => {
+  it("at lg and up the scene is paged: the smoother, a touch observer and the scene's trigger", () => {
+    viewportBelowLg(false);
+    const smoother = vi.spyOn(ScrollSmoother, "create");
+    const observer = vi.spyOn(Observer, "create");
+    const trigger = vi.spyOn(ScrollTrigger, "create");
+    const { result, unmount } = renderHook(() => useSmoothScroll(page.refs));
+    expect(smoother).toHaveBeenCalledTimes(1);
+    expect(observer).toHaveBeenCalledTimes(1);
+    expect(observer.mock.calls[0][0]).toMatchObject({ type: "touch", preventDefault: true });
+    expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ trigger: page.refs.scene.current }));
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(true);
+    expect(window.__gcc?.scrollTo).toBeTypeOf("function");
+    // the driver is the smoother's, off its handle
+    expect(result.current.driver()).not.toBeNull();
+    expect(result.current.scrollTop()).toBe(result.current.driver()!.scrollTop());
+    unmount();
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
+    expect(window.__gcc?.scrollTo).toBeUndefined();
+    expect(result.current.driver()).toBeNull();
+  });
+
+  it("below lg the scene is not paged — no observer, no scene trigger — but the smoother stands", () => {
     viewportBelowLg(true);
     const smoother = vi.spyOn(ScrollSmoother, "create");
     const observer = vi.spyOn(Observer, "create");
     const trigger = vi.spyOn(ScrollTrigger, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, false));
-    expect(smoother).not.toHaveBeenCalled();
+    const { unmount } = renderHook(() => useSmoothScroll(page.refs));
+    expect(smoother).toHaveBeenCalledTimes(1);
     expect(observer).not.toHaveBeenCalled();
-    expect(trigger).not.toHaveBeenCalled();
-    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
-    expect(window.__gccScrollTo).toBeUndefined();
+    expect(trigger).not.toHaveBeenCalledWith(expect.objectContaining({ trigger: page.refs.scene.current }));
     unmount();
   });
 
-  it("at lg and up the scene is paged: a touch observer and the settle trigger over the scene", () => {
+  it("reduced motion is native at any width: no smoother, no paging, and the window's own position", () => {
     viewportBelowLg(false);
-    const observer = vi.spyOn(Observer, "create");
-    const trigger = vi.spyOn(ScrollTrigger, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, false));
-    expect(observer).toHaveBeenCalledTimes(1);
-    expect(observer.mock.calls[0][0]).toMatchObject({ type: "touch", preventDefault: true });
-    expect(trigger).toHaveBeenCalledWith(expect.objectContaining({ trigger: page.refs.scene.current }));
-    unmount();
-  });
-
-  it("reduced motion is native at any width", () => {
-    viewportBelowLg(false);
+    useAppStore.setState({ reducedMotion: true });
     const observer = vi.spyOn(Observer, "create");
     const smoother = vi.spyOn(ScrollSmoother, "create");
-    const { unmount } = renderHook(() => useSmoothScroll(page.refs, true));
+    const { result, unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(observer).not.toHaveBeenCalled();
     expect(smoother).not.toHaveBeenCalled();
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
+    expect(window.__gcc?.scrollTo).toBeUndefined();
+    expect(result.current.driver()).toBeNull();
+    expect(result.current.scrollTop()).toBe(document.documentElement.scrollTop);
     unmount();
   });
 
-  it("a resize across lg tears the paging down, and builds it back whole", () => {
+  it("one trigger per section, scene and long-form, feeds the store's activeId", () => {
+    viewportBelowLg(false);
+    useAppStore.setState({ activeId: "hero" });
+    const { unmount } = renderHook(() => useSmoothScroll(page.refs));
+    const triggers = sectionTriggers();
+    expect(triggers.map((t) => (t.trigger as HTMLElement).id)).toEqual([...SCENE, ...LONGFORM]);
+    triggers[2].vars.onToggle?.({ isActive: true } as ScrollTrigger);
+    expect(useAppStore.getState().activeId).toBe("faq");
+    unmount();
+    expect(sectionTriggers()).toEqual([]);
+  });
+
+  it("a flip to reduced motion mid-session gives the smoother up for native scroll, the paging with it; a flip back builds both again (#132)", () => {
+    viewportBelowLg(false);
+    const observers: Array<{ kill: ReturnType<typeof vi.fn> }> = [];
+    vi.spyOn(Observer, "create").mockImplementation(() => {
+      const fake = { kill: vi.fn(), enable: vi.fn(), disable: vi.fn() };
+      observers.push(fake);
+      return fake as unknown as Observer;
+    });
+    const create = ScrollSmoother.create.bind(ScrollSmoother);
+    const smoothers: ScrollSmoother[] = [];
+    const created = vi.spyOn(ScrollSmoother, "create").mockImplementation((vars) => {
+      const smoother = create(vars);
+      smoothers.push(smoother);
+      return smoother;
+    });
+    const { result, unmount } = renderHook(() => useSmoothScroll(page.refs));
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(observers).toHaveLength(1);
+    const watched = sectionTriggers();
+    const kill = vi.spyOn(smoothers[0], "kill");
+
+    act(() => useAppStore.getState().setReducedMotion(true));
+    // native scroll: the smoother is gone with its seam and its mark, the pager with it, and the page reads the window's own position
+    expect(kill).toHaveBeenCalledTimes(1);
+    expect(observers[0].kill).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
+    expect(window.__gcc?.scrollTo).toBeUndefined();
+    expect(result.current.driver()).toBeNull();
+    expect(result.current.scrollTop()).toBe(document.documentElement.scrollTop);
+    // the section watch stands throughout
+    expect(sectionTriggers()).toEqual(watched);
+
+    act(() => useAppStore.getState().setReducedMotion(false));
+    expect(created).toHaveBeenCalledTimes(2);
+    expect(observers).toHaveLength(2);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(true);
+    expect(result.current.driver()).not.toBeNull();
+    expect(sectionTriggers()).toEqual(watched);
+    unmount();
+    expect(observers[1].kill).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.hasAttribute(SMOOTH_SCROLL_ATTR)).toBe(false);
+  });
+
+  it("a resize across lg tears the paging down and builds it back whole, and leaves the smoother and the watch alone", () => {
     let below = false;
     let onChange: (() => void) | null = null;
     vi.spyOn(window, "matchMedia").mockImplementation(
@@ -123,8 +208,11 @@ describe("useSmoothScroll", () => {
       observers.push(fake);
       return fake as unknown as Observer;
     });
-    const { rerender, unmount } = renderHook(() => useSmoothScroll(page.refs, false));
+    const smoother = vi.spyOn(ScrollSmoother, "create");
+    const { rerender, unmount } = renderHook(() => useSmoothScroll(page.refs));
     expect(observers).toHaveLength(1);
+    const watched = sectionTriggers();
+    expect(watched).toHaveLength(3);
 
     below = true;
     onChange!();
@@ -136,6 +224,8 @@ describe("useSmoothScroll", () => {
     onChange!();
     rerender();
     expect(observers).toHaveLength(2);
+    expect(smoother).toHaveBeenCalledTimes(1);
+    expect(sectionTriggers()).toEqual(watched);
     unmount();
     expect(observers[1].kill).toHaveBeenCalledTimes(1);
   });

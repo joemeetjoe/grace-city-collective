@@ -2,10 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { gsap } from "@/lib/gsap";
 
+import { TRACE_GLIDE_PACE, TRACE_MIN_SECONDS } from "@/theme/motion";
 import {
-  TRACE_GLIDE_PACE,
   TRACE_HOLD,
-  TRACE_MIN_SECONDS,
   createTrace,
   drawRule,
   glideSeconds,

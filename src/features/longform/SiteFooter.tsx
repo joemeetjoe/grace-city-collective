@@ -1,11 +1,11 @@
-import { gutter, serif } from "@/app/styles";
-import { FOCUS_RING, LINK_SWEEP } from "@/theme/interact";
-import Reveal, { REVEAL_STAGGER_MS } from "@/ui/Reveal";
+import { FOCUS_RING, LINK_SWEEP, gutter, serif } from "@/theme/classes";
+import { REVEAL_STAGGER_MS } from "@/theme/motion";
+import Reveal from "@/ui/Reveal";
 import { useSite } from "@/content/useSite";
 
 export default function SiteFooter() {
   const site = useSite();
-  const { contact } = site;
+  const { contact, footer } = site;
   return (
     <footer
       className={`${gutter} border-t border-cream/15 py-[clamp(48px,8vh,80px)]`}
@@ -23,7 +23,10 @@ export default function SiteFooter() {
             <br />
             {contact.address.city}
           </p>
-          <p>Sunday Worship Gathering · {contact.sunday}</p>
+          <p>
+            {`${footer.gathering} · `}
+            {contact.sunday}
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <a
@@ -32,7 +35,10 @@ export default function SiteFooter() {
           >
             {contact.email}
           </a>
-          <p>{contact.pastor.name}, pastor</p>
+          <p>
+            {contact.pastor.name}
+            {`, ${footer.pastorTitle}`}
+          </p>
           <a
             href={`mailto:${contact.pastor.email}`}
             className={`${LINK_SWEEP} ${FOCUS_RING} self-start rounded-sm hover:text-cream`}
@@ -42,10 +48,10 @@ export default function SiteFooter() {
         </div>
         <div className="flex flex-col gap-2 md:items-end">
           <p className="flex flex-wrap gap-x-4 gap-y-2 text-[11px] uppercase tracking-[0.22em]">
-            <span className="text-cream/45">{site.footer.follow}</span>
+            <span className="text-cream/45">{footer.follow}</span>
             {site.socials.map((s) => (
               <a
-                key={s.href}
+                key={s.id}
                 href={s.href}
                 className={`${LINK_SWEEP} ${FOCUS_RING} rounded-sm hover:text-cream`}
               >
@@ -54,7 +60,7 @@ export default function SiteFooter() {
             ))}
           </p>
           <p className="text-xs text-cream/45">
-            © {site.footer.copyright}
+            © {footer.copyright}
           </p>
         </div>
       </Reveal>

@@ -1,12 +1,10 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import SowingMark, {
-  ENTER_STAGGER_MS,
-  ROWS,
-  TILES,
-} from "./SowingMark";
-import { arrives, departs, parent, STEP_MS, TRAVEL_MS } from "./sowing";
+import { SOW_STEP_MS, SOW_TRAVEL_MS, TILE_STAGGER_MS } from "@/theme/motion";
+import SowingMark from "./SowingMark";
+import { arrives, departs, parent } from "./sowing";
+import { SOW_ROWS, TILES } from "./sowingMarkMetrics";
 
 function tiles(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>("[data-tile]"));
@@ -55,7 +53,7 @@ describe("SowingMark", () => {
     for (const xs of rows.values()) {
       expect((xs[0] + xs[xs.length - 1]) / 2).toBeCloseTo(seedX);
     }
-    expect(ROWS).toBe(4);
+    expect(SOW_ROWS).toBe(4);
   });
 
   it("the seed alone is filled at rest, in the seal's red, with its grain in the middle; the rest wait hollow", () => {
@@ -127,20 +125,20 @@ describe("SowingMark", () => {
     // the sequence: a row sets out one step after the one before, and lands
     // a travel later; the fill waits for the landing
     expect(departs(1)).toBe(0);
-    expect(departs(2)).toBe(STEP_MS);
-    expect(arrives(1)).toBe(TRAVEL_MS);
+    expect(departs(2)).toBe(SOW_STEP_MS);
+    expect(arrives(1)).toBe(SOW_TRAVEL_MS);
     const fillDelay = (t: HTMLElement) =>
       parseFloat(t.querySelector("path")!.style.transitionDelay);
     expect(fillDelay(at(container, 0, 0))).toBe(0);
     expect(fillDelay(at(container, 1, 1))).toBe(arrives(1));
     expect(fillDelay(at(container, 2, 0))).toBe(arrives(2));
     expect(fillDelay(at(container, 3, 3))).toBe(arrives(3));
-    for (let row = 1; row < ROWS; row++) {
+    for (let row = 1; row < SOW_ROWS; row++) {
       for (let col = 0; col <= row; col++) {
         const a = grain(at(container, row, col))!.style.animation;
-        expect(a).toContain(`sow-travel ${TRAVEL_MS}ms`);
+        expect(a).toContain(`sow-travel ${SOW_TRAVEL_MS}ms`);
         expect(a).toContain(` ${departs(row)}ms forwards`);
-        if (row < ROWS - 1) {
+        if (row < SOW_ROWS - 1) {
           expect(a).toContain(`sow-leave`);
           expect(a).toContain(` ${departs(row + 1)}ms forwards`);
         } else {
@@ -164,10 +162,10 @@ describe("SowingMark", () => {
     }
     expect(at(container, 0, 0).style.transitionDelay).toBe("0ms");
     expect(at(container, 1, 1).style.transitionDelay).toBe(
-      `${2 * ENTER_STAGGER_MS}ms`,
+      `${2 * TILE_STAGGER_MS}ms`,
     );
     expect(at(container, 3, 3).style.transitionDelay).toBe(
-      `${6 * ENTER_STAGGER_MS}ms`,
+      `${6 * TILE_STAGGER_MS}ms`,
     );
   });
 });
