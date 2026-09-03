@@ -12,6 +12,27 @@
  * simulation.
  */
 
+/**
+ * Where Chrome lives, in the order worth trying: the flag, then CHROME_PATH
+ * (which the Lighthouse config also honours), then the usual installs — the
+ * Mac desktop app and the Linux packages a CI runner carries. `exists` is
+ * injected so this stays testable.
+ */
+export function pickChrome({ flag, env, exists } = {}) {
+  if (flag) return flag;
+  if (env) return env;
+  const candidates = [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+  ];
+  const found = candidates.find((path) => exists(path));
+  if (!found) throw new Error(`no Chrome to drive; set CHROME_PATH or --chrome. Looked in:\n  ${candidates.join("\n  ")}`);
+  return found;
+}
+
 /** the profiles a run reports, in table order */
 export const PAINT_PROFILES = ["desktop", "mobile"];
 
